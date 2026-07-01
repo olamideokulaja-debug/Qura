@@ -626,7 +626,7 @@ const FEED_SEED = [
   { id: "f5", org: "Gulf Health Group (Dubai)", who: "Dr. Layla Hassan", title: "Chief Medical Officer", init: "LH", ago: "6h", body: "Opening two new diagnostic centres across the UAE. We are seeking managed sonography and MRI imaging partners, and welcome UK-based suppliers who can support international deployment.", reqs: ["MRI imaging", "Managed sonography", "UAE deployment", "International"], market: "international", budget: "$2.4M", status: 0, posted: "Tue 07:30", responders: 3 },
 ];
 
-function LiveFeedScreen({ onBook, onToast, role = "operator", market = "all", onMarket }) {
+function LiveFeedScreen({ onBook, onToast, role = "operator", market = "all", onMarket, displayName }) {
   const [feed, setFeed] = useState(FEED_SEED);
   const [draft, setDraft] = useState("");
   const [openId, setOpenId] = useState(null);
@@ -642,7 +642,8 @@ function LiveFeedScreen({ onBook, onToast, role = "operator", market = "all", on
   useEffect(() => { if (hyd) try { window.storage?.set("qura_feed_saved", JSON.stringify(saved)); } catch (e) {} }, [saved, hyd]);
   useEffect(() => { if (hyd) try { window.storage?.set("qura_feed_showan", JSON.stringify(showAn)); } catch (e) {} }, [showAn, hyd]);
   useEffect(() => { if (hyd) try { window.storage?.set("qura_feed_filter", JSON.stringify(statusFilter)); } catch (e) {} }, [statusFilter, hyd]);
-  const me = ROLE_META[role] || ROLE_META.operator;
+  const _meBase = ROLE_META[role] || ROLE_META.operator;
+  const me = (displayName && displayName.trim()) ? { ..._meBase, who: displayName } : _meBase;
   const isSupplier = role === "agency" || role === "operator" || role === "clinician";
   const init2 = (me.who || "Qura").slice(0, 2).toUpperCase();
   const post = () => { if (!draft.trim()) return; setFeed((f) => [{ id: "u" + Date.now(), org: me.who, who: me.who, title: me.label, init: init2, ago: "now", body: draft.trim(), reqs: [], market: draftMarket, budget: draftBudget.trim() ? CURRENCY[draftMarket].sym + draftBudget.trim() : undefined, status: 0, posted: "Just now", responders: 0, mine: true }, ...f]); setDraft(""); setDraftBudget(""); onToast?.("Requirement posted to the live feed"); };
@@ -1032,12 +1033,12 @@ function AdminScreen({ ownerEmail }) {
     </div>
   );
 }
-function SettingsScreen({ plan, trialMsg, go }) {
-  const [p, setP] = useState({ name: "Ola Folawiyo", email: "ola@qura.health", title: "Founder & CEO", region: "London, UK" });
+function SettingsScreen({ plan, trialMsg, go, profileName, onName }) {
+  const [p, setP] = useState({ name: "", email: "", title: "", region: "" });
   const [n, setN] = useState({ opps: true, replies: true, forums: true, digest: false });
   const [saved, setSaved] = useState(false);
   useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_settings"); if (r?.value) { const s = JSON.parse(r.value); if (s.p) setP(s.p); if (s.n) setN(s.n); } } catch (e) {} })(); }, []);
-  const save = () => { try { window.storage?.set("qura_settings", JSON.stringify({ p, n })); } catch (e) {} setSaved(true); setTimeout(() => setSaved(false), 1800); };
+  const save = () => { try { window.storage?.set("qura_settings", JSON.stringify({ p, n })); } catch (e) {} try { window.storage?.set("qura_profile_name", p.name || ""); } catch (e) {} if (onName) onName(p.name || ""); setSaved(true); setTimeout(() => setSaved(false), 1800); };
   const field = (label, key, type) => (<div style={{ marginBottom: 16 }}><label style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 6 }}>{label}</label><input className="in" type={type || "text"} value={p[key]} onChange={(e) => setP((x) => ({ ...x, [key]: e.target.value }))} /></div>);
   const notif = [["opps", "New high-fit opportunities", "Alert me when a strong-fit opportunity is published"], ["replies", "Proposal opens & replies", "Tell me when a decision-maker engages a proposal"], ["forums", "Round-table invites", "Invitations and confirmations for forums"], ["digest", "Weekly digest", "A Monday summary of pipeline and market moves"]];
   return (
@@ -1046,7 +1047,7 @@ function SettingsScreen({ plan, trialMsg, go }) {
       <div className="card" style={{ padding: 20, marginBottom: 16, background: "linear-gradient(120deg,var(--cyan-soft),#fff 70%)" }}><div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}><div><div className="faint" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>Your plan</div><div className="disp" style={{ fontWeight: 700, fontSize: 20, marginTop: 4 }}>{plan ? (PLAN_LABEL[plan] || plan) : "No plan selected"}</div>{trialMsg && <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>{trialMsg}</div>}</div><button className="btn btn-primary" onClick={() => go && go("pricing")}>Manage plan</button></div></div>
       <div className="card" style={{ padding: 20, marginBottom: 16 }}><SectionHead title="Testing" /><div className="row" style={{ justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div className="muted" style={{ fontSize: 13, maxWidth: 360 }}>Reset the trial, plan and onboarding walkthrough to preview the first-run experience again.</div><button className="btn btn-light" style={{ color: "var(--red)" }} onClick={async () => { for (const k of ["qura_trial", "qura_trial_welcomed", "qura_plan", "qura_upgrade", "qura_tour_done", "qura_trial_events"]) { try { await window.storage?.delete(k); } catch (e) {} } try { window.location.reload(); } catch (e) {} }}>Reset trial & onboarding</button></div></div>
       <div className="grid-2" style={{ alignItems: "start" }}>
-        <div className="card" style={{ padding: 24 }}><SectionHead title="Profile" />{field("Full name", "name")}{field("Work email", "email", "email")}{field("Title", "title")}{field("Region", "region")}</div>
+        <div className="card" style={{ padding: 24 }}><SectionHead title="Profile" />{field("Full name", "name")}<div className="muted" style={{ fontSize: 12, margin: "-8px 0 14px" }}>This name shows on your top bar, account menu and the requirements you post.</div>{field("Work email", "email", "email")}{field("Title", "title")}{field("Region", "region")}</div>
         <div className="card" style={{ padding: 24 }}><SectionHead title="Notifications" /><div style={{ display: "flex", flexDirection: "column", gap: 4 }}>{notif.map(([k, t, d], i) => (<div key={k} className="row" style={{ justifyContent: "space-between", gap: 16, padding: "13px 0", borderBottom: i < notif.length - 1 ? "1px solid var(--line)" : "none" }}><div><div style={{ fontWeight: 600, fontSize: 14 }}>{t}</div><div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>{d}</div></div><Toggle on={n[k]} onClick={() => setN((x) => ({ ...x, [k]: !x[k] }))} /></div>))}</div></div>
       </div>
     </div>
@@ -1717,7 +1718,7 @@ const NOTIFS = [
   { t: "Round-table seat confirmed", b: "Community Diagnostics forum", time: "3h", i: Ticket, dot: false },
   { t: "Clinician shortlisted", b: "Matched to 2 new roles", time: "1d", i: Stethoscope, dot: false },
 ];
-function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan, onExtend, isOwner, ownerEmail }) {
+function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan, onExtend, isOwner, ownerEmail, profileName, onProfileName }) {
   const nav = NAVS[role];
   const [active, setActive] = useState(nav[0].k);
   const [market, setMarket] = useState(role === "hospital" ? "nhs" : "all");
@@ -1744,6 +1745,8 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const meta = ROLE_META[role];
+  const displayName = (profileName && profileName.trim()) || meta.who;
+  const displayInit = displayName.split(" ").filter(Boolean).slice(-2).map((x) => x[0]).join("").toUpperCase();
   const [tour, setTour] = useState(false);
   const [q, setQ] = useState("");
   const [sOpen, setSOpen] = useState(false);
@@ -1790,7 +1793,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   const screen = () => {
     switch (active) {
       case "command": return <CommandCenter go={go} />;
-      case "feed": return <LiveFeedScreen role={role} market={market} onMarket={setMarket} onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
+      case "feed": return <LiveFeedScreen role={role} displayName={displayName} market={market} onMarket={setMarket} onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "suppliers": return <SuppliersScreen onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "leaderboard": return <Leaderboard go={go} market={market} />;
       case "inbox": return <SupplierInbox go={go} market={market} onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
@@ -1805,7 +1808,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "analytics": return <Analytics />;
       case "clinicians": return <ClinicianNetwork />;
       case "pricing": return <Pricing plan={plan} onChoose={(pk, annual) => { onPlan && onPlan(pk, annual); const unlocked = lockedFrom && (PLAN_ACCESS[pk] || []).includes(lockedFrom); const lockedLabel = (nav.find((n) => n.k === lockedFrom) || {}).l || "That feature"; const back = unlocked ? lockedFrom : null; setUpgradeTo(null); setLockedFrom(null); setToast(unlocked ? (lockedLabel + " unlocked") : (pk === "trial" ? "Free trial started" : "You are now on the " + (PLAN_LABEL[pk] || pk) + " plan")); setTimeout(() => setToast(null), 2800); if (back) go(back); }} highlight={upgradeTo} />;
-      case "settings": return <SettingsScreen plan={plan} trialMsg={trialMsg} go={go} />;
+      case "settings": return <SettingsScreen plan={plan} trialMsg={trialMsg} go={go} profileName={profileName} onName={onProfileName} />;
       case "admin": return <AdminScreen ownerEmail={ownerEmail} />;
       case "clients": return <ClientsTargets />;
       case "casestudies": return <CaseStudies />;
@@ -1855,9 +1858,9 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
               {bOpen && (<><div onClick={() => setBOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 18 }} /><div className="card" style={{ position: "absolute", top: 40, right: 0, width: 320, zIndex: 20, padding: 0, overflow: "hidden", boxShadow: "var(--sh-lg)" }}><div className="row" style={{ justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid var(--line)" }}><span style={{ fontWeight: 700, fontSize: 14 }}>Notifications</span><button onClick={() => setNotifs(notifs.map((n) => ({ ...n, dot: false })))} style={{ fontSize: 12.5, color: "#076B61", fontWeight: 600 }}>Mark all read</button></div><div style={{ maxHeight: 340, overflowY: "auto" }}>{notifs.map((n, i) => { const NI = n.i; return (<div key={i} className="row" style={{ gap: 11, padding: "12px 16px", borderBottom: i < notifs.length - 1 ? "1px solid var(--line)" : "none", background: n.dot ? "rgba(0,194,184,.05)" : "transparent" }}><div style={{ width: 34, height: 34, borderRadius: 9, background: "var(--cyan-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}><NI size={16} color="#06776F" /></div><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 600, fontSize: 13.5 }}>{n.t}</div><div className="muted" style={{ fontSize: 12.5 }}>{n.b}</div></div><span className="faint" style={{ fontSize: 11.5, flexShrink: 0 }}>{n.time}</span></div>); })}</div><button className="row" style={{ width: "100%", justifyContent: "center", padding: "11px", fontSize: 13, fontWeight: 600, color: "var(--navy)", borderTop: "1px solid var(--line)" }} onClick={() => setBOpen(false)}>View all activity</button></div></>)}
             </div>
             <div style={{ position: "relative", zIndex: 19 }}>
-              <button className="row" onClick={() => setAOpen((v) => !v)} style={{ gap: 9, background: "none" }}><Avatar src={meta.img} initials={meta.who.split(" ").slice(-2).map((x) => x[0]).join("")} size={36} /><div className="hsm" style={{ lineHeight: 1.2, textAlign: "left" }}><div style={{ fontWeight: 600, fontSize: 13.5 }}>{meta.who}</div><div className="faint" style={{ fontSize: 11.5 }}>{meta.label}</div></div></button>
+              <button className="row" onClick={() => setAOpen((v) => !v)} style={{ gap: 9, background: "none" }}><Avatar src={profileName ? undefined : meta.img} initials={displayInit} size={36} /><div className="hsm" style={{ lineHeight: 1.2, textAlign: "left" }}><div style={{ fontWeight: 600, fontSize: 13.5 }}>{displayName}</div><div className="faint" style={{ fontSize: 11.5 }}>{meta.label}</div></div></button>
               {aOpen && (<><div onClick={() => setAOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 18 }} /><div className="card" style={{ position: "absolute", top: 48, right: 0, width: 258, zIndex: 20, padding: 8, boxShadow: "var(--sh-lg)" }}>
-                <div style={{ padding: "8px 10px 12px" }}><div style={{ fontWeight: 700, fontSize: 14 }}>{meta.who}</div><div className="faint" style={{ fontSize: 12 }}>{meta.label}</div>{plan && <span className="chip chip-cyan" style={{ fontSize: 10, marginTop: 7 }}>{PLAN_LABEL[plan] || plan}</span>}{trialMsg && <div className="muted" style={{ fontSize: 11.5, marginTop: 5 }}>{trialMsg}</div>}</div>
+                <div style={{ padding: "8px 10px 12px" }}><div style={{ fontWeight: 700, fontSize: 14 }}>{displayName}</div><div className="faint" style={{ fontSize: 12 }}>{meta.label}</div>{plan && <span className="chip chip-cyan" style={{ fontSize: 10, marginTop: 7 }}>{PLAN_LABEL[plan] || plan}</span>}{trialMsg && <div className="muted" style={{ fontSize: 11.5, marginTop: 5 }}>{trialMsg}</div>}</div>
                 {isOwner && <div style={{ borderTop: "1px solid var(--line)", padding: "10px 4px 4px" }}><div className="faint" style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", padding: "0 6px 8px" }}>Switch view</div>{["operator", "agency", "hospital", "clinician"].map((rk) => (<button key={rk} onClick={() => { onSwitch(rk); setAOpen(false); }} className="row" style={{ width: "100%", justifyContent: "space-between", gap: 8, padding: "8px 10px", borderRadius: 9, background: rk === role ? "var(--bg)" : "transparent", fontSize: 13.5, fontWeight: rk === role ? 600 : 500 }} onMouseEnter={(e) => { if (rk !== role) e.currentTarget.style.background = "var(--bg)"; }} onMouseLeave={(e) => { if (rk !== role) e.currentTarget.style.background = "transparent"; }}>{ROLE_META[rk] ? ROLE_META[rk].label : rk}{rk === role && <Check size={15} color="#0E8C7E" />}</button>))}</div>}
                 <div style={{ borderTop: "1px solid var(--line)", paddingTop: 6, marginTop: 6 }}>{isOwner && <button onClick={() => { go("admin"); setAOpen(false); }} className="row" style={{ width: "100%", gap: 9, padding: "9px 10px", borderRadius: 9, fontSize: 13.5, fontWeight: 500 }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}><ShieldCheck size={15} className="muted" /> Admin</button>}<button onClick={() => { go("settings"); setAOpen(false); }} className="row" style={{ width: "100%", gap: 9, padding: "9px 10px", borderRadius: 9, fontSize: 13.5, fontWeight: 500 }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}><Settings size={15} className="muted" /> Settings</button><button onClick={onLogout} className="row" style={{ width: "100%", gap: 9, padding: "9px 10px", borderRadius: 9, color: "var(--red)", fontSize: 13.5, fontWeight: 600 }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--red-bg)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}><LogOut size={15} /> Sign out</button></div>
               </div></>)}
@@ -1913,24 +1916,46 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
     } catch (e) { setMsg(String(e)); }
     setBusy(false);
   };
-  const lbl = { fontSize: 13, fontWeight: 600, display: "block", margin: "14px 0 6px", color: "var(--navy)" };
+  const soon = () => setMsg("SSO and NHS Mail sign-in are coming soon. Please continue with your email and password.");
+  const up = mode === "up";
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, background: "radial-gradient(135% 120% at 0% 0%, #102A4F 0%, #0A1730 46%, #070E20 100%)" }}>
-      <div className="card" style={{ width: "100%", maxWidth: 400, padding: 34 }}>
-        <button onClick={onHome} className="hsm" style={{ marginBottom: 6 }}><Wordmark /></button>
-        <h1 className="disp" style={{ fontSize: 23, fontWeight: 700, margin: "12px 0 2px" }}>{mode === "up" ? "Create your account" : "Sign in"}</h1>
-        <p className="muted" style={{ fontSize: 13.5, marginTop: 0 }}>{mode === "up" && roleLabel ? ("Creating your " + roleLabel + " account") : "Healthcare growth CRM"}</p>
-        <label style={lbl}>Work email</label>
-        <input className="in" style={{ width: "100%" }} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@organisation.com" />
-        <label style={lbl}>Password</label>
-        <input className="in" style={{ width: "100%" }} type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="********" onKeyDown={(e) => e.key === "Enter" && submit()} />
-        {msg && <div className="muted" style={{ fontSize: 13, marginTop: 12, background: "var(--bg)", padding: "10px 12px", borderRadius: 10, lineHeight: 1.45 }}>{msg}</div>}
-        <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 18, padding: 12 }} onClick={submit} disabled={busy}>{busy ? "Please wait..." : mode === "up" ? "Create account" : "Sign in"}</button>
-        <div className="muted" style={{ textAlign: "center", marginTop: 14, fontSize: 13 }}>{mode === "up" ? "Already have an account? " : "New here? "}<button onClick={() => { setMsg(""); if (mode === "up") { onBackToSignIn && onBackToSignIn(); } else { onCreateAccount && onCreateAccount(); } }} style={{ background: "none", border: "none", color: "var(--teal)", fontWeight: 700, cursor: "pointer" }}>{mode === "up" ? "Sign in" : "Create account"}</button></div>
+  <div style={{ minHeight: "100vh", position: "relative", display: "grid", placeItems: "center", padding: 24, overflow: "hidden", background: "radial-gradient(135% 120% at 0% 0%, #102A4F 0%, #0A1730 46%, #070E20 100%)" }}>
+    <div className="login-orb" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
+    <div className="login-orb" style={{ bottom: -150, left: -110, width: 480, height: 480, background: "radial-gradient(circle, rgba(45,107,255,.22), transparent 70%)" }} />
+    <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 30, left: 34, zIndex: 4 }}><Wordmark light /></button>
+    <div className="row login-card reveal" style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 940, gap: 0, borderRadius: 24, overflow: "hidden", boxShadow: "0 40px 110px rgba(0,0,0,.5)", alignItems: "stretch", border: "1px solid rgba(255,255,255,.1)" }}>
+      <div className="login-brand hsm" style={{ flex: "1 1 0", padding: "46px 44px", background: "linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02))", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
+        <div>
+          <span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC", border: "1px solid rgba(0,194,184,.32)" }}><Sparkles size={13} /> Healthcare growth engine</span>
+          <h1 className="disp" style={{ fontSize: 33, fontWeight: 700, margin: "24px 0 14px", lineHeight: 1.12 }}>Win the right work, faster.</h1>
+          <p style={{ color: "#9FB0D0", fontSize: 15, lineHeight: 1.6, maxWidth: 380 }}>One intelligent platform linking agencies, hospitals and clinicians across NHS, private and international markets.</p>
+        </div>
+        <div>
+          <div style={{ height: 1, background: "rgba(255,255,255,.1)", margin: "0 0 22px" }} />
+          <div className="row" style={{ gap: 28 }}>{[["100K+", "Decision makers"], ["8,473", "Clinicians"], ["50+", "Countries"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
+        </div>
+      </div>
+      <div className="login-auth" style={{ flex: "1 1 0", background: "#fff", padding: "46px 42px", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <button className="show-sm" onClick={onHome} style={{ marginBottom: 20, alignSelf: "flex-start" }}><Wordmark /></button>
+        <div className="ph-accent" />
+        <h2 className="disp" style={{ fontSize: 26, fontWeight: 700, margin: "0 0 6px" }}>{up ? "Create your account" : ("Sign in to " + APP_NAME)}</h2>
+        <p className="muted" style={{ marginTop: 0, fontSize: 14 }}>{up ? (roleLabel ? ("Creating your " + roleLabel + " account") : "Join Qura in a few seconds.") : "Welcome back. Let us find your next opportunity."}</p>
+        <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>Work email</label>
+        <div className="login-field"><Mail size={16} className="faint" /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@qura.health" /></div>
+        <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "16px 0 0" }}>Password</label>
+        <div className="login-field"><ShieldCheck size={16} className="faint" /><input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" onKeyDown={(e) => e.key === "Enter" && submit()} /></div>
+        {!up && <div className="row" style={{ justifyContent: "flex-end", marginTop: 12, fontSize: 12.5 }}><span style={{ color: "var(--teal)", fontWeight: 600, cursor: "pointer" }} onClick={soon}>Forgot password?</span></div>}
+        {msg && <div className="muted" style={{ fontSize: 13, marginTop: 14, background: "var(--bg)", padding: "10px 12px", borderRadius: 10, lineHeight: 1.45 }}>{msg}</div>}
+        <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 18, padding: 13 }} onClick={submit} disabled={busy}>{busy ? "Please wait..." : (up ? "Create account" : "Sign in")} <ArrowRight size={16} /></button>
+        <div className="row" style={{ gap: 12, margin: "18px 0", color: "var(--faint)", fontSize: 12 }}><div style={{ flex: 1, height: 1, background: "var(--line)" }} /> or continue with <div style={{ flex: 1, height: 1, background: "var(--line)" }} /></div>
+        <div className="row" style={{ gap: 10 }}><button className="btn btn-light" style={{ flex: 1, justifyContent: "center", background: "var(--bg)" }} onClick={soon}><ShieldCheck size={15} /> SSO</button><button className="btn btn-light" style={{ flex: 1, justifyContent: "center", background: "var(--bg)" }} onClick={soon}><Mail size={15} /> NHS Mail</button></div>
+        <div className="row" style={{ justifyContent: "center", gap: 6, marginTop: 18, fontSize: 13 }}><span className="muted">{up ? "Already have an account?" : "New member?"}</span><button onClick={() => { setMsg(""); if (up) { onBackToSignIn && onBackToSignIn(); } else { onCreateAccount && onCreateAccount(); } }} style={{ color: "var(--teal)", fontWeight: 700, background: "none", cursor: "pointer" }}>{up ? "Sign in" : "Create account"}</button></div>
       </div>
     </div>
+  </div>
   );
 }
+
 export default function App() {
   const [stage, setStage] = useState("landing");
   const [session, setSession] = useState(null);
@@ -1940,6 +1965,8 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [authMode, setAuthMode] = useState("in");
   const [pendingRole, setPendingRole] = useState(null);
+  const [profileName, setProfileName] = useState("");
+  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_profile_name"); setProfileName(r?.value || ""); } catch (e) {} })(); }, [session, stage]);
   const email = ((session && session.user && session.user.email) || "").toLowerCase();
   const isOwner = OWNER_EMAILS.length === 0 || OWNER_EMAILS.includes(email);
 
@@ -2003,7 +2030,7 @@ export default function App() {
       {stage === "roleChoice" && <RoleChoiceScreen onPick={pickRole} onHome={home} />}
       {stage === "auth" && <AuthPanel mode={authMode} roleLabel={authMode === "up" && pendingRole ? roleLabelOf(pendingRole) : null} onHome={home} onCreateAccount={() => setStage("roleChoice")} onBackToSignIn={() => { setPendingRole(null); setAuthMode("in"); }} />}
       {stage === "signup" && <Signup onHome={home} onSignIn={goSignIn} onChoose={(pl, annual) => { choosePlan(pl, annual); setStage("app"); }} />}
-      {stage === "app" && role && <Shell role={role} trial={trial} plan={plan} onPlan={choosePlan} onExtend={extendTrial} onSignup={() => setStage("signup")} onLogout={logout} onHome={home} onSwitch={switchRole} isOwner={isOwner} ownerEmail={email} />}
+      {stage === "app" && role && <Shell role={role} trial={trial} plan={plan} onPlan={choosePlan} onExtend={extendTrial} onSignup={() => setStage("signup")} onLogout={logout} onHome={home} onSwitch={switchRole} isOwner={isOwner} ownerEmail={email} profileName={profileName} onProfileName={setProfileName} />}
     </div>
   );
 }
