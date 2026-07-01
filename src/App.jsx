@@ -1069,7 +1069,7 @@ function AiBrief({ name }) {
   };
   return (
     <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-      <div className="row" style={{ background: "var(--navy)", padding: "14px 18px", gap: 10 }}><Sparkles size={17} color="#5FE6DC" /><span style={{ color: "#fff", fontWeight: 600, fontSize: 14.5 }} className="disp">Ola's daily brief</span><span className="chip" style={{ marginLeft: "auto", background: "rgba(0,194,184,.16)", color: "#5FE6DC" }}>AI</span></div>
+      <div className="row" style={{ background: "var(--navy)", padding: "14px 18px", gap: 10 }}><Sparkles size={17} color="#5FE6DC" /><span style={{ color: "#fff", fontWeight: 600, fontSize: 14.5 }} className="disp">{name ? name + "'s daily brief" : "Daily brief"}</span><span className="chip" style={{ marginLeft: "auto", background: "rgba(0,194,184,.16)", color: "#5FE6DC" }}>AI</span></div>
       <div style={{ padding: 18 }}>
         {state === "idle" && <><p className="muted" style={{ marginTop: 0, fontSize: 14 }}>A live, written read on the whole marketplace, in one tap.</p><button className="btn btn-ai" style={{ width: "100%", justifyContent: "center" }} onClick={run}><Sparkles size={16} /> Generate brief</button></>}
         {state === "loading" && <div className="row muted" style={{ gap: 10, fontSize: 14, padding: "10px 0" }}><Loader2 size={17} className="pulse" color="#2D6BFF" /> Reading the marketplace…</div>}
