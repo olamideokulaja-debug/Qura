@@ -1384,7 +1384,7 @@ const PulseLine = ({ w = 320, color = "var(--cyan)" }) => (
   </svg>
 );
 
-function Landing({ onStart, onSignIn, onDemo }) {
+function Landing({ onEnter, onDemo }) {
   const stats = [{ n: "10+", l: "Years in healthcare BD" }, { n: "8,473+", l: "LinkedIn followers" }, { n: "208", l: "Decision-maker contacts" }, { n: "50+", l: "Countries reached" }];
   const edge = [
     { i: Brain, t: "A decade of real deals, encoded", b: "Qura's analytics are shaped by 10 years of contracts our experts have actually closed, so every score reflects how the market really behaves.", c: "#5B3FD6", bg: "var(--violet-soft)" },
@@ -1404,7 +1404,7 @@ function Landing({ onStart, onSignIn, onDemo }) {
         <div className="wrap row" style={{ justifyContent: "space-between", height: 72 }}>
           <Wordmark />
           <div className="row hsm" style={{ gap: 30 }}>{["Platform", "Founders", "Pricing"].map((x) => (<a key={x} href={"#" + x.toLowerCase()} className="navlink">{x}</a>))}</div>
-          <div className="row" style={{ gap: 12 }}><button className="btn btn-light hsm" style={{ background: "var(--bg)" }} onClick={onSignIn}>Sign in</button><button className="btn btn-light hsm" style={{ background: "var(--bg)" }} onClick={onDemo}>Book a demo</button><button className="btn btn-primary" onClick={onStart}>Get started</button></div>
+          <div className="row" style={{ gap: 12 }}><button className="btn btn-light hsm" style={{ background: "var(--bg)" }} onClick={onDemo}>Book a demo</button><button className="btn btn-primary" onClick={onEnter}>Get started / Sign in</button></div>
         </div>
       </div>
 
@@ -1414,7 +1414,7 @@ function Landing({ onStart, onSignIn, onDemo }) {
           <h1 className="disp heroh reveal" style={{ fontWeight: 700, margin: "26px auto 0", maxWidth: 880 }}>Stop rushing to the cheapest bidder. <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Start choosing the best.</span></h1>
           <div className="reveal" style={{ display: "flex", justifyContent: "center", margin: "14px 0 4px" }}><PulseLine /></div>
           <p className="muted reveal" style={{ fontSize: 19, maxWidth: 680, margin: "14px auto 0", lineHeight: 1.6 }}>{APP_NAME} is the healthcare growth CRM that saves health systems time and agency spend, built for the NHS first and ready for international markets. It connects hospitals, agencies and clinicians with live, specialist intelligence, so the right partner is chosen on merit, not against a deadline.</p>
-          <div className="row reveal" style={{ gap: 14, justifyContent: "center", marginTop: 34, flexWrap: "wrap" }}><button className="btn lift" style={{ padding: "15px 28px", fontSize: 16, background: "var(--blue)", color: "#fff", boxShadow: "0 6px 18px rgba(45,107,255,.32)" }} onClick={onStart}>Get started <ArrowRight size={18} /></button><a href="#founders" className="btn btn-dark lift" style={{ padding: "15px 28px", fontSize: 16 }}>Meet the founders</a></div>
+          <div className="row reveal" style={{ gap: 14, justifyContent: "center", marginTop: 34, flexWrap: "wrap" }}><button className="btn lift" style={{ padding: "15px 28px", fontSize: 16, background: "var(--blue)", color: "#fff", boxShadow: "0 6px 18px rgba(45,107,255,.32)" }} onClick={onEnter}>Get started / Sign in <ArrowRight size={18} /></button><a href="#founders" className="btn btn-dark lift" style={{ padding: "15px 28px", fontSize: 16 }}>Meet the founders</a></div>
           <div className="row faint reveal" style={{ gap: 8, justifyContent: "center", marginTop: 28, fontSize: 13.5 }}><ShieldCheck size={15} /> For framework and non-framework agencies, CQC and non-CQC providers, across the NHS, private and international markets</div>
         </div>
       </div>
@@ -1507,7 +1507,7 @@ function Landing({ onStart, onSignIn, onDemo }) {
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}><PulseLine w={260} color="#5FE6DC" /></div>
             <h2 className="disp" style={{ color: "#fff", fontSize: 40, fontWeight: 700, maxWidth: 700, margin: "0 auto", lineHeight: 1.08 }}>Win your next contract with experts on your side</h2>
             <p style={{ color: "#9FB0D0", fontSize: 18, maxWidth: 540, margin: "18px auto 0" }}>See how {APP_NAME} turns a decade of healthcare deal-making into your unfair advantage.</p>
-            <div className="row" style={{ gap: 14, justifyContent: "center", marginTop: 34, flexWrap: "wrap" }}><button className="btn btn-blue lift" style={{ padding: "15px 28px", fontSize: 16 }} onClick={onStart}>Get started <ArrowRight size={18} /></button><button onClick={onDemo} className="btn btn-dghost" style={{ padding: "15px 28px", fontSize: 16 }}><Mail size={17} /> Talk to us</button></div>
+            <div className="row" style={{ gap: 14, justifyContent: "center", marginTop: 34, flexWrap: "wrap" }}><button className="btn btn-blue lift" style={{ padding: "15px 28px", fontSize: 16 }} onClick={onEnter}>Get started / Sign in <ArrowRight size={18} /></button><button onClick={onDemo} className="btn btn-dghost" style={{ padding: "15px 28px", fontSize: 16 }}><Mail size={17} /> Talk to us</button></div>
           </Reveal>
         </div>
       </div>
@@ -1893,8 +1893,7 @@ function RoleChoiceScreen({ onPick, onHome }) {
     </div>
   );
 }
-function AuthPanel({ defaultMode = "in", roleLabel, onHome }) {
-  const [mode, setMode] = useState(defaultMode);
+function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSignIn }) {
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [msg, setMsg] = useState("");
@@ -1906,7 +1905,7 @@ function AuthPanel({ defaultMode = "in", roleLabel, onHome }) {
     try {
       if (mode === "up") {
         const { error } = await supabase.auth.signUp({ email, password: pw });
-        if (error) setMsg(error.message); else { setMsg("Account created. If asked, check your email to confirm, then sign in."); setMode("in"); }
+        if (error) setMsg(error.message); else setMsg("Account created. If asked, check your email to confirm, then sign in.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
         if (error) setMsg(error.message);
@@ -1927,7 +1926,7 @@ function AuthPanel({ defaultMode = "in", roleLabel, onHome }) {
         <input className="in" style={{ width: "100%" }} type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="********" onKeyDown={(e) => e.key === "Enter" && submit()} />
         {msg && <div className="muted" style={{ fontSize: 13, marginTop: 12, background: "var(--bg)", padding: "10px 12px", borderRadius: 10, lineHeight: 1.45 }}>{msg}</div>}
         <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 18, padding: 12 }} onClick={submit} disabled={busy}>{busy ? "Please wait..." : mode === "up" ? "Create account" : "Sign in"}</button>
-        <div className="muted" style={{ textAlign: "center", marginTop: 14, fontSize: 13 }}>{mode === "up" ? "Already have an account? " : "New here? "}<button onClick={() => { setMode(mode === "up" ? "in" : "up"); setMsg(""); }} style={{ background: "none", border: "none", color: "var(--teal)", fontWeight: 700, cursor: "pointer" }}>{mode === "up" ? "Sign in" : "Create one"}</button></div>
+        <div className="muted" style={{ textAlign: "center", marginTop: 14, fontSize: 13 }}>{mode === "up" ? "Already have an account? " : "New here? "}<button onClick={() => { setMsg(""); if (mode === "up") { onBackToSignIn && onBackToSignIn(); } else { onCreateAccount && onCreateAccount(); } }} style={{ background: "none", border: "none", color: "var(--teal)", fontWeight: 700, cursor: "pointer" }}>{mode === "up" ? "Sign in" : "Create account"}</button></div>
       </div>
     </div>
   );
@@ -1999,10 +1998,10 @@ export default function App() {
   return (
     <div className="cura">
       <style>{STYLES}</style>
-      {stage === "landing" && <Landing onStart={getStarted} onSignIn={goSignIn} onDemo={() => setStage("demo")} />}
+      {stage === "landing" && <Landing onEnter={goSignIn} onDemo={() => setStage("demo")} />}
       {stage === "demo" && <DemoBooking onHome={home} onSignIn={goSignIn} />}
       {stage === "roleChoice" && <RoleChoiceScreen onPick={pickRole} onHome={home} />}
-      {stage === "auth" && <AuthPanel defaultMode={authMode} roleLabel={authMode === "up" && pendingRole ? roleLabelOf(pendingRole) : null} onHome={home} />}
+      {stage === "auth" && <AuthPanel mode={authMode} roleLabel={authMode === "up" && pendingRole ? roleLabelOf(pendingRole) : null} onHome={home} onCreateAccount={() => setStage("roleChoice")} onBackToSignIn={() => { setPendingRole(null); setAuthMode("in"); }} />}
       {stage === "signup" && <Signup onHome={home} onSignIn={goSignIn} onChoose={(pl, annual) => { choosePlan(pl, annual); setStage("app"); }} />}
       {stage === "app" && role && <Shell role={role} trial={trial} plan={plan} onPlan={choosePlan} onExtend={extendTrial} onSignup={() => setStage("signup")} onLogout={logout} onHome={home} onSwitch={switchRole} isOwner={isOwner} ownerEmail={email} />}
     </div>
