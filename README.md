@@ -104,12 +104,21 @@ Qura is NHS-facing, so production handling of real trust or patient data brings 
 
 ---
 
+## Account roles & owner admin
+
+Each account now picks a role the first time it signs in (Operator, Healthcare Agency, Hospital/Provider or Clinician). That role is saved to the account, the app opens straight into it, and normal users cannot switch views. Owners keep the "switch view" flipper plus an Admin screen.
+
+- **Make yourself the owner:** in Vercel add the env var `VITE_OWNER_EMAILS` set to your email (comma-separated for more than one), then redeploy. Until you set it, every account is treated as an owner.
+- **Use the Admin screen:** it needs the server-side keys `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (Supabase > Settings > API > service_role). You may already have these from the Stripe step. The Admin screen lists everyone who has signed up and lets you set or change each person's role. It appears in the account menu (top-right avatar) for owners only.
+
 ## Environment variables at a glance
 
 | Variable | Where | Purpose |
 |---|---|---|
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | client | real accounts + data |
 | `VITE_BILLING_ENABLED` | client | route paid plans to Stripe |
+| `VITE_OWNER_EMAILS` | client + server | who is an owner (birds-eye + admin) |
+| `SUPABASE_SERVICE_ROLE_KEY` | server | lets the admin screen list & set roles |
 | `ANTHROPIC_API_KEY` | server | AI proposals |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | server | billing |
 | `STRIPE_PRICE_*_MONTHLY/ANNUAL` | server | plan prices |
@@ -121,6 +130,7 @@ Qura is NHS-facing, so production handling of real trust or patient data brings 
 qura-web/
 ├── api/
 │   ├── anthropic.js        # AI proxy (holds Anthropic key)
+│   ├── admin.js            # owner-only: list users, set roles
 │   ├── checkout.js         # creates a Stripe Checkout session
 │   └── stripe-webhook.js   # Stripe -> writes plan back to the account
 ├── supabase/schema.sql     # run once in Supabase
