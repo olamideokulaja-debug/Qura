@@ -434,9 +434,9 @@ function OnboardingChecklist({ go, sentN = 0, bookedN = 0 }) {
     </div>
   );
 }
-const Dashboard = ({ go, sentN = 0, bookedN = 0 }) => (
+const Dashboard = ({ go, sentN = 0, bookedN = 0, name }) => (
   <div>
-    <PageHead title="Welcome back, Ola" sub="Here is what is moving across your markets today." right={<button className="btn btn-ai" onClick={() => go("proposals")}><Sparkles size={16} /> New proposal</button>} />
+    <PageHead title={"Welcome back" + (name ? ", " + name : "")} sub="Here is what is moving across your markets today." right={<button className="btn btn-ai" onClick={() => go("proposals")}><Sparkles size={16} /> New proposal</button>} />
     <OnboardingChecklist go={go} sentN={sentN} bookedN={bookedN} />
     <div className="grid-stats" style={{ marginBottom: 18 }}>
       <Stat label="Live opportunities" value="1,248" delta="12% vs 30d" icon={Target} />
@@ -1056,13 +1056,13 @@ function SettingsScreen({ plan, trialMsg, go, profileName, onName }) {
 const Placeholder = ({ title }) => (<div><PageHead title={title} sub="This area is part of the prototype scope." /><div className="card" style={{ padding: 48, textAlign: "center" }}><MessageSquare size={28} className="faint" style={{ margin: "0 auto 12px" }} /><div className="muted">Content for {title.toLowerCase()} lives here in the full build.</div></div></div>);
 
 /* ===================== Pulse command center ===================== */
-function AiBrief() {
+function AiBrief({ name }) {
   const [state, setState] = useState("idle"); const [text, setText] = useState("");
   const fallback = `Marketplace momentum is strong. Pipeline value reached £24.6M, up 28% on last month, led by a 34% surge in Middle East demand. Supply is the constraint to watch: agency coverage in the Gulf is lagging behind open requirements. Twelve NHS framework deadlines close within the week, so prioritise theatre and AHP bids. Clinician sign-ups hit a weekly high, deepening the talent pool for hospitals.`;
   const run = async () => {
     setState("loading"); setText("");
     try {
-      const res = await fetch("/api/anthropic", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: `You are the marketplace intelligence engine inside ${APP_NAME}, a healthcare growth platform. Write a sharp 4-sentence executive brief for the founder, Ola, summarising marketplace health. Use these live figures: pipeline value £24.6M up 28% month on month; 1,248 live opportunities; 8,473 clinicians; 2,140 organisations; matches this month 412; Middle East demand up 34% with agency supply lagging; 12 NHS framework deadlines closing within 7 days; clinician sign-ups at a weekly high. British English, confident and specific, no bullet points, no em dashes, no preamble.` }] }) });
+      const res = await fetch("/api/anthropic", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: `You are the marketplace intelligence engine inside ${APP_NAME}, a healthcare growth platform. Write a sharp 4-sentence executive brief for the founder${name ? ", " + name + "," : ""} summarising marketplace health. Use these live figures: pipeline value £24.6M up 28% month on month; 1,248 live opportunities; 8,473 clinicians; 2,140 organisations; matches this month 412; Middle East demand up 34% with agency supply lagging; 12 NHS framework deadlines closing within 7 days; clinician sign-ups at a weekly high. British English, confident and specific, no bullet points, no em dashes, no preamble.` }] }) });
       const data = await res.json(); const t = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("").trim();
       setText(t || fallback);
     } catch (e) { setText(fallback); } setState("done");
@@ -1099,7 +1099,7 @@ const Balance = () => {
     </div>
   );
 };
-const CommandCenter = ({ go }) => {
+const CommandCenter = ({ go, name }) => {
   const [period, setPeriod] = useState("30d");
   return (
     <div>
@@ -1123,7 +1123,7 @@ const CommandCenter = ({ go }) => {
           </div>
         </div>
         <div className="grid" style={{ gap: 16 }}>
-          <AiBrief /><LiveFeed />
+          <AiBrief name={name} /><LiveFeed />
           <div className="card" style={{ padding: 18 }}><SectionHead title="Needs attention" />{ALERTS.map((a, i) => (<div key={i} className="row" style={{ gap: 10, padding: "9px 0", borderBottom: i < ALERTS.length - 1 ? "1px solid var(--line)" : "none" }}><AlertCircle size={16} color={a.c === "red" ? "var(--red)" : a.c === "amber" ? "var(--amber)" : "var(--ok)"} style={{ flexShrink: 0 }} /><span style={{ fontSize: 13.5 }}>{a.txt}</span></div>))}</div>
         </div>
       </div>
@@ -1678,10 +1678,15 @@ const NAVS = {
   ],
 };
 const ROLE_META = {
-  operator: { label: "Founder · Operator", who: "Ola Folawiyo", img: OLA_IMG },
+  operator: { label: "Co-Founder · Operator", who: "Operator", img: undefined },
   agency: { label: "Healthcare agency", who: "Apex Growth Partners" },
   hospital: { label: "Hospital / provider", who: "King's College Hospital" },
   clinician: { label: "Clinician", who: "Dr. Sarah Ahmed" },
+};
+
+const FOUNDER_IDENTITY = {
+  "olamideokulaja@gmail.com": { who: "Dr. Olamide Okulaja", label: "Co-Founder & CGO", img: OLA2_IMG },
+  "folawiyoconsultancy@gmail.com": { who: "Ola Folawiyo", label: "Founder & CEO", img: OLA_IMG },
 };
 
 const TOUR = [
@@ -1718,7 +1723,7 @@ const NOTIFS = [
   { t: "Round-table seat confirmed", b: "Community Diagnostics forum", time: "3h", i: Ticket, dot: false },
   { t: "Clinician shortlisted", b: "Matched to 2 new roles", time: "1d", i: Stethoscope, dot: false },
 ];
-function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan, onExtend, isOwner, ownerEmail, profileName, onProfileName }) {
+function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan, onExtend, isOwner, ownerEmail, profileName, onProfileName, founder }) {
   const nav = NAVS[role];
   const [active, setActive] = useState(nav[0].k);
   const [market, setMarket] = useState(role === "hospital" ? "nhs" : "all");
@@ -1745,8 +1750,11 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const meta = ROLE_META[role];
-  const displayName = (profileName && profileName.trim()) || meta.who;
+  const displayName = (profileName && profileName.trim()) || (founder && founder.who) || meta.who;
+  const displayLabel = (founder && founder.label) || meta.label;
+  const displayImg = (profileName && profileName.trim()) ? undefined : (founder ? founder.img : meta.img);
   const displayInit = displayName.split(" ").filter(Boolean).slice(-2).map((x) => x[0]).join("").toUpperCase();
+  const firstName = displayName.replace(/^Dr\.?\s+/i, "").split(" ")[0];
   const [tour, setTour] = useState(false);
   const [q, setQ] = useState("");
   const [sOpen, setSOpen] = useState(false);
@@ -1792,12 +1800,12 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   const onSaved = (opp) => { setSent((p) => [{ org: opp.org, role: opp.role, val: opp.val }, ...p]); setToast(`Proposal for ${opp.org} sent · logged to pipeline & meetings`); setTimeout(() => setToast(null), 3000); };
   const screen = () => {
     switch (active) {
-      case "command": return <CommandCenter go={go} />;
+      case "command": return <CommandCenter go={go} name={firstName} />;
       case "feed": return <LiveFeedScreen role={role} displayName={displayName} market={market} onMarket={setMarket} onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "suppliers": return <SuppliersScreen onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "leaderboard": return <Leaderboard go={go} market={market} />;
       case "inbox": return <SupplierInbox go={go} market={market} onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
-      case "dashboard": return <Dashboard go={go} sentN={sent.length} bookedN={booked.length} />;
+      case "dashboard": return <Dashboard go={go} name={firstName} sentN={sent.length} bookedN={booked.length} />;
       case "opportunities": return <Opportunities go={go} market={market} onPropose={openProposal} />;
       case "decisionMakers": return <DecisionMakers />;
       case "outreach": return <Outreach />;
@@ -1827,7 +1835,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "myopps": return <MyOpportunities />;
       case "network": return <NetworkScreen />;
       case "messages": return <Placeholder title="Messages" />;
-      default: return <Dashboard go={go} />;
+      default: return <Dashboard go={go} name={firstName} />;
     }
   };
   const Side = (
@@ -1853,14 +1861,14 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
             </div>
           </div>
           <div className="row" style={{ gap: 16 }}>
-            <span className="chip chip-grey hsm">{meta.label}</span>
+            <span className="chip chip-grey hsm">{displayLabel}</span>
             <div className="row hsm" style={{ gap: 7, padding: "0 8px 0 12px", height: 40, borderRadius: 999, border: "1px solid var(--line)", background: "#fff" }}><Globe size={15} className="faint" /><select value={market} onChange={(e) => setMarket(e.target.value)} style={{ border: "none", background: "transparent", outline: "none", fontSize: 13, fontWeight: 600, color: "var(--navy)", fontFamily: "inherit", cursor: "pointer", appearance: "none", WebkitAppearance: "none" }}>{marketOpts.map(([k, l]) => (<option key={k} value={k}>{l}</option>))}</select><span className="num" style={{ fontSize: 10.5, fontWeight: 700, color: "var(--teal)" }}>{CURRENCY[market].code}{CURRENCY[market].rate !== 1 ? " · " + CURRENCY[market].sym + CURRENCY[market].rate + "/£" : ""}</span><ChevronDown size={14} className="faint" /></div><div style={{ position: "relative", zIndex: 19 }}><button onClick={() => setBOpen((v) => !v)} className="iconbtn" style={{ position: "relative" }}><Bell size={20} className="muted" />{notifs.some((n) => n.dot) && <span style={{ position: "absolute", top: -2, right: -2, width: 8, height: 8, borderRadius: 9, background: "var(--red)" }} />}</button>
               {bOpen && (<><div onClick={() => setBOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 18 }} /><div className="card" style={{ position: "absolute", top: 40, right: 0, width: 320, zIndex: 20, padding: 0, overflow: "hidden", boxShadow: "var(--sh-lg)" }}><div className="row" style={{ justifyContent: "space-between", padding: "12px 16px", borderBottom: "1px solid var(--line)" }}><span style={{ fontWeight: 700, fontSize: 14 }}>Notifications</span><button onClick={() => setNotifs(notifs.map((n) => ({ ...n, dot: false })))} style={{ fontSize: 12.5, color: "#076B61", fontWeight: 600 }}>Mark all read</button></div><div style={{ maxHeight: 340, overflowY: "auto" }}>{notifs.map((n, i) => { const NI = n.i; return (<div key={i} className="row" style={{ gap: 11, padding: "12px 16px", borderBottom: i < notifs.length - 1 ? "1px solid var(--line)" : "none", background: n.dot ? "rgba(0,194,184,.05)" : "transparent" }}><div style={{ width: 34, height: 34, borderRadius: 9, background: "var(--cyan-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}><NI size={16} color="#06776F" /></div><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontWeight: 600, fontSize: 13.5 }}>{n.t}</div><div className="muted" style={{ fontSize: 12.5 }}>{n.b}</div></div><span className="faint" style={{ fontSize: 11.5, flexShrink: 0 }}>{n.time}</span></div>); })}</div><button className="row" style={{ width: "100%", justifyContent: "center", padding: "11px", fontSize: 13, fontWeight: 600, color: "var(--navy)", borderTop: "1px solid var(--line)" }} onClick={() => setBOpen(false)}>View all activity</button></div></>)}
             </div>
             <div style={{ position: "relative", zIndex: 19 }}>
-              <button className="row" onClick={() => setAOpen((v) => !v)} style={{ gap: 9, background: "none" }}><Avatar src={profileName ? undefined : meta.img} initials={displayInit} size={36} /><div className="hsm" style={{ lineHeight: 1.2, textAlign: "left" }}><div style={{ fontWeight: 600, fontSize: 13.5 }}>{displayName}</div><div className="faint" style={{ fontSize: 11.5 }}>{meta.label}</div></div></button>
+              <button className="row" onClick={() => setAOpen((v) => !v)} style={{ gap: 9, background: "none" }}><Avatar src={displayImg} initials={displayInit} size={36} /><div className="hsm" style={{ lineHeight: 1.2, textAlign: "left" }}><div style={{ fontWeight: 600, fontSize: 13.5 }}>{displayName}</div><div className="faint" style={{ fontSize: 11.5 }}>{displayLabel}</div></div></button>
               {aOpen && (<><div onClick={() => setAOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 18 }} /><div className="card" style={{ position: "absolute", top: 48, right: 0, width: 258, zIndex: 20, padding: 8, boxShadow: "var(--sh-lg)" }}>
-                <div style={{ padding: "8px 10px 12px" }}><div style={{ fontWeight: 700, fontSize: 14 }}>{displayName}</div><div className="faint" style={{ fontSize: 12 }}>{meta.label}</div>{plan && <span className="chip chip-cyan" style={{ fontSize: 10, marginTop: 7 }}>{PLAN_LABEL[plan] || plan}</span>}{trialMsg && <div className="muted" style={{ fontSize: 11.5, marginTop: 5 }}>{trialMsg}</div>}</div>
+                <div style={{ padding: "8px 10px 12px" }}><div style={{ fontWeight: 700, fontSize: 14 }}>{displayName}</div><div className="faint" style={{ fontSize: 12 }}>{displayLabel}</div>{plan && <span className="chip chip-cyan" style={{ fontSize: 10, marginTop: 7 }}>{PLAN_LABEL[plan] || plan}</span>}{trialMsg && <div className="muted" style={{ fontSize: 11.5, marginTop: 5 }}>{trialMsg}</div>}</div>
                 {isOwner && <div style={{ borderTop: "1px solid var(--line)", padding: "10px 4px 4px" }}><div className="faint" style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", padding: "0 6px 8px" }}>Switch view</div>{["operator", "agency", "hospital", "clinician"].map((rk) => (<button key={rk} onClick={() => { onSwitch(rk); setAOpen(false); }} className="row" style={{ width: "100%", justifyContent: "space-between", gap: 8, padding: "8px 10px", borderRadius: 9, background: rk === role ? "var(--bg)" : "transparent", fontSize: 13.5, fontWeight: rk === role ? 600 : 500 }} onMouseEnter={(e) => { if (rk !== role) e.currentTarget.style.background = "var(--bg)"; }} onMouseLeave={(e) => { if (rk !== role) e.currentTarget.style.background = "transparent"; }}>{ROLE_META[rk] ? ROLE_META[rk].label : rk}{rk === role && <Check size={15} color="#0E8C7E" />}</button>))}</div>}
                 <div style={{ borderTop: "1px solid var(--line)", paddingTop: 6, marginTop: 6 }}>{isOwner && <button onClick={() => { go("admin"); setAOpen(false); }} className="row" style={{ width: "100%", gap: 9, padding: "9px 10px", borderRadius: 9, fontSize: 13.5, fontWeight: 500 }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}><ShieldCheck size={15} className="muted" /> Admin</button>}<button onClick={() => { go("settings"); setAOpen(false); }} className="row" style={{ width: "100%", gap: 9, padding: "9px 10px", borderRadius: 9, fontSize: 13.5, fontWeight: 500 }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}><Settings size={15} className="muted" /> Settings</button><button onClick={onLogout} className="row" style={{ width: "100%", gap: 9, padding: "9px 10px", borderRadius: 9, color: "var(--red)", fontSize: 13.5, fontWeight: 600 }} onMouseEnter={(e) => (e.currentTarget.style.background = "var(--red-bg)")} onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}><LogOut size={15} /> Sign out</button></div>
               </div></>)}
@@ -1879,23 +1887,40 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
 
 /* ===================== root ===================== */
 function RoleChoiceScreen({ onPick, onHome }) {
-  const roles = [["operator", "Operator (Founder)", "Run and grow the marketplace"], ["agency", "Healthcare Agency", "Win and manage placements"], ["hospital", "Hospital / Provider", "Post needs and find partners"], ["clinician", "Clinician", "Find opportunities that fit you"]];
+  const roles = [
+    { k: "operator", t: "Operator (Founder)", d: "Run and grow the marketplace across every market.", i: Activity, c: "#00C2B8", bg: "rgba(0,194,184,.14)" },
+    { k: "agency", t: "Healthcare Agency", d: "Win and manage placements and contracts.", i: Briefcase, c: "#2D6BFF", bg: "rgba(45,107,255,.14)" },
+    { k: "hospital", t: "Hospital / Provider", d: "Post needs and find the right partners.", i: Building2, c: "#0E8C7E", bg: "rgba(14,140,126,.14)" },
+    { k: "clinician", t: "Clinician", d: "Find opportunities that fit you.", i: Stethoscope, c: "#7B5CFF", bg: "rgba(123,92,255,.14)" },
+  ];
   return (
-    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, background: "radial-gradient(135% 120% at 0% 0%, #102A4F 0%, #0A1730 46%, #070E20 100%)" }}>
-      <div style={{ width: "100%", maxWidth: 520 }}>
-        <button onClick={onHome} className="hsm" style={{ marginBottom: 16 }}><Wordmark light /></button>
-        <h1 className="disp" style={{ color: "#fff", fontSize: 26, fontWeight: 700, margin: "0 0 6px" }}>Which best describes you?</h1>
-        <p style={{ color: "#9FB0D0", fontSize: 14, marginTop: 0 }}>Choose how you'll use Qura. This sets up your account.</p>
-        <div style={{ display: "grid", gap: 12, marginTop: 20 }}>{roles.map(([k, t, d]) => (
-          <button key={k} onClick={() => onPick(k)} className="card lift" style={{ textAlign: "left", padding: "16px 18px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, border: "none" }}>
-            <span><span className="disp" style={{ fontWeight: 700, fontSize: 15, color: "var(--navy)", display: "block" }}>{t}</span><span className="muted" style={{ fontSize: 13 }}>{d}</span></span>
-            <ArrowRight size={18} color="#0E8C7E" />
+    <div style={{ minHeight: "100vh", position: "relative", display: "grid", placeItems: "center", padding: 24, overflow: "hidden", background: "radial-gradient(135% 120% at 0% 0%, #102A4F 0%, #0A1730 46%, #070E20 100%)" }}>
+      <div className="login-orb" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
+      <div className="login-orb" style={{ bottom: -150, left: -110, width: 480, height: 480, background: "radial-gradient(circle, rgba(45,107,255,.22), transparent 70%)" }} />
+      <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 30, left: 34, zIndex: 4 }}><Wordmark light /></button>
+      <div className="reveal" style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 680 }}>
+        <div style={{ textAlign: "center", marginBottom: 26 }}>
+          <span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC", border: "1px solid rgba(0,194,184,.32)" }}><Sparkles size={13} /> Set up your account</span>
+          <h1 className="disp" style={{ color: "#fff", fontSize: 30, fontWeight: 700, margin: "18px 0 6px", lineHeight: 1.15 }}>Which best describes you?</h1>
+          <p style={{ color: "#9FB0D0", fontSize: 15, marginTop: 0 }}>Choose how you'll use Qura. You can switch views later.</p>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>{roles.map((r) => (
+          <button key={r.k} onClick={() => onPick(r.k)} style={{ textAlign: "left", padding: "22px 22px 20px", cursor: "pointer", borderRadius: 18, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.12)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", display: "flex", flexDirection: "column", gap: 14, minWidth: 0, transition: "all .18s ease" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.09)"; e.currentTarget.style.borderColor = "rgba(0,194,184,.5)"; e.currentTarget.style.transform = "translateY(-3px)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.05)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.12)"; e.currentTarget.style.transform = "none"; }}>
+            <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ width: 52, height: 52, borderRadius: 14, background: r.bg, display: "grid", placeItems: "center", flexShrink: 0 }}><r.i size={26} color={r.c} /></div>
+              <span style={{ width: 34, height: 34, borderRadius: 999, background: "rgba(255,255,255,.08)", display: "grid", placeItems: "center" }}><ArrowRight size={17} color="#fff" /></span>
+            </div>
+            <div>
+              <div className="disp" style={{ fontWeight: 700, fontSize: 18, color: "#fff", marginBottom: 4 }}>{r.t}</div>
+              <div style={{ color: "#9FB0D0", fontSize: 13.5, lineHeight: 1.45 }}>{r.d}</div>
+            </div>
           </button>
         ))}</div>
       </div>
     </div>
   );
 }
+
 function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSignIn }) {
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -1968,6 +1993,7 @@ export default function App() {
   const [profileName, setProfileName] = useState("");
   useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_profile_name"); setProfileName(r?.value || ""); } catch (e) {} })(); }, [session, stage]);
   const email = ((session && session.user && session.user.email) || "").toLowerCase();
+  const founder = FOUNDER_IDENTITY[email] || null;
   const isOwner = OWNER_EMAILS.length === 0 || OWNER_EMAILS.includes(email);
 
   const loadAccount = async () => {
@@ -2030,7 +2056,7 @@ export default function App() {
       {stage === "roleChoice" && <RoleChoiceScreen onPick={pickRole} onHome={home} />}
       {stage === "auth" && <AuthPanel mode={authMode} roleLabel={authMode === "up" && pendingRole ? roleLabelOf(pendingRole) : null} onHome={home} onCreateAccount={() => setStage("roleChoice")} onBackToSignIn={() => { setPendingRole(null); setAuthMode("in"); }} />}
       {stage === "signup" && <Signup onHome={home} onSignIn={goSignIn} onChoose={(pl, annual) => { choosePlan(pl, annual); setStage("app"); }} />}
-      {stage === "app" && role && <Shell role={role} trial={trial} plan={plan} onPlan={choosePlan} onExtend={extendTrial} onSignup={() => setStage("signup")} onLogout={logout} onHome={home} onSwitch={switchRole} isOwner={isOwner} ownerEmail={email} profileName={profileName} onProfileName={setProfileName} />}
+      {stage === "app" && role && <Shell role={role} trial={trial} plan={plan} onPlan={choosePlan} onExtend={extendTrial} onSignup={() => setStage("signup")} onLogout={logout} onHome={home} onSwitch={switchRole} isOwner={isOwner} ownerEmail={email} profileName={profileName} onProfileName={setProfileName} founder={founder} />}
     </div>
   );
 }
