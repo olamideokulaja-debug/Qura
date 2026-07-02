@@ -146,3 +146,22 @@ qura-web/
 ├── package.json
 └── vite.config.js
 ```
+
+## Scheduled Public Sector Intelligence refresh (Vercel Cron)
+
+The ICB board-paper and council/governing-body intelligence page can update itself.
+
+- The scheduled function lives at `api/refresh-intel.js`.
+- `vercel.json` runs it daily at 06:00 UTC (`0 6 * * *`). Vercel picks this up automatically on deploy.
+- On each run it fetches each public source, uses your `ANTHROPIC_API_KEY` to distil only the Qura-relevant points (workforce, diagnostics, insourcing, procurement, SEND, complex care), and writes the results to Supabase shared rows (`psintel_icb`, `psintel_bodies`, `psintel_updated`). The app reads these on load and shows a "Last refreshed" time, falling back to the built-in baseline for any source it cannot read.
+
+### Environment variables it uses (all already in the project)
+- `ANTHROPIC_API_KEY` (summaries)
+- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (writing shared rows)
+- `CRON_SECRET` (optional but recommended). Set any random string. Vercel sends it automatically to the cron; it also lets you trigger a run manually at `/api/refresh-intel?key=YOUR_SECRET`.
+
+### Run it once immediately
+After deploying, visit `https://YOUR-APP.vercel.app/api/refresh-intel?key=YOUR_CRON_SECRET` (or without `?key=` if you did not set `CRON_SECRET`). You should see a small JSON `{ ok: true, ... }` response, and the intelligence page will then show the refreshed data.
+
+### Pointing at exact board papers
+`SOURCES_ICB` and `SOURCES_BODIES` in `api/refresh-intel.js` hold each source name and URL. Replace a URL with the exact board-papers/meetings page for sharper extraction; anything left unreadable simply uses its baseline points.

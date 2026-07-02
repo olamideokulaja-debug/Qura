@@ -597,13 +597,13 @@ const FEED_STATUS = [
   { k: "contract", l: "Contract pending", c: "#F97316", bg: "rgba(249,115,22,.15)" },
   { k: "fulfilled", l: "Fulfilled", c: "#0E8C7E", bg: "rgba(14,140,126,.14)" },
 ];
-const MARKETS = [["all", "All markets"], ["nhs", "NHS"], ["private", "Private"], ["international", "International"]];
+const MARKETS = [["all", "All markets"], ["nhs", "NHS"], ["private", "Private"], ["australia", "Australia"], ["newzealand", "New Zealand"], ["international", "International"]];
 const marketLabel = { nhs: "NHS", private: "Private", international: "International" };
-const CURRENCY = { all: { sym: "£", code: "GBP", rate: 1 }, nhs: { sym: "£", code: "GBP", rate: 1 }, private: { sym: "£", code: "GBP", rate: 1 }, international: { sym: "$", code: "USD", rate: 1.27 } };
+const CURRENCY = { all: { sym: "£", code: "GBP", rate: 1 }, nhs: { sym: "£", code: "GBP", rate: 1 }, private: { sym: "£", code: "GBP", rate: 1 }, australia: { sym: "A$", code: "AUD", rate: 1.95 }, newzealand: { sym: "NZ$", code: "NZD", rate: 2.15 }, international: { sym: "$", code: "USD", rate: 1.27 } };
 const convMoney = (str, market) => { const cur = CURRENCY[market] || CURRENCY.all; if (!str || cur.rate === 1) return str; const m = String(str).match(/([0-9.]+)\s*([KMkm]?)/); if (!m) return str; let v = parseFloat(m[1]); const suf = m[2].toUpperCase(); v = v * (suf === "M" ? 1e6 : suf === "K" ? 1e3 : 1) * cur.rate; let out; if (v >= 1e6) out = (v / 1e6).toFixed(1).replace(/\.0$/, "") + "M"; else if (v >= 1e3) out = Math.round(v / 1e3) + "K"; else out = Math.round(v).toString(); return cur.sym + out; };
 const PLAN_LABEL = { trial: "Free trial", starter: "Starter", growth: "Growth", enterprise: "Enterprise" };
 const PREMIUM_FEATURES = [["proposals", "AI proposals"], ["analytics", "Analytics"], ["leaderboard", "Leaderboard"], ["intel", "Market intelligence"]];
-const ALL_PREMIUM = ["proposals", "analytics", "leaderboard", "intel"];
+const ALL_PREMIUM = ["proposals", "analytics", "leaderboard", "intel", "psintel"];
 const PLAN_ACCESS = { trial: ALL_PREMIUM, starter: [], growth: ALL_PREMIUM, enterprise: ALL_PREMIUM };
 const FEED_STAGES = [
   ["Requirement posted", "A healthcare organisation posts a live requirement."],
@@ -626,6 +626,12 @@ const FEED_SEED = [
   { id: "f3", org: "Meridian Private Hospitals Group", who: "James Aluko", title: "Group Procurement Director", init: "JA", ago: "1d", body: "Expanding endoscopy across three sites. Seeking a supplier for decontamination equipment plus a managed sonography service. Now at proposal stage with a shortlisted partner.", reqs: ["Endoscopy decontamination", "Managed sonography", "3 sites"], market: "private", budget: "£920K", status: 2, posted: "Mon 11:20", responders: 5 },
   { id: "f4", org: "Coastal Care Partnership", who: "Priya Nair", title: "Director of Operations", init: "PN", ago: "3d", body: "Cardiac diagnostics mobile unit requirement, now closed. Thank you to everyone who responded so quickly.", reqs: ["Cardiac diagnostics", "Mobile unit"], market: "private", budget: "£310K", status: 4, posted: "Tue 08:00", fulfilled: "Thu 15:30", days: 2, responders: 9, winnerId: "s4", winner: "anon" },
   { id: "f5", org: "Gulf Health Group (Dubai)", who: "Dr. Layla Hassan", title: "Chief Medical Officer", init: "LH", ago: "6h", body: "Opening two new diagnostic centres across the UAE. We are seeking managed sonography and MRI imaging partners, and welcome UK-based suppliers who can support international deployment.", reqs: ["MRI imaging", "Managed sonography", "UAE deployment", "International"], market: "international", budget: "$2.4M", status: 0, posted: "Tue 07:30", responders: 3 },
+  { id: "au1", org: "Western Sydney Imaging Group", who: "Dr. Nadia Rahman", title: "Clinical Director", init: "NR", ago: "3h", body: "The South West Sydney growth corridor is expanding fast and the July 2025 MBS reforms have opened up MRI access, so our volumes are climbing. We urgently need 4 sonographers and 3 CT/MRI radiographers across Liverpool and Campbelltown. Sponsorship available for the right overseas candidates.", reqs: ["4 sonographers", "3 CT/MRI radiographers", "Liverpool & Campbelltown", "Sponsorship available"], market: "australia", budget: "A$1.2M", status: 0, posted: "Wed 08:10", responders: 5 },
+  { id: "au2", org: "Melbourne Cardiac Diagnostics", who: "Tom Fitzgerald", title: "Operations Manager", init: "TF", ago: "7h", body: "Growing our private echo service and need experienced cardiac sonographers. With roughly a quarter of the workforce nearing retirement, we are open to part-time, flexible and relocating candidates.", reqs: ["Cardiac sonographers", "Echocardiography", "Part-time or full-time"], market: "australia", budget: "A$540K", status: 1, posted: "Wed 05:30", responders: 6 },
+  { id: "au3", org: "Queensland Regional Health Service", who: "Dr. Ava Nguyen", title: "Imaging Lead", init: "AN", ago: "1d", body: "Radiographers remain in national shortage across nearly every state, and regional access is our biggest challenge. Seeking CT radiographers and a locum sonographer for our rural sites, with generous regional loadings.", reqs: ["CT radiographers", "Locum sonographer", "Regional loadings"], market: "australia", budget: "A$780K", status: 0, posted: "Tue 14:05", responders: 3 },
+  { id: "au4", org: "Perth Allied Health Network", who: "Sophie Clarke", title: "Workforce Lead", init: "SC", ago: "2d", body: "Building a broad allied health and nursing pipeline. With around half of advertised imaging roles going unfilled, we are widening our search to allied health professionals and nurses across Western Australia. International applications welcome.", reqs: ["Allied health professionals", "Registered nurses", "International welcome"], market: "australia", budget: "A$1.5M", status: 0, posted: "Mon 10:40", responders: 4 },
+  { id: "nz1", org: "Auckland Community Diagnostics", who: "Hana Williams", title: "Service Manager", init: "HW", ago: "5h", body: "Like most of New Zealand, we rely heavily on overseas-trained sonographers, with the majority of new registrants each year coming from abroad. We are recruiting 3 sonographers, with a supported supervision and orientation period on arrival.", reqs: ["3 sonographers", "Overseas-trained welcome", "Supervision & orientation"], market: "newzealand", budget: "NZ$900K", status: 0, posted: "Wed 06:55", responders: 4 },
+  { id: "nz2", org: "Wellington Regional Hospital", who: "Dr. James Patel", title: "Radiology Lead", init: "JP", ago: "1d", body: "Expanding our MRI service and need experienced MRI radiographers. Relocation support and registration assistance provided for international applicants.", reqs: ["MRI radiographers", "Relocation support", "Registration assistance"], market: "newzealand", budget: "NZ$620K", status: 1, posted: "Tue 09:20", responders: 5 },
 ];
 
 function LiveFeedScreen({ onBook, onToast, role = "operator", market = "all", onMarket, displayName }) {
@@ -665,7 +671,7 @@ function LiveFeedScreen({ onBook, onToast, role = "operator", market = "all", on
   const totalResp = scoped.reduce((a, p) => a + (p.responders || 0), 0);
   const statusData = FEED_STATUS.map((s, i) => ({ name: s.l, v: scoped.filter((p) => p.status === i).length, c: s.c }));
   const trend = [...MARKET_TREND, { w: "Now", d: avgFill ? Number(avgFill) : MARKET_TREND[MARKET_TREND.length - 1].d }];
-  const regionData = [["NHS", "nhs", "#0E8C7E"], ["Private", "private", "#2D6BFF"], ["International", "international", "#00C2B8"]].map(([name, k, c]) => ({ name, v: feed.filter((p) => p.market === k).length, c }));
+  const regionData = [["NHS", "nhs", "#0E8C7E"], ["Private", "private", "#2D6BFF"], ["Australia", "australia", "#F59E0B"], ["New Zealand", "newzealand", "#8B5CF6"], ["International", "international", "#00C2B8"]].map(([name, k, c]) => ({ name, v: feed.filter((p) => p.market === k).length, c }));
   const shown = feed.filter((p) => (statusFilter == null || p.status === statusFilter) && (market === "all" || p.market === market));
   return (
     <div>
@@ -1055,6 +1061,120 @@ function SettingsScreen({ plan, trialMsg, go, profileName, onName }) {
     </div>
   );
 }
+function PublicSectorIntel() {
+  const [tab, setTab] = useState("icb");
+  const ICBS = [
+    { r: "NHS West & North London ICB", date: "Jun 2026", pts: ["Formed on 1 April 2026 from the North Central and North West London merger", "Diagnostics recovery and new CDC capacity across 13 boroughs", "Workforce and running-cost reductions under way"] },
+    { r: "NHS North East London ICB", date: "Jun 2026", pts: ["Community diagnostics expansion under way", "Elective hub procurement moving to next stage", "Sonography vacancy rate cited as a delivery risk"] },
+    { r: "NHS South East London ICB", date: "8 Jul 2026", pts: ["CDC throughput ahead of plan; ultrasound remains constrained", "Insourcing spend under review for value", "Digital diagnostics pilot extended"] },
+    { r: "NHS South West London ICB", date: "Jun 2026", pts: ["Elective long-waits reduction programme update", "Community services recommissioning timeline set", "Radiography workforce pipeline discussed"] },
+    { r: "NHS Greater Manchester ICB", date: "Jun 2026", pts: ["Imaging network business case approved", "Discharge-to-assess funding continued", "Running-cost reductions and redundancies noted"] },
+    { r: "NHS West Yorkshire ICB", date: "Jun 2026", pts: ["Diagnostic capacity plan: mobile MRI and CT procurement", "Complex care packages review commissioned", "Primary care access recovery focus"] },
+    { r: "NHS Birmingham & Solihull ICB", date: "Jun 2026", pts: ["CDC phase 2 approved with an insourcing partner", "Primary care estates investment", "Sonography and echo shortages noted"] },
+  ];
+  const BODIES = [
+    { n: "Care Quality Commission (CQC)", t: "Regulator", pts: ["New single assessment framework rollout continues", "Focus on diagnostic imaging safety and staffing levels"] },
+    { n: "NHS England", t: "National body", pts: ["2026/27 planning guidance: diagnostics and elective recovery priorities", "Agency price card and cap updates"] },
+    { n: "Dept. of Health & Social Care", t: "Government", pts: ["Workforce plan refresh consultation open", "Adult social care funding settlement detail"] },
+    { n: "London Borough of Camden", t: "Local council", pts: ["SEND transport and placement tender pipeline", "Adult social care complex packages recommissioned"] },
+    { n: "London Borough of Croydon", t: "Local council", pts: ["Care home framework refresh announced", "Children's complex care commissioning update"] },
+    { n: "Birmingham City Council", t: "Local council", pts: ["Large SEND capital programme progressing", "Domiciliary and complex care market engagement"] },
+  ];
+  const [icb, setIcb] = useState(ICBS);
+  const [bodies, setBodies] = useState(BODIES);
+  const [updated, setUpdated] = useState("");
+  useEffect(() => { (async () => { try {
+    const a = await window.storage?.get("psintel_icb", true); if (a?.value) { const v = JSON.parse(a.value); if (Array.isArray(v) && v.length) setIcb(v); }
+    const b = await window.storage?.get("psintel_bodies", true); if (b?.value) { const v = JSON.parse(b.value); if (Array.isArray(v) && v.length) setBodies(v); }
+    const u = await window.storage?.get("psintel_updated", true); if (u?.value) { try { setUpdated(JSON.parse(u.value)); } catch (e) { setUpdated(u.value); } }
+  } catch (e) {} })(); }, []);
+  const list = tab === "icb" ? icb : bodies;
+  return (
+    <div>
+      <PageHead title="Public sector intelligence" sub="ICB board papers and council announcements, read and distilled by Qura, so you act on what matters without the reading." right={<span className="chip chip-cyan"><Sparkles size={13} /> Premium</span>} />
+      <div className="card" style={{ padding: 16, marginBottom: 16, background: "var(--cyan-soft)", border: "none" }}>
+        <div className="row" style={{ gap: 10, alignItems: "flex-start" }}><ShieldCheck size={18} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 13.5, lineHeight: 1.55 }}><b>Qura has done the reading.</b> We monitor publicly published ICB board papers and council announcements, then pull out only what is relevant to workforce, diagnostics, insourcing and procurement, saving your team hours every week. <span className="faint">{updated ? ("Last refreshed " + new Date(updated).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })) : "Refreshed daily by Qura."}</span></div></div>
+      </div>
+      <div className="row" style={{ gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <button onClick={() => setTab("icb")} className="btn" style={{ background: tab === "icb" ? "var(--navy)" : "#fff", color: tab === "icb" ? "#fff" : "var(--navy)", border: "1px solid var(--line)" }}><Radar size={15} /> ICB board papers</button>
+        <button onClick={() => setTab("bodies")} className="btn" style={{ background: tab === "bodies" ? "var(--navy)" : "#fff", color: tab === "bodies" ? "#fff" : "var(--navy)", border: "1px solid var(--line)" }}><Network size={15} /> Councils & governing bodies</button>
+      </div>
+      <div className="grid-2">{list.map((it) => (
+        <div key={it.r || it.n} className="card lift" style={{ padding: 20 }}>
+          <div className="row" style={{ justifyContent: "space-between", gap: 10 }}>
+            <div className="row" style={{ gap: 10, minWidth: 0 }}><div style={{ width: 38, height: 38, borderRadius: 10, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}>{tab === "icb" ? <Radar size={18} color="#1E54E6" /> : <Network size={18} color="#1E54E6" />}</div><div style={{ minWidth: 0 }}><div style={{ fontWeight: 600, fontSize: 15 }}>{it.r || it.n}</div><div className="faint" style={{ fontSize: 12 }}>{tab === "icb" ? ("Latest meeting: " + it.date) : it.t}</div></div></div>
+            <span className="chip chip-cyan" style={{ fontSize: 10, flexShrink: 0 }}>Summarised by Qura</span>
+          </div>
+          <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 9 }}>{it.pts.map((p, i) => (<div key={i} className="row" style={{ gap: 9, alignItems: "flex-start" }}><span style={{ width: 6, height: 6, borderRadius: 999, background: "var(--cyan)", marginTop: 7, flexShrink: 0 }} /><div style={{ fontSize: 13.5, lineHeight: 1.5 }}>{p}</div></div>))}</div>
+          <button className="btn btn-light" style={{ marginTop: 16, fontSize: 13 }}><FileText size={14} /> View source papers</button>
+        </div>
+      ))}</div>
+    </div>
+  );
+}
+
+function GPHub({ go, name }) {
+  const cards = [
+    ["Post sessions & vacancies", "Salaried, partner and locum GP roles, live to a verified primary care audience in minutes.", Rss, "feed"],
+    ["Find GPs & locums", "Search available, credential-checked GPs and ARRS roles, and build shortlists.", UserCheck, "clinicians"],
+    ["Primary care intelligence", "ICB primary care plans and funding, distilled by Qura for your PCN or federation.", Radar, "psintel"],
+  ];
+  return (
+    <div>
+      <PageHead title="GP practices & federations" sub="Fill sessions faster and see who is available now, with light-touch sign-up and no procurement sign-off." right={<button className="btn btn-primary" onClick={() => go("feed")}><Rss size={16} /> Post a session</button>} />
+      <div className="card" style={{ padding: 16, marginBottom: 18, background: "var(--cyan-soft)", border: "none" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><Stethoscope size={18} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 13.5, lineHeight: 1.55 }}>A dedicated home for primary care. Post salaried and locum GP sessions, browse verified GPs and ARRS roles, and tap Qura's market intelligence for your PCN or federation, an area of Qura expertise.</div></div></div>
+      <div className="grid-stats" style={{ marginBottom: 18 }}>
+        <Stat label="Available GPs" value="640+" delta="live now" icon={Stethoscope} />
+        <Stat label="Sessions filled" value="1,900" delta="last 90d" icon={Calendar} accent="cyan" />
+        <Stat label="Avg. time to fill" value="2.4 days" delta="vs 9 days" icon={Clock} />
+        <Stat label="PCNs on Qura" value="118" delta="and growing" icon={Users} accent="cyan" />
+      </div>
+      <div className="grid g3">{cards.map(([t, d, I, k]) => (
+        <div key={t} className="card lift" style={{ padding: 22, cursor: "pointer" }} onClick={() => go(k)}>
+          <div style={{ width: 46, height: 46, borderRadius: 12, background: "#EEF3FF", display: "grid", placeItems: "center" }}><I size={22} color="#1E54E6" /></div>
+          <h3 style={{ fontSize: 17, fontWeight: 600, margin: "14px 0 6px" }}>{t}</h3>
+          <p className="muted" style={{ fontSize: 14, margin: 0, lineHeight: 1.55 }}>{d}</p>
+          <div className="row" style={{ gap: 6, marginTop: 12, color: "var(--blue)", fontWeight: 600, fontSize: 13.5 }}>Open <ArrowRight size={15} /></div>
+        </div>
+      ))}</div>
+    </div>
+  );
+}
+
+function CareHub({ go, name }) {
+  const areas = [
+    { t: "Complex Care", i: Heart, c: "#5B3FD6", bg: "var(--violet-soft)", d: "Packages for paediatric and adult complex needs: specialist nurses, HCAs and clinical leads, matched to care plans and funding.", pts: ["Specialist nurse and HCA supply", "Continuing healthcare (CHC) packages", "Rapid response for hospital discharge"] },
+    { t: "Care Homes", i: Home, c: "#06776F", bg: "var(--cyan-soft)", d: "Nursing and residential home staffing, from permanent recruitment to block cover, with compliance built in.", pts: ["Permanent and block staffing", "Nurse and carer availability", "CQC-aligned compliance"] },
+    { t: "SEND", i: Award, c: "#1E54E6", bg: "#EEF3FF", d: "Support for SEND schools and local authorities: therapists, learning support and complex clinical roles, with council commissioning insight.", pts: ["Therapy and clinical roles", "Council SEND tenders and updates", "Placement and transport insight"] },
+  ];
+  const cards = [
+    ["Post a requirement", "Live to verified care providers and clinicians in minutes.", Rss, "feed"],
+    ["Find carers & nurses", "Search available, compliance-checked candidates and build shortlists.", Stethoscope, "clinicians"],
+    ["Council & CQC intelligence", "SEND tenders, complex-care commissioning and CQC updates, distilled by Qura.", Network, "psintel"],
+  ];
+  return (
+    <div>
+      <PageHead title="Complex care, care homes & SEND" sub="One hub for the care sector, three areas of deep Qura expertise, with live candidates and public-sector intelligence." right={<button className="btn btn-primary" onClick={() => go("feed")}><Rss size={16} /> Post a requirement</button>} />
+      <div className="grid g3" style={{ marginBottom: 18 }}>{areas.map((a) => (
+        <div key={a.t} className="card lift" style={{ padding: 22 }}>
+          <div className="row" style={{ gap: 10, justifyContent: "space-between" }}><div style={{ width: 46, height: 46, borderRadius: 12, background: a.bg, display: "grid", placeItems: "center" }}><a.i size={22} color={a.c} /></div><span className="chip chip-cyan" style={{ fontSize: 10 }}>Qura expertise</span></div>
+          <h3 style={{ fontSize: 18, fontWeight: 700, margin: "14px 0 6px" }}>{a.t}</h3>
+          <p className="muted" style={{ fontSize: 13.5, margin: 0, lineHeight: 1.55 }}>{a.d}</p>
+          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 7 }}>{a.pts.map((p) => (<div key={p} className="row" style={{ gap: 8, alignItems: "flex-start" }}><span style={{ width: 6, height: 6, borderRadius: 999, background: a.c, marginTop: 6, flexShrink: 0 }} /><div style={{ fontSize: 13, lineHeight: 1.45 }}>{p}</div></div>))}</div>
+        </div>
+      ))}</div>
+      <div className="grid g3">{cards.map(([t, d, I, k]) => (
+        <div key={t} className="card lift" style={{ padding: 22, cursor: "pointer" }} onClick={() => go(k)}>
+          <div style={{ width: 46, height: 46, borderRadius: 12, background: "#EEF3FF", display: "grid", placeItems: "center" }}><I size={22} color="#1E54E6" /></div>
+          <h3 style={{ fontSize: 16.5, fontWeight: 600, margin: "14px 0 6px" }}>{t}</h3>
+          <p className="muted" style={{ fontSize: 13.5, margin: 0, lineHeight: 1.55 }}>{d}</p>
+          <div className="row" style={{ gap: 6, marginTop: 12, color: "var(--blue)", fontWeight: 600, fontSize: 13.5 }}>Open <ArrowRight size={15} /></div>
+        </div>
+      ))}</div>
+    </div>
+  );
+}
+
 const Placeholder = ({ title }) => (<div><PageHead title={title} sub="This area is part of the prototype scope." /><div className="card" style={{ padding: 48, textAlign: "center" }}><MessageSquare size={28} className="faint" style={{ margin: "0 auto 12px" }} /><div className="muted">Content for {title.toLowerCase()} lives here in the full build.</div></div></div>);
 
 /* ===================== Pulse command center ===================== */
@@ -1706,7 +1826,7 @@ const NAVS = {
   operator: [
     { k: "command", l: "MCC", i: Activity }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target },
     { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "proposals", l: "Proposals", i: FileText },
-    { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "intel", l: "Market intelligence", i: Radar },
+    { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network },
     { k: "analytics", l: "Analytics", i: BarChart3 }, { k: "clinicians", l: "Clinician network", i: Stethoscope },
     { k: "clients", l: "Clients & targets", i: Building2 }, { k: "casestudies", l: "Case studies", i: Award },
     { k: "playbook", l: "Incentive playbook", i: Zap }, { k: "events", l: "Round-tables", i: Ticket },
@@ -1716,20 +1836,32 @@ const NAVS = {
     { k: "dashboard", l: "Dashboard", i: LayoutDashboard }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target },
     { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "outreach", l: "Outreach", i: Send },
     { k: "proposals", l: "Proposals", i: FileText }, { k: "meetings", l: "Meetings", i: Calendar },
-    { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "intel", l: "Market intelligence", i: Radar },
+    { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network },
     { k: "analytics", l: "Analytics", i: BarChart3 }, { k: "clinicians", l: "Clinician network", i: Stethoscope },
     { k: "clients", l: "Clients & targets", i: Building2 }, { k: "casestudies", l: "Case studies", i: Award },
     { k: "playbook", l: "Incentive playbook", i: Zap }, { k: "events", l: "Round-tables", i: Ticket },
     { k: "register", l: "Register a company", i: ClipboardList }, { k: "whyqura", l: "Why Qura wins", i: Trophy }, { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "staffing", l: "Site staffing", i: Building2 }, { k: "mobileunits", l: "Mobile units", i: Truck }, { k: "brand", l: "Brand channels", i: Sparkles }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
   hospital: [
-    { k: "hdash", l: "Dashboard", i: LayoutDashboard }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "findAgencies", l: "Find agencies", i: Briefcase },
-    { k: "clinicians", l: "Clinician search", i: Stethoscope }, { k: "shortlists", l: "Shortlists", i: Heart },
-    { k: "casestudies", l: "Case studies", i: Award }, { k: "events", l: "Round-tables", i: Ticket }, { k: "whyqura", l: "Why Qura wins", i: Trophy }, { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "staffing", l: "Site staffing", i: Building2 }, { k: "mobileunits", l: "Mobile units", i: Truck }, { k: "brand", l: "Brand channels", i: Sparkles }, { k: "pricing", l: "Pricing", i: CreditCard },
+    { k: "feed", l: "Post & live feed", i: Rss }, { k: "clinicians", l: "Candidate search", i: Stethoscope }, { k: "shortlists", l: "My shortlists", i: Heart },
+    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network },
+    { k: "hdash", l: "Dashboard", i: LayoutDashboard }, { k: "findAgencies", l: "Find agencies", i: Briefcase }, { k: "meetings", l: "Meetings", i: Calendar },
+    { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "staffing", l: "Site staffing", i: Building2 }, { k: "mobileunits", l: "Mobile units", i: Truck },
+    { k: "casestudies", l: "Case studies", i: Award }, { k: "events", l: "Round-tables", i: Ticket }, { k: "whyqura", l: "Why Qura wins", i: Trophy }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
   clinician: [
     { k: "profile", l: "My profile", i: UserCheck }, { k: "feed", l: "Live feed", i: Rss }, { k: "myopps", l: "Opportunities for me", i: Target },
     { k: "network", l: "Network", i: Users }, { k: "messages", l: "Messages", i: MessageSquare },
+  ],
+  gp: [
+    { k: "feed", l: "Post & live feed", i: Rss }, { k: "gpHub", l: "GP hub", i: Stethoscope }, { k: "clinicians", l: "Find GPs & locums", i: UserCheck }, { k: "shortlists", l: "My shortlists", i: Heart },
+    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "meetings", l: "Meetings", i: Calendar },
+    { k: "findAgencies", l: "Find agencies", i: Briefcase }, { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "casestudies", l: "Case studies", i: Award }, { k: "pricing", l: "Pricing", i: CreditCard },
+  ],
+  care: [
+    { k: "feed", l: "Post & live feed", i: Rss }, { k: "careHub", l: "Care hub", i: Heart }, { k: "clinicians", l: "Find carers & nurses", i: Stethoscope }, { k: "shortlists", l: "My shortlists", i: Heart },
+    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "meetings", l: "Meetings", i: Calendar },
+    { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "casestudies", l: "Case studies", i: Award }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
 };
 const ROLE_META = {
@@ -1737,6 +1869,8 @@ const ROLE_META = {
   agency: { label: "Healthcare agency", who: "Apex Growth Partners" },
   hospital: { label: "Hospital / provider", who: "King's College Hospital" },
   clinician: { label: "Clinician", who: "Dr. Sarah Ahmed" },
+  gp: { label: "GP practice", who: "The Practice" },
+  care: { label: "Care provider", who: "Care Group" },
 };
 
 const FOUNDER_IDENTITY = {
@@ -1884,6 +2018,9 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "brand": return <BrandShowcase />;
       case "playbook": return <IncentivePlaybook />;
       case "hdash": return <HospitalDash go={go} />;
+      case "psintel": return <PublicSectorIntel />;
+      case "gpHub": return <GPHub go={go} name={firstName} />;
+      case "careHub": return <CareHub go={go} name={firstName} />;
       case "findAgencies": return <FindAgencies />;
       case "shortlists": return <Placeholder title="Shortlists" />;
       case "profile": return <ClinicianProfile />;
@@ -1945,8 +2082,10 @@ function RoleChoiceScreen({ onPick, onHome }) {
   const roles = [
     { k: "operator", t: "Operator (Founder)", d: "Run and grow the marketplace across every market.", i: Activity, c: "#00C2B8", bg: "rgba(0,194,184,.14)" },
     { k: "agency", t: "Healthcare Agency", d: "Win and manage placements and contracts.", i: Briefcase, c: "#2D6BFF", bg: "rgba(45,107,255,.14)" },
-    { k: "hospital", t: "Hospital / Provider", d: "Post needs and find the right partners.", i: Building2, c: "#0E8C7E", bg: "rgba(14,140,126,.14)" },
-    { k: "clinician", t: "Clinician", d: "Find opportunities that fit you.", i: Stethoscope, c: "#7B5CFF", bg: "rgba(123,92,255,.14)" },
+    { k: "hospital", t: "Hospital / Provider", d: "Post vacancies and see our candidates.", i: Building2, c: "#0E8C7E", bg: "rgba(14,140,126,.14)" },
+    { k: "gp", t: "GP Practice", d: "Fill sessions and find available GPs.", i: Stethoscope, c: "#0E8C7E", bg: "rgba(14,140,126,.14)" },
+    { k: "care", t: "Complex Care, Care Homes & SEND", d: "Staff the care sector, compliance built in.", i: Heart, c: "#C8102E", bg: "rgba(200,16,46,.12)" },
+    { k: "clinician", t: "Clinician", d: "Find opportunities that fit you.", i: UserCheck, c: "#7B5CFF", bg: "rgba(123,92,255,.14)" },
   ];
   return (
     <div style={{ minHeight: "100vh", position: "relative", display: "grid", placeItems: "center", padding: 24, overflow: "hidden", background: "radial-gradient(135% 120% at 0% 0%, #102A4F 0%, #0A1730 46%, #070E20 100%)" }}>
