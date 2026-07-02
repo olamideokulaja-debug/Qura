@@ -1085,6 +1085,62 @@ function SettingsScreen({ plan, trialMsg, go, profileName, onName }) {
     </div>
   );
 }
+function RelocationHub({ onToast, role }) {
+  const CORRIDORS = [{ k: "in-uk", l: "International to UK", live: true }, { k: "uk-anz", l: "UK to Australia & NZ", live: false }, { k: "uk-me", l: "UK to Middle East", live: false }];
+  const [corr, setCorr] = useState("in-uk");
+  const SERVICES = [
+    { k: "visa", n: "Visas & sponsorship", i: ShieldCheck, c: "#1E54E6", from: 1450, d: "Health & Care Worker visa, Certificate of Sponsorship and right-to-work checks.", partner: "Meridian Immigration" },
+    { k: "reg", n: "Registration & licensing", i: Award, c: "#0E8C7E", from: 650, d: "GMC, NMC and HCPC registration (AHPRA and equivalents for other markets).", partner: "Pass the OSCE" },
+    { k: "accom", n: "Accommodation", i: Home, c: "#5B3FD6", from: 900, d: "Short-let landing pads and help finding longer-term housing near the site.", partner: "SettleWell Housing" },
+    { k: "travel", n: "Flights & travel", i: Globe, c: "#00A79D", from: 480, d: "Flights, airport transfers and initial local travel set-up.", partner: "GlobeMove Travel" },
+    { k: "bank", n: "Banking & tax setup", i: CreditCard, c: "#1E54E6", from: 220, d: "UK bank account, National Insurance number and tax registration.", partner: "FirstAccount" },
+    { k: "lang", n: "Language (OET / IELTS)", i: MessageSquare, c: "#0E8C7E", from: 390, d: "OET and IELTS preparation and exam booking for clinical English.", partner: "Clarity Language" },
+    { k: "onboard", n: "Onboarding & pastoral care", i: Users, c: "#5B3FD6", from: 350, d: "A named coordinator, first-weeks check-ins and community connection.", partner: "Qura Concierge" },
+    { k: "family", n: "Family & schooling", i: Heart, c: "#C8102E", from: 540, d: "Partner employment support, school places and family settling-in.", partner: "HomeGround Family" },
+  ];
+  const [pack, setPack] = useState([]);
+  const [who, setWho] = useState("");
+  const toggle = (k) => setPack((p) => p.includes(k) ? p.filter((x) => x !== k) : [...p, k]);
+  const chosen = SERVICES.filter((x) => pack.includes(x.k));
+  const subtotal = chosen.reduce((a, x) => a + x.from, 0);
+  const fee = Math.round(subtotal * 0.1);
+  const total = subtotal + fee;
+  const fmt = (n) => "\u00a3" + n.toLocaleString();
+  const request = () => { if (onToast) onToast(pack.length ? ("Relocation pack requested" + (who ? " for " + who : "")) : "Add a service to your pack first"); };
+  return (
+    <div>
+      <PageHead title="Relocation & mobility" sub="Move talent between countries with a Qura-managed concierge on a vetted partner network. Pay-as-you-go, with no long contracts." right={<span className="chip chip-cyan"><Globe size={13} /> International to UK</span>} />
+      <div className="row" style={{ gap: 8, marginBottom: 16, flexWrap: "wrap" }}>{CORRIDORS.map((c) => (<button key={c.k} onClick={() => c.live && setCorr(c.k)} disabled={!c.live} style={{ cursor: c.live ? "pointer" : "not-allowed", padding: "8px 14px", borderRadius: 999, fontSize: 13, fontWeight: 600, background: corr === c.k ? "var(--navy)" : "#fff", color: corr === c.k ? "#fff" : c.live ? "var(--navy)" : "var(--muted)", border: "1px solid var(--line)", opacity: c.live ? 1 : .65 }}>{c.l}{!c.live && <span style={{ fontSize: 10, marginLeft: 6 }}>soon</span>}</button>))}</div>
+      <div className="card" style={{ padding: 16, marginBottom: 18, background: "var(--cyan-soft)", border: "none" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><Sparkles size={18} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 13.5, lineHeight: 1.55 }}>Build a relocation pack for a candidate below. Qura coordinates every step through vetted partners, so agencies, providers and clinicians get one managed move. You pay only for the services you choose, plus a small marketplace fee.</div></div></div>
+      <div className="grid g2" style={{ gap: 20, alignItems: "start" }}>
+        <div className="grid g2">{SERVICES.map((x) => { const on = pack.includes(x.k); return (
+          <div key={x.k} className="card" style={{ padding: 18, border: on ? "2px solid var(--cyan)" : "1px solid var(--line)" }}>
+            <div className="row" style={{ justifyContent: "space-between" }}><div style={{ width: 42, height: 42, borderRadius: 11, background: "#EEF3FF", display: "grid", placeItems: "center" }}><x.i size={20} color={x.c} /></div><span className="faint" style={{ fontSize: 12 }}>from {fmt(x.from)}</span></div>
+            <div style={{ fontWeight: 600, fontSize: 15, margin: "12px 0 4px" }}>{x.n}</div>
+            <p className="muted" style={{ fontSize: 12.5, margin: 0, lineHeight: 1.5, minHeight: 52 }}>{x.d}</p>
+            <div className="faint" style={{ fontSize: 11.5, margin: "10px 0 12px" }}>Partner: {x.partner}</div>
+            <button onClick={() => toggle(x.k)} className={"btn " + (on ? "btn-primary" : "btn-light")} style={{ width: "100%", justifyContent: "center", fontSize: 13 }}>{on ? "Added to pack" : "Add to pack"}</button>
+          </div>
+        ); })}</div>
+        <div className="card" style={{ padding: 22, position: "sticky", top: 16 }}>
+          <div className="disp" style={{ fontWeight: 700, fontSize: 17, marginBottom: 4 }}>Relocation pack</div>
+          <p className="muted" style={{ fontSize: 12.5, marginTop: 0 }}>For a single candidate moving into the UK.</p>
+          <label style={{ fontSize: 12.5, fontWeight: 600 }}>Candidate name</label>
+          <input value={who} onChange={(e) => setWho(e.target.value)} placeholder="e.g. Dr. A. Nguyen" style={{ width: "100%", marginTop: 6, marginBottom: 14, padding: "10px 12px", border: "1px solid var(--line)", borderRadius: 10, fontSize: 13.5, boxSizing: "border-box" }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>{chosen.length ? chosen.map((x) => (<div key={x.k} className="row" style={{ justifyContent: "space-between", fontSize: 13 }}><span className="row" style={{ gap: 8 }}><x.i size={14} color={x.c} />{x.n}</span><span className="num">{fmt(x.from)}</span></div>)) : <div className="faint" style={{ fontSize: 13 }}>No services added yet. Choose from the list to build a pack.</div>}</div>
+          {chosen.length > 0 && <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12 }}>
+            <div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span className="muted">Subtotal</span><span className="num">{fmt(subtotal)}</span></div>
+            <div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span className="muted">Marketplace fee (10%)</span><span className="num">{fmt(fee)}</span></div>
+            <div className="row" style={{ justifyContent: "space-between", fontSize: 15, fontWeight: 700, marginTop: 6 }}><span>Estimated total</span><span className="num">{fmt(total)}</span></div>
+          </div>}
+          <button onClick={request} className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 16 }}><Send size={15} /> Request concierge</button>
+          <div className="faint" style={{ fontSize: 11, marginTop: 10, lineHeight: 1.5 }}>Indicative prices in GBP, confirmed on quote. A Qura coordinator manages the move end to end.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PublicSectorIntel() {
   const [tab, setTab] = useState("icb");
   const ICBS = [
@@ -1850,7 +1906,7 @@ const NAVS = {
   operator: [
     { k: "command", l: "MCC", i: Activity }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target },
     { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "proposals", l: "Proposals", i: FileText },
-    { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network },
+    { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe },
     { k: "analytics", l: "Analytics", i: BarChart3 }, { k: "clinicians", l: "Clinician network", i: Stethoscope },
     { k: "clients", l: "Clients & targets", i: Building2 }, { k: "casestudies", l: "Case studies", i: Award },
     { k: "playbook", l: "Incentive playbook", i: Zap }, { k: "events", l: "Round-tables", i: Ticket },
@@ -1860,7 +1916,7 @@ const NAVS = {
     { k: "dashboard", l: "Dashboard", i: LayoutDashboard }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target },
     { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "outreach", l: "Outreach", i: Send },
     { k: "proposals", l: "Proposals", i: FileText }, { k: "meetings", l: "Meetings", i: Calendar },
-    { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network },
+    { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe },
     { k: "analytics", l: "Analytics", i: BarChart3 }, { k: "clinicians", l: "Clinician network", i: Stethoscope },
     { k: "clients", l: "Clients & targets", i: Building2 }, { k: "casestudies", l: "Case studies", i: Award },
     { k: "playbook", l: "Incentive playbook", i: Zap }, { k: "events", l: "Round-tables", i: Ticket },
@@ -1868,23 +1924,23 @@ const NAVS = {
   ],
   hospital: [
     { k: "feed", l: "Post & live feed", i: Rss }, { k: "clinicians", l: "Candidate search", i: Stethoscope }, { k: "shortlists", l: "My shortlists", i: Heart },
-    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network },
+    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe },
     { k: "hdash", l: "Dashboard", i: LayoutDashboard }, { k: "findAgencies", l: "Find agencies", i: Briefcase }, { k: "meetings", l: "Meetings", i: Calendar },
     { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "staffing", l: "Site staffing", i: Building2 }, { k: "mobileunits", l: "Mobile units", i: Truck },
     { k: "casestudies", l: "Case studies", i: Award }, { k: "events", l: "Round-tables", i: Ticket }, { k: "whyqura", l: "Why Qura wins", i: Trophy }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
   clinician: [
     { k: "profile", l: "My profile", i: UserCheck }, { k: "feed", l: "Live feed", i: Rss }, { k: "myopps", l: "Opportunities for me", i: Target },
-    { k: "network", l: "Network", i: Users }, { k: "messages", l: "Messages", i: MessageSquare },
+    { k: "network", l: "Network", i: Users }, { k: "messages", l: "Messages", i: MessageSquare }, { k: "relocation", l: "Relocation", i: Globe },
   ],
   gp: [
     { k: "feed", l: "Post & live feed", i: Rss }, { k: "gpHub", l: "GP hub", i: Stethoscope }, { k: "clinicians", l: "Find GPs & locums", i: UserCheck }, { k: "shortlists", l: "My shortlists", i: Heart },
-    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "meetings", l: "Meetings", i: Calendar },
+    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "meetings", l: "Meetings", i: Calendar },
     { k: "findAgencies", l: "Find agencies", i: Briefcase }, { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "casestudies", l: "Case studies", i: Award }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
   care: [
     { k: "feed", l: "Post & live feed", i: Rss }, { k: "careHub", l: "Care hub", i: Heart }, { k: "clinicians", l: "Find carers & nurses", i: Stethoscope }, { k: "shortlists", l: "My shortlists", i: Heart },
-    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "meetings", l: "Meetings", i: Calendar },
+    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "meetings", l: "Meetings", i: Calendar },
     { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "casestudies", l: "Case studies", i: Award }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
 };
@@ -2045,6 +2101,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "psintel": return <PublicSectorIntel />;
       case "gpHub": return <GPHub go={go} name={firstName} />;
       case "careHub": return <CareHub go={go} name={firstName} />;
+      case "relocation": return <RelocationHub role={role} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "findAgencies": return <FindAgencies />;
       case "shortlists": return <Placeholder title="Shortlists" />;
       case "profile": return <ClinicianProfile />;
