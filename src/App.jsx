@@ -4,7 +4,7 @@ import {
   BarChart3, Stethoscope, CreditCard, Search, Bell, Menu, X, ChevronRight,
   Sparkles, MapPin, Clock, TrendingUp, Building2, Plus, Check, Copy, RefreshCw,
   ArrowRight, Star, LogOut, Mail, Briefcase, UserCheck, MessageSquare, Award,
-  Globe, Loader2, Heart, Linkedin, ShieldCheck, Brain, Network, Quote, Zap,
+  Globe, Loader2, Heart, Home, Linkedin, ShieldCheck, Brain, Network, Quote, Zap,
   Trophy, Link2, AlertCircle, Gauge, Activity, Ticket, Truck, BadgeCheck, ClipboardList, CalendarClock, Smartphone, Instagram, Twitter, Music2, Upload, Settings, Pencil, Trash2, Rss, Package, Inbox, ArrowUp, ArrowDown, ChevronDown, Lock
 } from "lucide-react";
 import {
@@ -224,17 +224,19 @@ const CASE_STUDIES = [{
   quote: { q: "Delivering where others could not, with clinical credibility and speed.", by: "CDC National Lead feedback" }
 }];
 const SOLUTIONS = [
-  { l: "Permanent", d: "Direct permanent placements. Our UK focus.", i: UserCheck, lead: true },
+  { l: "Permanent", d: "Direct permanent placements across every market.", i: UserCheck, lead: true },
   { l: "Insourcing", d: "On-site clinical insourcing projects.", i: Building2 },
   { l: "Contract", d: "Fixed-term and project contracts.", i: FileText },
   { l: "International", d: "Compliant overseas recruitment pipelines.", i: Globe },
   { l: "Locum", d: "Short-term cover, on demand.", i: Clock, subtle: true },
 ];
 const CLIENT_TYPES = [
-  { l: "NHS hospitals", i: Building2 }, { l: "Private hospitals", i: Building2 },
-  { l: "Mental health hospitals", i: Heart }, { l: "Community diagnostic centres", i: Radar },
-  { l: "Neighbourhood health centres", i: MapPin }, { l: "Mobile unit providers", i: Truck },
-  { l: "SEND schools", i: Award }, { l: "Local government councils", i: Network },
+  { l: "NHS hospitals & trusts", i: Building2 }, { l: "Private hospitals & clinics", i: Building2 },
+  { l: "Harley Street & boutique clinics", i: Sparkles }, { l: "GP practices & federations", i: Stethoscope },
+  { l: "Complex care providers", i: Heart }, { l: "Care homes & nursing homes", i: Home },
+  { l: "SEND schools", i: Award }, { l: "Community diagnostic centres", i: Radar },
+  { l: "Mental health hospitals", i: Activity }, { l: "Mobile unit providers", i: Truck },
+  { l: "Local councils & governing bodies", i: Network }, { l: "International health systems", i: Globe },
 ];
 const EVENTS = [
   { day: "18", mon: "JUL", title: "Insourcing at Scale: The CDC Opportunity", date: "18 Jul 2026", time: "13:00 BST", host: "Director of Diagnostics, London ICB", seats: "12 of 40 seats left", price: "Free for members", spec: "Sonography & Imaging", status: "Open" },
@@ -1386,6 +1388,28 @@ const PulseLine = ({ w = 320, color = "var(--cyan)" }) => (
 );
 
 function Landing({ onEnter, onDemo }) {
+  const [lens, setLens] = useState("global");
+  const [tick, setTick] = useState(0);
+  useEffect(() => { const id = setInterval(() => setTick((t) => t + 1), 2600); return () => clearInterval(id); }, []);
+  const LENSES = [{ k: "global", l: "Global" }, { k: "uk", l: "UK & Ireland" }, { k: "anz", l: "Australia & NZ" }, { k: "me", l: "Middle East" }, { k: "intl", l: "International" }];
+  const SVC_C = { Vacancy: "#1E54E6", Insourcing: "#0E8C7E", Intelligence: "#00A79D", Candidate: "#5B3FD6" };
+  const TEASER = [
+    { region: "uk", role: "Consultant Sonographer", org: "Central Manchester NHS Trust", loc: "Manchester", ago: "4m", svc: "Vacancy" },
+    { region: "uk", role: "Fertility Sonographer", org: "Boutique clinic, Harley Street", loc: "London W1", ago: "11m", svc: "Vacancy" },
+    { region: "uk", role: "Salaried GP (4 sessions)", org: "GP Federation", loc: "Birmingham", ago: "17m", svc: "Vacancy" },
+    { region: "uk", role: "Complex Care Nurse (paediatric)", org: "Complex care provider", loc: "Leeds", ago: "22m", svc: "Vacancy" },
+    { region: "uk", role: "Weekend endoscopy insourcing", org: "Community Diagnostic Centre", loc: "London", ago: "3m", svc: "Insourcing" },
+    { region: "uk", role: "Board papers summarised for you", org: "North Central London ICB", loc: "London", ago: "just now", svc: "Intelligence" },
+    { region: "anz", role: "Sonographer (obstetric)", org: "Imaging group", loc: "Sydney, South West", ago: "6m", svc: "Vacancy" },
+    { region: "anz", role: "Radiographer (CT)", org: "Regional health service", loc: "Auckland, NZ", ago: "14m", svc: "Vacancy" },
+    { region: "anz", role: "Cardiac Sonographer", org: "Private imaging network", loc: "Melbourne", ago: "19m", svc: "Vacancy" },
+    { region: "me", role: "Radiographer (MRI)", org: "Hospital group", loc: "Doha", ago: "9m", svc: "Vacancy" },
+    { region: "me", role: "Theatre Nurse", org: "Private hospital", loc: "Dubai", ago: "27m", svc: "Vacancy" },
+    { region: "intl", role: "Sonographer", org: "Diagnostics provider", loc: "Lagos", ago: "21m", svc: "Vacancy" },
+    { region: "intl", role: "Available now: Band 7 Sonographer", org: "Verified candidate", loc: "relocating, EU", ago: "8m", svc: "Candidate" },
+  ];
+  const feed = lens === "global" ? TEASER : TEASER.filter((x) => x.region === lens);
+  const shown = feed.length ? Array.from({ length: Math.min(4, feed.length) }, (_, i) => feed[(tick + i) % feed.length]) : [];
   const stats = [{ n: "10+", l: "Years in healthcare BD" }, { n: "8,473+", l: "LinkedIn followers" }, { n: "208", l: "Decision-maker contacts" }, { n: "50+", l: "Countries reached" }];
   const edge = [
     { i: Brain, t: "A decade of real deals, encoded", b: "Qura's analytics are shaped by 10 years of contracts our experts have actually closed, so every score reflects how the market really behaves.", c: "#5B3FD6", bg: "var(--violet-soft)" },
@@ -1396,7 +1420,7 @@ function Landing({ onEnter, onDemo }) {
     { i: Network, t: "The strongest network in the sector", b: "Direct access to verified decision-makers across NHS Trusts, ICBs, Community Diagnostic Centres and private hospital groups." },
     { i: Sparkles, t: "AI proposals in seconds", b: "Turn any opportunity into a branded, send-ready proposal that reads like it took a day to write." },
     { i: TrendingUp, t: "Live market intelligence", b: "Real-time signals on tenders, frameworks and leadership moves before your competitors see them." },
-    { i: Globe, t: "Built for every market", b: "One platform across the NHS, private healthcare and international markets, from London to Lagos to Doha." },
+    { i: Globe, t: "Built for every market", b: "One live platform across the NHS, private healthcare and international markets, from London to Sydney to Lagos to Doha, 24/7." },
   ];
   const trusted = ["NHS England", "NHS Workforce Alliance", "Community Diagnostic Centres", "Integrated Care Boards", "HCL Workforce", "Healthier Together"];
   return (
@@ -1411,12 +1435,43 @@ function Landing({ onEnter, onDemo }) {
 
       <div style={{ background: "radial-gradient(115% 85% at 50% -8%, #E6F4F2 0%, #F3F9FD 44%, #fff 100%)", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
         <div className="wrap" style={{ padding: "92px 24px 70px", textAlign: "center" }}>
-          <div className="reveal"><span className="chip chip-cyan" style={{ padding: "7px 15px" }}><Sparkles size={14} /> Healthcare Growth CRM · NHS-first, globally ready</span></div>
+          <div className="reveal"><span className="chip chip-cyan" style={{ padding: "7px 15px" }}><Sparkles size={14} /> Healthcare Growth CRM · 24/7 live, every market worldwide</span></div>
           <h1 className="disp heroh reveal" style={{ fontWeight: 700, margin: "26px auto 0", maxWidth: 880 }}>Stop rushing to the cheapest bidder. <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Start choosing the best.</span></h1>
           <div className="reveal" style={{ display: "flex", justifyContent: "center", margin: "14px 0 4px" }}><PulseLine /></div>
-          <p className="muted reveal" style={{ fontSize: 19, maxWidth: 680, margin: "14px auto 0", lineHeight: 1.6 }}>{APP_NAME} is the healthcare growth CRM that saves health systems time and agency spend, built for the NHS first and ready for international markets. It connects hospitals, agencies and clinicians with live, specialist intelligence, so the right partner is chosen on merit, not against a deadline.</p>
+          <p className="muted reveal" style={{ fontSize: 19, maxWidth: 680, margin: "14px auto 0", lineHeight: 1.6 }}>{APP_NAME} is the 24/7 live healthcare marketplace and growth CRM, working across the NHS, private hospitals and clinics, GP practices, complex care, care homes, SEND and international markets, from London to Sydney to Doha. Private providers can sign up in minutes, with no procurement sign-off, while every buyer sees live, specialist intelligence so the right partner is chosen on merit, not against a deadline.</p>
           <div className="row reveal" style={{ gap: 14, justifyContent: "center", marginTop: 34, flexWrap: "wrap" }}><button className="btn lift" style={{ padding: "15px 28px", fontSize: 16, background: "var(--blue)", color: "#fff", boxShadow: "0 6px 18px rgba(45,107,255,.32)" }} onClick={onEnter}>Get started / Sign in <ArrowRight size={18} /></button><a href="#founders" className="btn btn-dark lift" style={{ padding: "15px 28px", fontSize: 16 }}>Meet the founders</a></div>
-          <div className="row faint reveal" style={{ gap: 8, justifyContent: "center", marginTop: 28, fontSize: 13.5 }}><ShieldCheck size={15} /> For framework and non-framework agencies, CQC and non-CQC providers, across the NHS, private and international markets</div>
+          <div className="row faint reveal" style={{ gap: 8, justifyContent: "center", marginTop: 28, fontSize: 13.5 }}><ShieldCheck size={15} /> For private clinics, GP practices, complex care, care homes, SEND, NHS trusts, agencies and international health systems, framework or not, CQC or not</div>
+        </div>
+      </div>
+
+      <div style={{ background: "var(--navy)", borderBottom: "1px solid var(--line)" }}>
+        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}`}</style>
+        <div className="wrap" style={{ padding: "44px 24px 48px" }}>
+          <div className="grid g2" style={{ gap: 30, alignItems: "center" }}>
+            <div>
+              <div className="eyebrow" style={{ color: "#5FE6DC" }}>Live worldwide, 24/7</div>
+              <h2 className="disp" style={{ color: "#fff", fontSize: 30, fontWeight: 700, margin: "12px 0 10px", lineHeight: 1.15 }}>See the market moving in real time</h2>
+              <p style={{ color: "#9FB0D0", fontSize: 15.5, lineHeight: 1.6, margin: "0 0 18px", maxWidth: 460 }}>Roles, insourcing, candidates and intelligence, updating around the clock across every market. Choose your lens. Names are hidden until you sign in, so this is only a glimpse of what members act on first.</p>
+              <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>{LENSES.map((x) => (<button key={x.k} onClick={() => setLens(x.k)} style={{ cursor: "pointer", padding: "8px 15px", borderRadius: 999, fontSize: 13, fontWeight: 600, transition: "all .15s ease", background: lens === x.k ? "#00C2B8" : "rgba(255,255,255,.06)", color: lens === x.k ? "#04211F" : "#C4D0E6", border: "1px solid " + (lens === x.k ? "#00C2B8" : "rgba(255,255,255,.14)") }}>{x.l}</button>))}</div>
+            </div>
+            <div style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 16, backdropFilter: "blur(10px)" }}>
+              <div className="row" style={{ justifyContent: "space-between", padding: "2px 6px 12px" }}>
+                <span className="row" style={{ gap: 9, color: "#fff", fontWeight: 600, fontSize: 13.5 }}><span style={{ position: "relative", width: 9, height: 9 }}><span style={{ position: "absolute", inset: 0, borderRadius: 999, background: "#22E0A1" }} /><span style={{ position: "absolute", inset: 0, borderRadius: 999, background: "#22E0A1", animation: "quraPulse 1.8s infinite" }} /></span>Live marketplace</span>
+                <span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC", fontSize: 10.5 }}>{feed.length} live now</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{shown.map((it, i) => (
+                <div key={i} className="row" style={{ gap: 12, padding: "12px 13px", borderRadius: 12, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.07)" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 999, background: SVC_C[it.svc] || "#5FE6DC", flexShrink: 0 }} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ color: "#fff", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.role}</div>
+                    <div style={{ color: "#8295B6", fontSize: 12, marginTop: 2 }}><span style={{ filter: "blur(4.5px)", userSelect: "none" }}>{it.org}</span> · {it.loc}</div>
+                  </div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}><span style={{ fontSize: 10, fontWeight: 700, color: SVC_C[it.svc] || "#5FE6DC" }}>{it.svc}</span><div style={{ color: "#6B7C9C", fontSize: 11, marginTop: 3 }}>{it.ago}</div></div>
+                </div>
+              ))}{!shown.length && <div style={{ color: "#8295B6", fontSize: 13, padding: "18px 6px" }}>New listings opening in this market shortly.</div>}</div>
+              <button onClick={onEnter} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 14, background: "#00C2B8", color: "#04211F", fontWeight: 700 }}>Sign in to see who is hiring <ArrowRight size={16} /></button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1427,8 +1482,8 @@ function Landing({ onEnter, onDemo }) {
       <div style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap" style={{ padding: "72px 24px" }}>
           <Reveal><div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 38px" }}><div className="eyebrow">Specialist new business, every solution</div><h2 className="disp" style={{ fontSize: 34, fontWeight: 700, marginTop: 12 }}>Five ways to win work, <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>perm first</span></h2><p className="muted" style={{ fontSize: 16.5, marginTop: 10, lineHeight: 1.6 }}>Live opportunities across permanent, insourcing, contract and international placements, with locum cover when it is genuinely needed.</p></div></Reveal>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14 }}>{SOLUTIONS.map((s, i) => (<Reveal key={s.l} delay={i * 55}><div className="card lift" style={{ padding: 20, height: "100%", opacity: s.subtle ? 0.7 : 1, borderColor: s.lead ? "var(--cyan)" : "var(--line)" }}><div style={{ width: 44, height: 44, borderRadius: 12, background: s.lead ? "var(--cyan-soft)" : "#EEF3FF", display: "grid", placeItems: "center" }}><s.i size={20} color={s.lead ? "#06776F" : "#1E54E6"} /></div><div className="row" style={{ gap: 7, marginTop: 12, flexWrap: "wrap" }}><span style={{ fontWeight: 600, fontSize: 16 }}>{s.l}</span>{s.lead && <span className="chip chip-cyan" style={{ fontSize: 10 }}>UK focus</span>}{s.subtle && <span className="chip chip-grey" style={{ fontSize: 10 }}>on demand</span>}</div><div className="muted" style={{ fontSize: 13, marginTop: 5 }}>{s.d}</div></div></Reveal>))}</div>
-          <Reveal><div style={{ textAlign: "center", margin: "54px 0 22px" }}><div className="eyebrow">Who checks Qura daily</div><h3 className="disp" style={{ fontSize: 26, fontWeight: 700, marginTop: 10 }}>Senior contacts across eight client types</h3></div></Reveal>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14 }}>{SOLUTIONS.map((s, i) => (<Reveal key={s.l} delay={i * 55}><div className="card lift" style={{ padding: 20, height: "100%", opacity: s.subtle ? 0.7 : 1, borderColor: s.lead ? "var(--cyan)" : "var(--line)" }}><div style={{ width: 44, height: 44, borderRadius: 12, background: s.lead ? "var(--cyan-soft)" : "#EEF3FF", display: "grid", placeItems: "center" }}><s.i size={20} color={s.lead ? "#06776F" : "#1E54E6"} /></div><div className="row" style={{ gap: 7, marginTop: 12, flexWrap: "wrap" }}><span style={{ fontWeight: 600, fontSize: 16 }}>{s.l}</span>{s.lead && <span className="chip chip-cyan" style={{ fontSize: 10 }}>Perm-first</span>}{s.subtle && <span className="chip chip-grey" style={{ fontSize: 10 }}>on demand</span>}</div><div className="muted" style={{ fontSize: 13, marginTop: 5 }}>{s.d}</div></div></Reveal>))}</div>
+          <Reveal><div style={{ textAlign: "center", margin: "54px 0 22px" }}><div className="eyebrow">Who checks Qura daily</div><h3 className="disp" style={{ fontSize: 26, fontWeight: 700, marginTop: 10 }}>Senior contacts across every corner of healthcare</h3></div></Reveal>
           <div className="row" style={{ gap: 12, justifyContent: "center", flexWrap: "wrap" }}>{CLIENT_TYPES.map((c) => (<span key={c.l} className="row" style={{ gap: 8, padding: "11px 18px", border: "1px solid var(--line)", borderRadius: 999, fontSize: 13.5, fontWeight: 500, background: "#fff" }}><c.i size={15} color="#1E54E6" /> {c.l}</span>))}</div>
         </div>
       </div>
@@ -1487,7 +1542,7 @@ function Landing({ onEnter, onDemo }) {
 
       <div style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap" style={{ padding: "78px 24px" }}>
-          <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 44px" }}><div className="eyebrow">Voices from the field</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, marginTop: 14 }}>Clinicians we have moved</h2><p className="muted" style={{ fontSize: 17, marginTop: 12 }}>Real words from sonographers placed into NHS roles.</p></div></Reveal>
+          <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 44px" }}><div className="eyebrow">Voices from the field</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, marginTop: 14 }}>Clinicians we have moved</h2><p className="muted" style={{ fontSize: 17, marginTop: 12 }}>Real words from clinicians placed across NHS and private roles.</p></div></Reveal>
           <div className="grid g3">{TESTIMONIALS.map((t, idx) => (<Reveal key={t.name} delay={idx * 90}><div className="card lift" style={{ padding: 26, height: "100%" }}><Quote size={26} color="var(--cyan)" /><p style={{ fontSize: 15, margin: "14px 0 18px", lineHeight: 1.6 }}>{t.quote}</p><div className="row" style={{ gap: 11 }}><div style={{ width: 40, height: 40, borderRadius: 999, background: "var(--cyan-soft)", color: "#06776F", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{t.name[0]}</div><div><div style={{ fontWeight: 600, fontSize: 14 }}>{t.name}</div><div className="faint" style={{ fontSize: 12.5 }}>{t.role}</div></div></div></div></Reveal>))}</div>
         </div>
       </div>
