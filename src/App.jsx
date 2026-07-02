@@ -2651,7 +2651,7 @@ export default function App() {
   const email = ((session && session.user && session.user.email) || "").toLowerCase();
   const founder = FOUNDER_IDENTITY[email] || null;
   useEffect(() => { if (founder && stage === "app") setRole("operator"); }, [founder, stage]);
-  const isOwner = OWNER_EMAILS.length === 0 || OWNER_EMAILS.includes(email);
+  const isOwner = OWNER_EMAILS.length === 0 || OWNER_EMAILS.includes(email) || Boolean(FOUNDER_IDENTITY[email]);
 
   const loadAccount = async () => {
     try { const r = await window.storage?.get("qura_role"); setRole(r && r.value ? JSON.parse(r.value) : null); } catch (e) {}
