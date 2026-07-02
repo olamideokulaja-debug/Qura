@@ -966,36 +966,60 @@ const NetworkScreen = () => (
     <div className="grid-3">{CLINICIANS.slice(0, 6).map((c, i) => (<div key={i} className="card lift" style={{ padding: 18, textAlign: "center" }}><div style={{ width: 56, height: 56, borderRadius: 999, background: "#EEF3FF", color: "#1E54E6", display: "grid", placeItems: "center", margin: "0 auto", fontWeight: 700 }} className="disp">{c.name.split(" ").slice(-2).map((x) => x[0]).join("")}</div><div style={{ fontWeight: 600, fontSize: 14.5, marginTop: 10 }}>{c.name}</div><div className="muted" style={{ fontSize: 12.5 }}>{c.spec}</div><button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center", marginTop: 12, padding: "8px" }}><Plus size={14} /> Connect</button></div>))}</div>
   </div>
 );
-const Pricing = ({ plan, onChoose, highlight }) => {
+const Pricing = ({ plan, onChoose, highlight, role = "agency", market = "all", isOwner }) => {
   const [annual, setAnnual] = useState(true);
-  const tiers = [
-    { key: "trial", name: "7-day free trial", free: true, blurb: "Full access for 7 days. No card required. Sign up when you are ready.", cta: "Start free trial", feats: ["Everything in Growth", "All markets & the live feed", "Then choose a plan"] },
-    { key: "starter", name: "Starter", mo: 450, yr: 375, blurb: "For small agencies winning their first NHS and private work.", cta: "Choose Starter", feats: ["3 user seats", "UK opportunities, NHS & private", "Pipeline & CRM", "Email support"] },
-    { key: "growth", name: "Growth", mo: 1200, yr: 999, tag: "Most popular", blurb: "For growing teams selling across every market.", cta: "Choose Growth", feats: ["10 user seats", "All markets, including international", "Outreach automation", "Priority support"] },
-    { key: "enterprise", name: "Enterprise", custom: true, dark: true, blurb: "For multi-team providers and national operators.", cta: "Contact sales", feats: ["Unlimited seats", "SSO, SCIM & audit logs", "API access & integrations", "Dedicated success lead"] },
-  ];
-  const fmt = (n) => "\u00a3" + n.toLocaleString();
+  const baseGroup = role === "agency" ? "agency" : role === "clinician" ? "clinician" : "buyer";
+  const [preview, setPreview] = useState(null);
+  const group = preview || baseGroup;
+  const cur = CURRENCY[market] || CURRENCY.all;
+  const fmt = (n) => cur.sym + Math.round(n * cur.rate).toLocaleString();
+  const roleBlurb = { hospital: { team: "For a single site posting vacancies and searching for candidates.", intel: "For trusts that want live ICB and council intelligence.", net: "For multi-site provider groups and whole systems." }, gp: { team: "For a practice filling sessions and finding available GPs.", intel: "For PCNs and federations that want primary-care intelligence.", net: "For large federations and super-partnerships." }, care: { team: "For a care home or provider posting roles, compliance built in.", intel: "For groups that want council, SEND and CQC intelligence.", net: "For national care and complex-care operators." } };
+  const bb = roleBlurb[(!preview && roleBlurb[role]) ? role : "hospital"];
+  const SETS = {
+    agency: [
+      { key: "trial", name: "7-day free trial", free: true, blurb: "Full access for 7 days. No card required. Sign up when you are ready.", cta: "Start free trial", feats: ["Everything in Growth", "All markets & the live feed", "Then choose a plan"] },
+      { key: "starter", name: "Starter", mo: 450, yr: 375, blurb: "For small agencies winning their first NHS and private work.", cta: "Choose Starter", feats: ["3 user seats", "UK opportunities, NHS & private", "Pipeline & CRM", "Email support"] },
+      { key: "growth", name: "Growth", mo: 1200, yr: 999, tag: "Most popular", blurb: "For growing teams selling across every market.", cta: "Choose Growth", feats: ["10 user seats", "All markets, including international", "Outreach automation", "Priority support"] },
+      { key: "enterprise", name: "Enterprise", custom: true, dark: true, blurb: "For multi-team providers and national operators.", cta: "Contact sales", feats: ["Unlimited seats", "SSO, SCIM & audit logs", "API access & integrations", "Dedicated success lead"] },
+    ],
+    buyer: [
+      { key: "trial", name: "7-day pilot", free: true, blurb: "Full access for 7 days. No card required.", cta: "Start pilot", feats: ["Everything in Intelligence", "Post vacancies & browse candidates", "Then choose a plan"] },
+      { key: "starter", name: "Team", mo: 350, yr: 290, blurb: bb.team, cta: "Choose Team", feats: ["5 user seats", "Post vacancies & live feed", "Candidate search & shortlists", "Email support"] },
+      { key: "growth", name: "Intelligence", mo: 900, yr: 750, tag: "Most popular", blurb: bb.intel, cta: "Choose Intelligence", feats: ["15 user seats", "ICB & council intelligence", "Analytics & insights", "Priority support"] },
+      { key: "enterprise", name: "Network", custom: true, dark: true, blurb: bb.net, cta: "Contact sales", feats: ["Unlimited seats & sites", "SSO, SCIM & audit logs", "API & integrations", "Dedicated success lead"] },
+    ],
+    clinician: [
+      { key: "starter", name: "Free", free: true, freeForever: true, blurb: "Always free to join, search and apply for work.", cta: "Join free", feats: ["Unlimited job search & alerts", "Apply and message directly", "Verified profile & documents"] },
+      { key: "growth", name: "Career+", mo: 15, yr: 12, tag: "Most popular", blurb: "Premium career tools for ambitious clinicians.", cta: "Go Career+", feats: ["Salary & tariff insights", "Priority visibility to hospitals", "CPD & career planning tools"] },
+      { key: null, addon: true, name: "Relocation concierge", blurb: "Pay-as-you-go support to move country: visas, registration, accommodation and more.", cta: "Available as an add-on", feats: ["Visas & registration (GMC, AHPRA)", "Accommodation & travel", "Onboarding & family support"] },
+    ],
+  };
+  const tiers = SETS[group];
+  const groupLabel = group === "agency" ? "agencies" : group === "clinician" ? "clinicians" : "hospitals, GP practices and care providers";
   return (
     <div>
-      <PageHead title="Pricing" sub="Start free for 7 days, then choose the plan that fits your growth." right={<div className="row" style={{ gap: 4, background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 999, padding: 4 }}>{[["Monthly", false], ["Annual", true]].map(([l, v]) => (<button key={l} onClick={() => setAnnual(v)} style={{ padding: "7px 16px", fontSize: 13, fontWeight: 600, border: "none", borderRadius: 999, cursor: "pointer", transition: ".15s", background: annual === v ? "var(--blue)" : "#fff", color: annual === v ? "#fff" : "var(--navy)", boxShadow: annual === v ? "0 1px 3px rgba(45,107,255,.35)" : "var(--sh-xs)" }}>{l}</button>))}</div>} />
+      <PageHead title="Pricing" sub="Start free, then choose the plan that fits your growth." right={<div className="row" style={{ gap: 4, background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 999, padding: 4 }}>{[["Monthly", false], ["Annual", true]].map(([l, v]) => (<button key={l} onClick={() => setAnnual(v)} style={{ padding: "7px 16px", fontSize: 13, fontWeight: 600, border: "none", borderRadius: 999, cursor: "pointer", transition: ".15s", background: annual === v ? "var(--blue)" : "#fff", color: annual === v ? "#fff" : "var(--navy)", boxShadow: annual === v ? "0 1px 3px rgba(45,107,255,.35)" : "var(--sh-xs)" }}>{l}</button>))}</div>} />
+      {isOwner && <div className="row" style={{ gap: 6, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}><span className="faint" style={{ fontSize: 12.5 }}>Preview pricing as:</span>{[["agency", "Agency"], ["buyer", "Hospital / GP / Care"], ["clinician", "Clinician"]].map(([k, l]) => (<button key={k} onClick={() => setPreview(k)} style={{ cursor: "pointer", padding: "6px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, background: group === k ? "var(--navy)" : "#fff", color: group === k ? "#fff" : "var(--navy)", border: "1px solid var(--line)" }}>{l}</button>))}</div>}
+      {!isOwner && <div className="faint" style={{ fontSize: 12.5, marginBottom: 14 }}>Pricing shown for {groupLabel}.</div>}
       {plan === "trial" && <div className="chip chip-cyan" style={{ marginBottom: 16 }}><Sparkles size={12} /> You are on a free trial</div>}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(238px,1fr))", gap: 16, alignItems: "stretch" }}>{tiers.map((t) => { const cur = plan && t.key === plan; const acc = PLAN_ACCESS[t.key] || []; return (
-        <div key={t.key} className="card" style={{ padding: 26, display: "flex", flexDirection: "column", border: highlight === t.key ? "2px solid var(--cyan)" : t.free ? "2px solid var(--teal)" : t.tag ? "2px solid var(--blue)" : "1px solid var(--line)", position: "relative", background: t.free ? "linear-gradient(160deg,var(--cyan-soft),#fff 70%)" : "#fff", boxShadow: highlight === t.key ? "0 0 0 4px rgba(0,194,184,.16)" : "var(--sh-sm)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(238px,1fr))", gap: 16, alignItems: "stretch" }}>{tiers.map((t) => { const isCur = plan && t.key && t.key === plan; const acc = PLAN_ACCESS[t.key] || []; return (
+        <div key={t.name} className="card" style={{ padding: 26, display: "flex", flexDirection: "column", border: highlight === t.key ? "2px solid var(--cyan)" : t.free ? "2px solid var(--teal)" : t.tag ? "2px solid var(--blue)" : "1px solid var(--line)", position: "relative", background: t.free ? "linear-gradient(160deg,var(--cyan-soft),#fff 70%)" : "#fff", boxShadow: highlight === t.key ? "0 0 0 4px rgba(0,194,184,.16)" : "var(--sh-sm)" }}>
           {highlight === t.key && <span className="chip chip-cyan" style={{ position: "absolute", top: -11, right: 26 }}>For you</span>}
           {t.tag && <span className="chip chip-blue" style={{ position: "absolute", top: -11, left: 26 }}>{t.tag}</span>}
-          {t.free && <span className="chip chip-cyan" style={{ position: "absolute", top: -11, left: 26 }}>Recommended</span>}
+          {t.free && <span className="chip chip-cyan" style={{ position: "absolute", top: -11, left: 26 }}>{t.freeForever ? "Free" : "Recommended"}</span>}
+          {t.addon && <span className="chip chip-low" style={{ position: "absolute", top: -11, left: 26 }}>Add-on</span>}
           <div className="disp" style={{ fontWeight: 700, fontSize: 18 }}>{t.name}</div>
           <p className="muted" style={{ fontSize: 13, margin: "6px 0 0", minHeight: 38, lineHeight: 1.45 }}>{t.blurb}</p>
-          <div className="row" style={{ gap: 6, margin: "14px 0 2px", alignItems: "baseline" }}>{t.free ? <span className="disp" style={{ fontSize: 34, fontWeight: 700, color: "var(--teal)" }}>Free</span> : t.custom ? <span className="disp" style={{ fontSize: 32, fontWeight: 700 }}>Custom</span> : <><span className="disp num" style={{ fontSize: 34, fontWeight: 700 }}>{fmt(annual ? t.yr : t.mo)}</span><span className="muted" style={{ fontSize: 13 }}>/mo</span>{annual && <span className="chip chip-low" style={{ fontSize: 10.5, marginLeft: 4 }}>save {Math.round((1 - t.yr / t.mo) * 100)}%</span>}</>}</div>
-          <div className="faint" style={{ fontSize: 12, minHeight: 18 }}>{t.free ? "7 days free, no card needed" : t.custom ? "Tailored to your organisation" : annual ? ("billed annually at " + fmt(t.yr * 12) + " / yr") : ("or " + fmt(t.yr) + " / mo billed annually")}</div>
+          <div className="row" style={{ gap: 6, margin: "14px 0 2px", alignItems: "baseline" }}>{t.free ? <span className="disp" style={{ fontSize: 34, fontWeight: 700, color: "var(--teal)" }}>Free</span> : t.custom ? <span className="disp" style={{ fontSize: 32, fontWeight: 700 }}>Custom</span> : t.addon ? <span className="disp" style={{ fontSize: 26, fontWeight: 700 }}>Pay as you go</span> : <><span className="disp num" style={{ fontSize: 34, fontWeight: 700 }}>{fmt(annual ? t.yr : t.mo)}</span><span className="muted" style={{ fontSize: 13 }}>/mo</span>{annual && <span className="chip chip-low" style={{ fontSize: 10.5, marginLeft: 4 }}>save {Math.round((1 - t.yr / t.mo) * 100)}%</span>}</>}</div>
+          <div className="faint" style={{ fontSize: 12, minHeight: 18 }}>{t.free ? (t.freeForever ? "Free forever, no card needed" : "7 days free, no card needed") : t.custom ? "Tailored to your organisation" : t.addon ? "Only pay for the services you use" : annual ? ("billed annually at " + fmt(t.yr * 12) + " / yr") : ("or " + fmt(t.yr) + " / mo billed annually")}</div>
           <div style={{ height: 1, background: "var(--line)", margin: "18px 0" }} />
           <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>{t.feats.map((f, j) => (<div key={j} className="row" style={{ gap: 9, fontSize: 13.5, alignItems: "flex-start" }}><Check size={15} color={t.tag ? "var(--blue)" : "var(--cyan)"} style={{ flexShrink: 0, marginTop: 2 }} />{f}</div>))}
-            <div style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 12 }}><div className="faint" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 8 }}>Premium features</div>{PREMIUM_FEATURES.map(([pk, pl]) => { const on = acc.includes(pk); return (<div key={pk} className="row" style={{ gap: 9, fontSize: 13, marginBottom: 6, color: on ? "var(--text)" : "var(--muted)" }}>{on ? <Check size={15} color="#0E8C7E" style={{ flexShrink: 0 }} /> : <span style={{ width: 15, height: 15, borderRadius: 999, border: "1.5px solid var(--line)", flexShrink: 0 }} />}{pl}</div>); })}</div>
+            {!t.addon && <div style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 12 }}><div className="faint" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 8 }}>Premium features</div>{PREMIUM_FEATURES.map(([pk, pl]) => { const on = acc.includes(pk); return (<div key={pk} className="row" style={{ gap: 9, fontSize: 13, marginBottom: 6, color: on ? "var(--text)" : "var(--muted)" }}>{on ? <Check size={15} color="#0E8C7E" style={{ flexShrink: 0 }} /> : <span style={{ width: 15, height: 15, borderRadius: 999, border: "1.5px solid var(--line)", flexShrink: 0 }} />}{pl}</div>); })}</div>}
           </div>
-          <button className={"btn " + (cur ? "btn-light" : t.free ? "btn-primary" : t.tag ? "btn-blue" : t.dark ? "btn-dark" : "btn-light")} style={{ justifyContent: "center", marginTop: 20 }} disabled={cur} onClick={() => { if (!cur && onChoose) onChoose(t.key, annual); }}>{cur ? "Current plan" : t.cta}</button>
+          <button className={"btn " + (isCur ? "btn-light" : t.addon ? "btn-light" : t.free ? "btn-primary" : t.tag ? "btn-blue" : t.dark ? "btn-dark" : "btn-light")} style={{ justifyContent: "center", marginTop: 20 }} disabled={isCur || t.addon} onClick={() => { if (!isCur && t.key && onChoose) onChoose(t.key, annual); }}>{isCur ? "Current plan" : t.cta}</button>
         </div>
       ); })}</div>
-      <div className="muted" style={{ fontSize: 12.5, marginTop: 16, lineHeight: 1.5 }}>Prices exclude VAT. The free trial needs no card and converts to a paid plan when it ends. Annual plans are billed up front and save roughly two months versus paying monthly.</div>
+      <div className="muted" style={{ fontSize: 12.5, marginTop: 16, lineHeight: 1.5 }}>Prices shown in {cur.code} and exclude VAT. The free option needs no card. Annual plans are billed up front and save roughly two months versus paying monthly. Relocation services are charged as pay-as-you-go add-ons.</div>
     </div>
   );
 };
@@ -2004,7 +2028,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "intel": return <Intel />;
       case "analytics": return <Analytics />;
       case "clinicians": return <ClinicianNetwork />;
-      case "pricing": return <Pricing plan={plan} onChoose={(pk, annual) => { onPlan && onPlan(pk, annual); const unlocked = lockedFrom && (PLAN_ACCESS[pk] || []).includes(lockedFrom); const lockedLabel = (nav.find((n) => n.k === lockedFrom) || {}).l || "That feature"; const back = unlocked ? lockedFrom : null; setUpgradeTo(null); setLockedFrom(null); setToast(unlocked ? (lockedLabel + " unlocked") : (pk === "trial" ? "Free trial started" : "You are now on the " + (PLAN_LABEL[pk] || pk) + " plan")); setTimeout(() => setToast(null), 2800); if (back) go(back); }} highlight={upgradeTo} />;
+      case "pricing": return <Pricing role={role} market={market} isOwner={isOwner} plan={plan} onChoose={(pk, annual) => { onPlan && onPlan(pk, annual); const unlocked = lockedFrom && (PLAN_ACCESS[pk] || []).includes(lockedFrom); const lockedLabel = (nav.find((n) => n.k === lockedFrom) || {}).l || "That feature"; const back = unlocked ? lockedFrom : null; setUpgradeTo(null); setLockedFrom(null); setToast(unlocked ? (lockedLabel + " unlocked") : (pk === "trial" ? "Free trial started" : "You are now on the " + (PLAN_LABEL[pk] || pk) + " plan")); setTimeout(() => setToast(null), 2800); if (back) go(back); }} highlight={upgradeTo} />;
       case "settings": return <SettingsScreen plan={plan} trialMsg={trialMsg} go={go} profileName={profileName} onName={onProfileName} />;
       case "admin": return <AdminScreen ownerEmail={ownerEmail} />;
       case "clients": return <ClientsTargets />;
