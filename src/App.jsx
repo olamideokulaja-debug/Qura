@@ -492,29 +492,53 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
     </div>
   );
 };
-const DecisionMakers = () => {
+const DecisionMakers = ({ plan = "starter", onToast }) => {
   const [q, setQ] = useState(""); const [sp, setSp] = useState("All");
+  const tier = CREDIT_TIERS[plan] || CREDIT_TIERS.starter;
+  const today = new Date().toISOString().slice(0, 10);
+  const [used, setUsed] = useState({ date: today, dm: 0, invite: 0 });
+  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_credits"); let v = r?.value ? JSON.parse(r.value) : null; if (!v || v.date !== today) v = { date: today, dm: 0, invite: 0 }; setUsed(v); } catch (e) {} })(); }, []);
+  const persist = (v) => { setUsed(v); try { window.storage?.set("qura_credits", JSON.stringify(v)); } catch (e) {} };
+  const dmLeft = Math.max(0, tier.dm - used.dm);
+  const inviteLeft = Math.max(0, tier.invite - used.invite);
+  const spendDM = (n) => { if (used.dm + n > tier.dm) { if (onToast) onToast("Out of message credits today. Upgrade for more."); return false; } persist({ date: today, dm: used.dm + n, invite: used.invite }); return true; };
+  const spendInvite = (n) => { if (used.invite + n > tier.invite) { if (onToast) onToast("Out of follow-invite credits today. Upgrade for more."); return false; } persist({ date: today, dm: used.dm, invite: used.invite + n }); return true; };
+  const [shot, setShot] = useState(false); const [pick, setPick] = useState([]);
   const list = DMS.filter((d) => (sp === "All" || d.spec === sp) && (d.name.toLowerCase().includes(q.toLowerCase()) || d.org.toLowerCase().includes(q.toLowerCase())));
-  const specChip = (s) => { const i = SPECIALTIES.indexOf(s); return SPEC_DATA[i] ? SPEC_DATA[i].c : "#1E54E6"; };
+  const specChip = (x) => { const i = SPECIALTIES.indexOf(x); return SPEC_DATA[i] ? SPEC_DATA[i].c : "#1E54E6"; };
+  const keyOf = (d) => d.name + "|" + d.org;
+  const toggle = (k) => setPick((p) => p.includes(k) ? p.filter((x) => x !== k) : [...p, k]);
+  const reveal = (d) => { if (spendDM(1) && onToast) onToast("Contact revealed for " + d.name + " \u00b7 1 credit used"); };
+  const invite = (d) => { if (spendInvite(1) && onToast) onToast("Follow invite sent to " + d.name); };
+  const sendShot = () => { if (!pick.length) return; if (spendDM(pick.length) && onToast) { onToast("Mailshot sent to " + pick.length + " decision-makers \u00b7 " + pick.length + " credits used"); setPick([]); setShot(false); } };
   return (
     <div>
-      <PageHead title="Decision makers" sub={`${REGISTER.deduped} verified contacts across ${REGISTER.orgs} organisations · contact details masked for privacy`} />
+      <PageHead title="Decision makers" sub={REGISTER.deduped + " verified contacts across " + REGISTER.orgs + " organisations \u00b7 contact details masked for privacy"} right={<button className={"btn " + (shot ? "btn-primary" : "btn-light")} onClick={() => { setShot((v) => !v); setPick([]); }}><Send size={14} /> {shot ? "Cancel mailshot" : "Mailshot"}</button>} />
+      <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--navy)", color: "#fff", border: "none" }}>
+        <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div className="row" style={{ gap: 20 }}>
+            <div><div className="disp" style={{ fontSize: 22, fontWeight: 700 }}>{dmLeft}<span style={{ fontSize: 13, color: "#8295B6" }}> / {tier.dm}</span></div><div style={{ fontSize: 12, color: "#9FB0D0" }}>Message credits today</div></div>
+            <div><div className="disp" style={{ fontSize: 22, fontWeight: 700 }}>{inviteLeft}<span style={{ fontSize: 13, color: "#8295B6" }}> / {tier.invite}</span></div><div style={{ fontSize: 12, color: "#9FB0D0" }}>Follow-invites today</div></div>
+          </div>
+          <div className="hsm" style={{ maxWidth: 330, fontSize: 12, color: "#9FB0D0", lineHeight: 1.5 }}>Credits keep Qura specialist, not spam. They reset daily and scale with your plan, so every message to a hospital is a considered one.</div>
+        </div>
+      </div>
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
         <div className="row" style={{ gap: 8, border: "1px solid var(--line)", borderRadius: 999, padding: "0 14px", background: "var(--bg2)", marginBottom: 12 }}><Search size={16} className="faint" /><input className="in" style={{ border: "none", boxShadow: "none", padding: "10px 0" }} placeholder="Search name or organisation" value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <div className="row scrollx" style={{ gap: 8, overflowX: "auto", paddingBottom: 4 }}>{["All", ...SPECIALTIES].map((m) => (<button key={m} onClick={() => setSp(m)} className="chip" style={{ padding: "7px 14px", whiteSpace: "nowrap", background: sp === m ? "var(--blue)" : "#EEF1F7", color: sp === m ? "#fff" : "#5A6783" }}>{m}</button>))}</div>
       </div>
-      <div className="muted" style={{ fontSize: 13, marginBottom: 12 }}>{list.length} contacts shown</div>
-      <div className="grid-3">{list.map((d, i) => (
-        <div key={i} className="card lift" style={{ padding: 18 }}>
-          <div className="row" style={{ justifyContent: "space-between" }}><Avatar initials={d.name.split(" ").slice(-2).map((x) => x[0]).join("")} size={44} /><span className="chip" style={{ background: specChip(d.spec) + "1A", color: specChip(d.spec) }}>{d.spec}</span></div>
+      <div className="muted" style={{ fontSize: 13, marginBottom: 12 }}>{list.length} contacts shown{shot ? " \u00b7 tap cards to select, then send" : ""}</div>
+      <div className="grid-3">{list.map((d, i) => { const k = keyOf(d); const on = pick.includes(k); return (
+        <div key={i} className="card lift" style={{ padding: 18, border: on ? "2px solid var(--cyan)" : "1px solid var(--line)", cursor: shot ? "pointer" : "default" }} onClick={shot ? () => toggle(k) : undefined}>
+          <div className="row" style={{ justifyContent: "space-between" }}><Avatar initials={d.name.split(" ").slice(-2).map((x) => x[0]).join("")} size={44} />{shot ? <span style={{ width: 22, height: 22, borderRadius: 999, border: "2px solid " + (on ? "var(--cyan)" : "var(--line)"), background: on ? "var(--cyan)" : "#fff", display: "grid", placeItems: "center" }}>{on ? <Check size={13} color="#fff" /> : null}</span> : <span className="chip" style={{ background: specChip(d.spec) + "1A", color: specChip(d.spec) }}>{d.spec}</span>}</div>
           <div style={{ fontWeight: 600, fontSize: 15, marginTop: 12 }}>{d.name}</div>
           <div className="muted" style={{ fontSize: 13 }}>{d.role}</div>
           <div style={{ fontSize: 13, marginTop: 6 }}>{d.org}</div>
-          <div className="faint row" style={{ fontSize: 12, gap: 6, marginTop: 8 }}><Mail size={12} /><span style={{ letterSpacing: 1 }}>•••••@•••</span></div>
-          <div className="faint row" style={{ fontSize: 12, gap: 6, marginTop: 2 }}><Bell size={12} /><span style={{ letterSpacing: 1 }}>••• ••• ••••</span></div>
-          <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center", padding: "9px", marginTop: 14 }}><Mail size={14} /> Reveal & reach out</button>
+          <div className="faint row" style={{ fontSize: 12, gap: 6, marginTop: 8 }}><Mail size={12} /><span style={{ letterSpacing: 1 }}>{"\u2022\u2022\u2022\u2022\u2022@\u2022\u2022\u2022"}</span></div>
+          {!shot && <div className="row" style={{ gap: 8, marginTop: 14 }}><button className="btn btn-ghost hsm" style={{ flex: 1, justifyContent: "center", padding: "9px", fontSize: 13 }} onClick={() => reveal(d)}><Mail size={14} /> Reveal (1)</button><button className="btn btn-light hsm" style={{ justifyContent: "center", padding: "9px 11px" }} onClick={() => invite(d)} title="Invite to follow your company"><Bell size={14} /></button></div>}
         </div>
-      ))}</div>
+      ); })}</div>
+      {shot && <div style={{ position: "sticky", bottom: 16, marginTop: 16 }}><div className="card" style={{ padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 8px 30px rgba(10,23,48,.18)" }}><div style={{ fontSize: 13.5 }}><b>{pick.length}</b> selected \u00b7 costs <b>{pick.length}</b> credit{pick.length === 1 ? "" : "s"} ({dmLeft} left today)</div><button className="btn btn-primary" onClick={sendShot} disabled={!pick.length || pick.length > dmLeft}><Send size={15} /> Send mailshot</button></div></div>}
     </div>
   );
 };
@@ -606,6 +630,7 @@ const convMoney = (str, market) => { const cur = CURRENCY[market] || CURRENCY.al
 const PLAN_LABEL = { trial: "Free trial", starter: "Starter", growth: "Growth", enterprise: "Enterprise" };
 const PREMIUM_FEATURES = [["proposals", "AI proposals"], ["analytics", "Analytics"], ["leaderboard", "Leaderboard"], ["intel", "Market intelligence"]];
 const ALL_PREMIUM = ["proposals", "analytics", "leaderboard", "intel", "psintel"];
+const CREDIT_TIERS = { trial: { dm: 15, invite: 15 }, starter: { dm: 5, invite: 10 }, growth: { dm: 25, invite: 30 }, enterprise: { dm: 100, invite: 100 } };
 const PLAN_ACCESS = { trial: ALL_PREMIUM, starter: [], growth: ALL_PREMIUM, enterprise: ALL_PREMIUM };
 const FEED_STAGES = [
   ["Requirement posted", "A healthcare organisation posts a live requirement."],
@@ -898,6 +923,42 @@ const Analytics = () => (
   </div>
 );
 const Stars = ({ n }) => (<span className="row" style={{ gap: 1 }}>{[1, 2, 3, 4, 5].map((i) => (<Star key={i} size={13} color="#F2A33C" fill={i <= Math.round(n) ? "#F2A33C" : "none"} />))}</span>);
+const EXECS = [
+  { name: "Dr. Margaret Ellison", title: "Chief Medical Officer", sector: "Former NHS acute trust", avail: "Available now", match: 96, note: "Seeking international CMO or board advisory roles." },
+  { name: "David Osei", title: "Chief People Officer", sector: "Workforce & HR transformation", avail: "1 month", match: 92, note: "Large-scale workforce redesign and TUPE experience." },
+  { name: "Fiona Grant", title: "Chief Operating Officer", sector: "Acute & community", avail: "Available now", match: 90, note: "Turnaround and elective recovery specialist." },
+  { name: "Dr. Rahul Mehta", title: "Chief Medical Officer", sector: "Digital health & MedTech", avail: "Available now", match: 94, note: "Ex-clinician now leading clinical safety in health tech." },
+  { name: "Susan Okafor", title: "Chief Nursing Officer", sector: "Former NHS trust", avail: "2 weeks", match: 89, note: "Open to UK, Gulf and international provider roles." },
+  { name: "James Whitfield", title: "Director of Strategy", sector: "ICS & commissioning", avail: "1 month", match: 87, note: "Post-transition, seeking provider or investor-side strategy roles." },
+];
+
+function ExecNetwork({ onToast }) {
+  const [saved, setSaved] = useState([]);
+  const save = async (c) => {
+    const entry = { id: "ex_" + c.name.replace(/[^A-Za-z0-9]+/g, ""), name: c.name, role: c.title, loc: c.sector, band: "Executive", rate: "", status: "Saved", note: c.note || "" };
+    try { let list = []; try { const r = await window.storage?.get("qura_shortlist"); if (r?.value) list = JSON.parse(r.value); } catch (e) {} if (!Array.isArray(list)) list = []; if (!list.some((x) => x.name === c.name)) { list = [entry, ...list]; await window.storage?.set("qura_shortlist", JSON.stringify(list)); } } catch (e) {}
+    setSaved((v) => v.includes(c.name) ? v : [...v, c.name]);
+    if (onToast) onToast(c.name + " saved to shortlist");
+  };
+  return (
+    <div>
+      <PageHead title="Executive network" sub="Senior non-clinical leaders and ex-clinicians in corporate roles, many from the NHS transition, open to roles worldwide" right={<span className="chip chip-cyan"><Sparkles size={12} /> C-suite & senior leaders</span>} />
+      <div className="card" style={{ padding: 16, marginBottom: 18, background: "var(--cyan-soft)", border: "none" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><Briefcase size={18} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 13.5, lineHeight: 1.55 }}>With the NHS moving to direct government running, thousands of senior roles have been affected. Qura surfaces available chief medical, nursing, people, operating and strategy officers, and ex-clinicians who have moved into corporate leadership, for providers and investors hiring worldwide.</div></div></div>
+      <div className="grid-3">{EXECS.map((c, i) => { const on = saved.includes(c.name); return (
+        <div key={i} className="card lift" style={{ padding: 18 }}>
+          <div className="row" style={{ justifyContent: "space-between" }}><div style={{ width: 46, height: 46, borderRadius: 999, background: "#EEF3FF", color: "#1E54E6", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{c.name.split(" ").slice(-2).map((x) => x[0]).join("")}</div><span className="chip chip-cyan"><Sparkles size={11} /> {c.match}%</span></div>
+          <div style={{ fontWeight: 600, fontSize: 15, marginTop: 12 }}>{c.name}</div>
+          <div className="muted" style={{ fontSize: 13 }}>{c.title}</div>
+          <div className="faint row" style={{ fontSize: 12, gap: 5, marginTop: 8 }}><BadgeCheck size={12} /> {c.sector}</div>
+          {c.note ? <p className="muted" style={{ fontSize: 12.5, margin: "10px 0 0", lineHeight: 1.5 }}>{c.note}</p> : null}
+          <div className="row" style={{ justifyContent: "space-between", marginTop: 12 }}><span className="chip chip-low">{c.avail}</span></div>
+          <button onClick={() => save(c)} disabled={on} className={"btn " + (on ? "btn-light" : "btn-ghost")} style={{ width: "100%", justifyContent: "center", marginTop: 12, padding: "9px" }}>{on ? <><Check size={14} /> Saved to shortlist</> : <><UserCheck size={14} /> Shortlist</>}</button>
+        </div>
+      ); })}</div>
+    </div>
+  );
+}
+
 function ClinicianNetwork({ onToast }) {
   const [saved, setSaved] = useState([]);
   const save = async (c) => {
@@ -1382,6 +1443,186 @@ function SavedOpps({ onPropose, market = "all", onToast }) {
   );
 }
 
+function WeeklyReport({ sent = [], booked = [], moves = {}, lost = {}, name, market = "all", onToast }) {
+  const parseMoney = (v) => { if (!v) return 0; let n = parseFloat(String(v).replace(/[^0-9.]/g, "")) || 0; if (/m/i.test(v)) n *= 1e6; else if (/k/i.test(v)) n *= 1e3; return n; };
+  const fmtM = (n) => "\u00a3" + (n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? Math.round(n / 1e3) + "K" : String(Math.round(n)));
+  const base = [];
+  STAGES.forEach((st, si) => st.deals.forEach((d) => base.push({ o: d.o, v: d.v, si })));
+  sent.forEach((x) => base.push({ o: x.org, v: x.val, si: 2 }));
+  const deals = base.map((d) => { const key = d.o + "|" + d.v; return { ...d, key, si: moves[key] != null ? moves[key] : d.si }; }).filter((d) => !lost[d.key]);
+  const wonStage = STAGES.length - 1;
+  const won = deals.filter((d) => d.si === wonStage);
+  const wonValue = won.reduce((a, d) => a + parseMoney(d.v), 0);
+  const pipelineValue = deals.reduce((a, d) => a + parseMoney(d.v), 0);
+  const byStage = STAGES.map((st, si) => { const col = deals.filter((d) => d.si === si); return { name: st.name, count: col.length, value: col.reduce((a, d) => a + parseMoney(d.v), 0) }; });
+  const maxStage = Math.max(1, ...byStage.map((x) => x.value));
+  const now = new Date(); const day = now.getDay(); const toFri = (5 - day + 7) % 7; const fri = new Date(now); fri.setDate(now.getDate() + toFri);
+  const weekEnding = fri.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
+  const fallback = "In the week ending " + weekEnding + " I booked " + booked.length + " meetings and sent " + sent.length + " proposals. We closed " + won.length + " deals worth " + fmtM(wonValue) + ", with total pipeline standing at " + fmtM(pipelineValue) + " across " + deals.length + " live opportunities.";
+  const [brief, setBrief] = useState("");
+  const [loading, setLoading] = useState(true);
+  const gen = async () => { setLoading(true); try {
+    const res = await fetch("/api/anthropic", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 400, messages: [{ role: "user", content: "Write a concise weekly business development report summary in the first person" + (name ? " as " + name : "") + ", addressed to the board, in British English. Figures for the week ending " + weekEnding + ": " + booked.length + " meetings booked; " + sent.length + " proposals sent; " + won.length + " deals closed worth " + fmtM(wonValue) + "; total pipeline " + fmtM(pipelineValue) + " across " + deals.length + " live deals. Three to four sentences, confident and specific, no bullet points, no em dashes, no preamble." }] }) });
+    const data = await res.json(); const txt = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("").trim(); setBrief(txt || fallback);
+  } catch (e) { setBrief(fallback); } setLoading(false); };
+  useEffect(() => { gen(); }, []);
+  const plain = "QURA WEEKLY ACTIVITY REPORT\nWeek ending " + weekEnding + "\n\n" + (brief || fallback) + "\n\nMeetings booked: " + booked.length + "\nProposals sent: " + sent.length + "\nDeals closed: " + won.length + " (" + fmtM(wonValue) + ")\nPipeline: " + fmtM(pipelineValue) + " across " + deals.length + " live deals\n\nProposals sent:\n" + (sent.length ? sent.map((x) => "- " + x.org + (x.role ? " \u00b7 " + x.role : "") + (x.val ? " \u00b7 " + x.val : "")).join("\n") : "- none logged this week") + "\n\nPipeline by stage:\n" + byStage.map((st) => "- " + st.name + ": " + st.count + " deals \u00b7 " + fmtM(st.value)).join("\n");
+  const copy = () => { try { navigator.clipboard.writeText(plain); if (onToast) onToast("Report copied to clipboard"); } catch (e) { if (onToast) onToast("Copy not available here"); } };
+  const emailMe = () => { if (onToast) onToast("Scheduled for Friday mornings. Live email delivery switches on once your email provider is connected."); };
+  return (
+    <div>
+      <PageHead title="Weekly activity report" sub={"Auto-generated for the board. Week ending " + weekEnding + "."} right={<div className="row" style={{ gap: 8 }}><button className="btn btn-light" onClick={copy}><FileText size={14} /> Copy</button><button className="btn btn-primary" onClick={emailMe}><Send size={14} /> Email me</button></div>} />
+      <div className="card" style={{ padding: 22, marginBottom: 16, background: "linear-gradient(160deg, var(--cyan-soft), #fff 70%)", border: "1px solid var(--line)" }}>
+        <div className="row" style={{ justifyContent: "space-between", marginBottom: 10 }}><span className="chip chip-cyan"><Sparkles size={12} /> Generated by Qura</span><button className="btn btn-light hsm" style={{ fontSize: 12, padding: "6px 10px" }} onClick={gen} disabled={loading}>{loading ? "Writing..." : "Regenerate"}</button></div>
+        <p className="disp" style={{ fontSize: 17, lineHeight: 1.55, margin: 0, color: "var(--navy)", minHeight: 60 }}>{loading ? "Preparing your board summary..." : (brief || fallback)}</p>
+      </div>
+      <div className="grid-stats" style={{ marginBottom: 18 }}>
+        <Stat label="Meetings booked" value={String(booked.length)} icon={Calendar} />
+        <Stat label="Proposals sent" value={String(sent.length)} icon={Send} accent="cyan" />
+        <Stat label="Deals closed" value={String(won.length)} icon={Trophy} />
+        <Stat label="Closed value" value={fmtM(wonValue)} icon={TrendingUp} accent="cyan" />
+        <Stat label="Pipeline value" value={fmtM(pipelineValue)} icon={GitBranch} />
+      </div>
+      <div className="grid g2" style={{ gap: 16, alignItems: "start" }}>
+        <div className="card" style={{ padding: 20 }}>
+          <SectionHead title="Pipeline overview" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 6 }}>{byStage.map((st) => (
+            <div key={st.name}>
+              <div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span style={{ fontWeight: 600 }}>{st.name} <span className="faint">({st.count})</span></span><span className="num">{fmtM(st.value)}</span></div>
+              <div style={{ height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}><div style={{ width: Math.max(4, (st.value / maxStage) * 100) + "%", height: "100%", background: "linear-gradient(90deg, var(--teal), var(--cyan))", borderRadius: 999 }} /></div>
+            </div>
+          ))}</div>
+        </div>
+        <div className="card" style={{ padding: 20 }}>
+          <SectionHead title={"Proposals sent (" + sent.length + ")"} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6 }}>{sent.length ? sent.slice(0, 8).map((x, i) => (
+            <div key={i} className="row" style={{ justifyContent: "space-between", fontSize: 13.5 }}><span className="row" style={{ gap: 8, minWidth: 0 }}><Building2 size={14} color="#1E54E6" /><span style={{ minWidth: 0 }}>{x.org}{x.role ? <span className="faint"> \u00b7 {x.role}</span> : null}</span></span><span className="num" style={{ flexShrink: 0 }}>{x.val || ""}</span></div>
+          )) : <div className="faint" style={{ fontSize: 13 }}>No proposals logged this week yet. Send one from Opportunities or Proposals and it appears here.</div>}</div>
+          <div style={{ height: 1, background: "var(--line)", margin: "16px 0 12px" }} />
+          <SectionHead title={"Meetings booked (" + booked.length + ")"} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 6 }}>{booked.length ? booked.slice(0, 6).map((m, i) => (
+            <div key={i} className="row" style={{ gap: 8, fontSize: 13.5 }}><Calendar size={14} color="#0E8C7E" /><span>{m.org || m.who || m.title || "Meeting"}{m.when ? <span className="faint"> \u00b7 {m.when}</span> : null}</span></div>
+          )) : <div className="faint" style={{ fontSize: 13 }}>No meetings booked this week yet.</div>}</div>
+        </div>
+      </div>
+      <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>This report is generated automatically each Friday morning and can be produced on demand at any time. It replaces the manual weekly board email. Figures reflect your logged activity and pipeline.</div>
+    </div>
+  );
+}
+
+function OwnerOps({ isOwner }) {
+  const GROUPS = [
+    { k: "agency", l: "Agencies", n: 642, c: "#2D6BFF" },
+    { k: "hospital", l: "Hospitals & providers", n: 1498, c: "#00C2B8" },
+    { k: "clinician", l: "Clinicians", n: 8473, c: "#7C5CFF" },
+    { k: "gp", l: "GP practices", n: 210, c: "#0E8C7E" },
+    { k: "care", l: "Care providers", n: 180, c: "#C8102E" },
+    { k: "exec", l: "Executives", n: 140, c: "#F2A33C" },
+    { k: "investor", l: "Investors", n: 95, c: "#1E54E6" },
+  ];
+  const total = GROUPS.reduce((a, g) => a + g.n, 0);
+  const maxG = Math.max(...GROUPS.map((g) => g.n));
+  const PLANS_MIX = [
+    { l: "Starter", price: 450, subs: 180, c: "#2D6BFF" },
+    { l: "Growth", price: 1200, subs: 96, c: "#00C2B8" },
+    { l: "Enterprise", price: 3200, subs: 14, c: "#0A1730" },
+  ];
+  const mrr = PLANS_MIX.reduce((a, p) => a + p.price * p.subs, 0);
+  const arr = mrr * 12;
+  const activeSubs = PLANS_MIX.reduce((a, p) => a + p.subs, 0);
+  const arpa = Math.round(mrr / activeSubs);
+  const fmt = (n) => "\u00a3" + n.toLocaleString();
+  const [live, setLive] = useState(null);
+  useEffect(() => { (async () => { try { if (supabase) { const { data } = await supabase.auth.getSession(); const tok = data && data.session && data.session.access_token; if (tok) { const r = await fetch("/api/admin", { headers: { Authorization: "Bearer " + tok } }); if (r.ok) { const j = await r.json(); if (Array.isArray(j.users)) { const by = {}; j.users.forEach((u) => { const rk = u.role || "unassigned"; by[rk] = (by[rk] || 0) + 1; }); setLive({ total: j.users.length, by }); } } } } } catch (e) {} })(); }, []);
+  if (isOwner === false) return (<div><PageHead title="Sign-ups & financials" sub="Owner only." /><div className="card muted" style={{ padding: 40, textAlign: "center" }}>This page is available to platform owners.</div></div>);
+  return (
+    <div>
+      <PageHead title="Sign-ups & financials" sub="Platform growth and revenue at a glance" right={<span className="chip chip-cyan">Owner view</span>} />
+      <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--bg)", border: "1px solid var(--line)" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><ShieldCheck size={16} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 12.5, lineHeight: 1.5 }} className="muted">Platform figures are illustrative for now. Live registered-account counts pull from your database below; live revenue connects when Stripe reporting is switched on.</div></div></div>
+      <div className="grid-stats" style={{ marginBottom: 18 }}>
+        <Stat label="Total sign-ups" value={total.toLocaleString()} delta="illustrative" icon={Users} />
+        <Stat label="MRR" value={fmt(mrr)} delta="+12% MoM" icon={TrendingUp} accent="cyan" />
+        <Stat label="ARR" value={fmt(arr)} icon={BarChart3} />
+        <Stat label="Active subscriptions" value={String(activeSubs)} icon={CreditCard} accent="cyan" />
+        <Stat label="ARPA" value={fmt(arpa)} icon={Trophy} />
+      </div>
+      <div className="grid g2" style={{ gap: 16, alignItems: "start" }}>
+        <div className="card" style={{ padding: 20 }}>
+          <SectionHead title="Sign-ups by group" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>{GROUPS.map((g) => (
+            <div key={g.k}><div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span style={{ fontWeight: 600 }}>{g.l}</span><span className="num">{g.n.toLocaleString()}</span></div><div style={{ height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}><div style={{ width: Math.max(3, (g.n / maxG) * 100) + "%", height: "100%", background: g.c, borderRadius: 999 }} /></div></div>
+          ))}</div>
+          <div style={{ borderTop: "1px solid var(--line)", marginTop: 16, paddingTop: 12 }}><div className="row" style={{ justifyContent: "space-between", fontSize: 13 }}><span className="muted">Live registered accounts (your database)</span><span className="num" style={{ fontWeight: 700 }}>{live ? live.total : "\u2014"}</span></div>{live ? <div className="faint" style={{ fontSize: 11.5, marginTop: 6 }}>{Object.entries(live.by).map(([k, v]) => k + ": " + v).join(" \u00b7 ")}</div> : null}</div>
+        </div>
+        <div className="card" style={{ padding: 20 }}>
+          <SectionHead title="Revenue by plan" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 8 }}>{PLANS_MIX.map((p) => { const rev = p.price * p.subs; return (
+            <div key={p.l}><div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span style={{ fontWeight: 600 }}>{p.l} <span className="faint">\u00b7 {p.subs} subs \u00b7 {fmt(p.price)}/mo</span></span><span className="num">{fmt(rev)}</span></div><div style={{ height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}><div style={{ width: Math.max(3, (rev / mrr) * 100) + "%", height: "100%", background: p.c, borderRadius: 999 }} /></div></div>
+          ); })}</div>
+          <div style={{ borderTop: "1px solid var(--line)", marginTop: 16, paddingTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="row" style={{ justifyContent: "space-between", fontSize: 13 }}><span className="muted">Trial to paid conversion</span><span className="num">34%</span></div>
+            <div className="row" style={{ justifyContent: "space-between", fontSize: 13 }}><span className="muted">Monthly recurring revenue</span><span className="num" style={{ fontWeight: 700 }}>{fmt(mrr)}</span></div>
+            <div className="row" style={{ justifyContent: "space-between", fontSize: 13 }}><span className="muted">Annual run rate</span><span className="num" style={{ fontWeight: 700 }}>{fmt(arr)}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IndustryNews() {
+  const REGIONS = [{ k: "uk", l: "United Kingdom" }, { k: "ng", l: "Nigeria" }, { k: "me", l: "Middle East" }, { k: "intl", l: "International" }];
+  const SEED = {
+    uk: [
+      { t: "NHS reorganisation: what the move to direct government running means for providers", s: "Health policy", ago: "2h" },
+      { t: "New community diagnostic centres announced to cut waiting lists", s: "Diagnostics", ago: "5h" },
+      { t: "Agency spend controls tighten across integrated care boards", s: "Public sector", ago: "1d" },
+      { t: "Sonographer shortage flagged as an elective recovery risk", s: "Imaging", ago: "1d" },
+    ],
+    ng: [
+      { t: "Lagos expands private health partnerships to widen access", s: "Business", ago: "3h" },
+      { t: "Nigeria's diaspora health workforce: return incentives debated", s: "Health NG", ago: "8h" },
+      { t: "Investment flows into Nigerian diagnostics and imaging", s: "Markets", ago: "1d" },
+    ],
+    me: [
+      { t: "Gulf health systems accelerate international clinician recruitment", s: "Gulf Health", ago: "4h" },
+      { t: "Dubai expands mandatory health screening programmes", s: "ME Medical", ago: "10h" },
+      { t: "Saudi hospitals invest in advanced imaging capacity", s: "Health ME", ago: "1d" },
+    ],
+    intl: [
+      { t: "Australia and New Zealand deepen overseas sonographer pathways", s: "ANZ Health", ago: "6h" },
+      { t: "Global health workforce shortage projected to widen", s: "World Health", ago: "12h" },
+      { t: "Cross-border clinician mobility: new bilateral agreements signed", s: "Global", ago: "1d" },
+    ],
+  };
+  const [region, setRegion] = useState("uk");
+  const [data, setData] = useState(SEED);
+  const [updated, setUpdated] = useState("");
+  useEffect(() => { (async () => { try {
+    const next = { ...SEED };
+    for (const rk of ["uk", "ng", "me", "intl"]) { try { const r = await window.storage?.get("qura_news_" + rk, true); if (r?.value) { const v = JSON.parse(r.value); if (Array.isArray(v) && v.length) next[rk] = v; } } catch (e) {} }
+    setData(next);
+    try { const u = await window.storage?.get("qura_news_updated", true); if (u?.value) { try { setUpdated(JSON.parse(u.value)); } catch (e) { setUpdated(u.value); } } } catch (e) {}
+  } catch (e) {} })(); }, []);
+  const items = data[region] || [];
+  return (
+    <div>
+      <PageHead title="Industry news" sub="Live healthcare news for your market, with a tap to see any other region" right={<span className="chip chip-cyan"><Rss size={12} /> {updated ? "Updated " + new Date(updated).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "Refreshed daily"}</span>} />
+      <div className="row" style={{ gap: 8, marginBottom: 16, flexWrap: "wrap" }}>{REGIONS.map((r) => (<button key={r.k} onClick={() => setRegion(r.k)} style={{ cursor: "pointer", padding: "8px 15px", borderRadius: 999, fontSize: 13, fontWeight: 600, background: region === r.k ? "var(--navy)" : "#fff", color: region === r.k ? "#fff" : "var(--navy)", border: "1px solid var(--line)" }}>{r.l}</button>))}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{items.map((n, i) => (
+        <a key={i} href={n.url || undefined} target="_blank" rel="noreferrer" className="card lift" style={{ padding: 18, display: "block", textDecoration: "none", color: "inherit" }}>
+          <div className="row" style={{ gap: 12, alignItems: "flex-start" }}>
+            <div style={{ width: 42, height: 42, borderRadius: 11, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><Rss size={18} color="#1E54E6" /></div>
+            <div style={{ minWidth: 0, flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14.5, lineHeight: 1.4 }}>{n.t}</div><div className="faint" style={{ fontSize: 12, marginTop: 5 }}>{n.s}{n.ago ? " \u00b7 " + n.ago : ""}</div></div>
+            {n.url ? <ArrowRight size={16} className="faint" style={{ flexShrink: 0 }} /> : null}
+          </div>
+        </a>
+      ))}</div>
+      <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>Headlines refresh daily from public healthcare news for each region. Licensed sources such as HSJ can be added to your feed.</div>
+    </div>
+  );
+}
+
 const Placeholder = ({ title }) => (<div><PageHead title={title} sub="This area is part of the prototype scope." /><div className="card" style={{ padding: 48, textAlign: "center" }}><MessageSquare size={28} className="faint" style={{ margin: "0 auto 12px" }} /><div className="muted">Content for {title.toLowerCase()} lives here in the full build.</div></div></div>);
 
 /* ===================== Pulse command center ===================== */
@@ -1737,7 +1978,7 @@ function Landing({ onEnter, onDemo }) {
   ];
   const feed = lens === "global" ? TEASER : TEASER.filter((x) => x.region === lens);
   const shown = feed.length ? Array.from({ length: Math.min(4, feed.length) }, (_, i) => feed[(tick + i) % feed.length]) : [];
-  const stats = [{ n: "10+", l: "Years in healthcare BD" }, { n: "8,473+", l: "LinkedIn followers" }, { n: "208", l: "Decision-maker contacts" }, { n: "50+", l: "Countries reached" }];
+  const stats = [{ n: "10+", l: "Years in healthcare BD" }, { n: "8,500+", l: "LinkedIn followers" }, { n: "208", l: "Decision-maker contacts" }, { n: "50+", l: "Countries reached" }];
   const edge = [
     { i: Brain, t: "A decade of real deals, encoded", b: "Qura's analytics are shaped by 10 years of contracts our experts have actually closed, so every score reflects how the market really behaves.", c: "#5B3FD6", bg: "var(--violet-soft)" },
     { i: Zap, t: "AI that works the way experts work", b: "The platform scans thousands of opportunities, scores fit and drafts proposals in seconds, following the playbook that built a multi-million-pound pipeline.", c: "#06776F", bg: "var(--cyan-soft)" },
@@ -1926,7 +2167,7 @@ function Login({ onNext, onHome, onSignup }) {
         </div>
         <div>
           <div style={{ height: 1, background: "rgba(255,255,255,.1)", margin: "0 0 22px" }} />
-          <div className="row" style={{ gap: 28 }}>{[["100K+", "Decision makers"], ["8,473", "Clinicians"], ["50+", "Countries"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
+          <div className="row" style={{ gap: 28 }}>{[["8,500+", "LinkedIn community"], ["100K+", "Decision-makers reached"], ["50+", "Countries"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
         </div>
       </div>
       <div className="login-auth" style={{ flex: "1 1 0", background: "#fff", padding: "46px 42px", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -2039,9 +2280,9 @@ const RoleSelect = ({ onPick }) => {
 /* ===================== shell ===================== */
 const NAVS = {
   operator: [
-    { k: "command", l: "MCC", i: Activity }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target }, { k: "savedOpps", l: "Saved", i: Star },
-    { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "proposals", l: "Proposals", i: FileText },
-    { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe },
+    { k: "command", l: "MCC", i: Activity }, { k: "ops", l: "Sign-ups & financials", i: BarChart3 }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target }, { k: "savedOpps", l: "Saved", i: Star },
+    { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "execs", l: "Executive network", i: Briefcase }, { k: "proposals", l: "Proposals", i: FileText },
+    { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "weekly", l: "Weekly report", i: FileText }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "news", l: "Industry news", i: Rss },
     { k: "analytics", l: "Analytics", i: BarChart3 }, { k: "clinicians", l: "Clinician network", i: Stethoscope },
     { k: "clients", l: "Clients & targets", i: Building2 }, { k: "casestudies", l: "Case studies", i: Award },
     { k: "playbook", l: "Incentive playbook", i: Zap }, { k: "events", l: "Round-tables", i: Ticket },
@@ -2049,33 +2290,33 @@ const NAVS = {
   ],
   agency: [
     { k: "dashboard", l: "Dashboard", i: LayoutDashboard }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target }, { k: "savedOpps", l: "Saved", i: Star },
-    { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "outreach", l: "Outreach", i: Send },
+    { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "execs", l: "Executive network", i: Briefcase }, { k: "outreach", l: "Outreach", i: Send },
     { k: "proposals", l: "Proposals", i: FileText }, { k: "meetings", l: "Meetings", i: Calendar },
-    { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe },
+    { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "weekly", l: "Weekly report", i: FileText }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "news", l: "Industry news", i: Rss },
     { k: "analytics", l: "Analytics", i: BarChart3 }, { k: "clinicians", l: "Clinician network", i: Stethoscope },
     { k: "clients", l: "Clients & targets", i: Building2 }, { k: "casestudies", l: "Case studies", i: Award },
     { k: "playbook", l: "Incentive playbook", i: Zap }, { k: "events", l: "Round-tables", i: Ticket },
     { k: "register", l: "Register a company", i: ClipboardList }, { k: "whyqura", l: "Why Qura wins", i: Trophy }, { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "staffing", l: "Site staffing", i: Building2 }, { k: "mobileunits", l: "Mobile units", i: Truck }, { k: "brand", l: "Brand channels", i: Sparkles }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
   hospital: [
-    { k: "feed", l: "Post & live feed", i: Rss }, { k: "clinicians", l: "Candidate search", i: Stethoscope }, { k: "shortlists", l: "My shortlists", i: Heart },
-    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe },
-    { k: "hdash", l: "Dashboard", i: LayoutDashboard }, { k: "findAgencies", l: "Find agencies", i: Briefcase }, { k: "meetings", l: "Meetings", i: Calendar },
+    { k: "feed", l: "Post & live feed", i: Rss }, { k: "clinicians", l: "Candidate search", i: Stethoscope }, { k: "execs", l: "Executive network", i: Briefcase }, { k: "shortlists", l: "My shortlists", i: Heart },
+    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "news", l: "Industry news", i: Rss },
+    { k: "hdash", l: "Dashboard", i: LayoutDashboard }, { k: "weekly", l: "Weekly report", i: FileText }, { k: "findAgencies", l: "Find agencies", i: Briefcase }, { k: "meetings", l: "Meetings", i: Calendar },
     { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "staffing", l: "Site staffing", i: Building2 }, { k: "mobileunits", l: "Mobile units", i: Truck },
     { k: "casestudies", l: "Case studies", i: Award }, { k: "events", l: "Round-tables", i: Ticket }, { k: "whyqura", l: "Why Qura wins", i: Trophy }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
   clinician: [
     { k: "profile", l: "My profile", i: UserCheck }, { k: "feed", l: "Live feed", i: Rss }, { k: "myopps", l: "Opportunities for me", i: Target },
-    { k: "network", l: "Network", i: Users }, { k: "messages", l: "Messages", i: MessageSquare }, { k: "relocation", l: "Relocation", i: Globe },
+    { k: "network", l: "Network", i: Users }, { k: "messages", l: "Messages", i: MessageSquare }, { k: "relocation", l: "Relocation", i: Globe }, { k: "news", l: "Industry news", i: Rss },
   ],
   gp: [
     { k: "feed", l: "Post & live feed", i: Rss }, { k: "gpHub", l: "GP hub", i: Stethoscope }, { k: "clinicians", l: "Find GPs & locums", i: UserCheck }, { k: "shortlists", l: "My shortlists", i: Heart },
-    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "meetings", l: "Meetings", i: Calendar },
+    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "news", l: "Industry news", i: Rss }, { k: "meetings", l: "Meetings", i: Calendar },
     { k: "findAgencies", l: "Find agencies", i: Briefcase }, { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "casestudies", l: "Case studies", i: Award }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
   care: [
     { k: "feed", l: "Post & live feed", i: Rss }, { k: "careHub", l: "Care hub", i: Heart }, { k: "clinicians", l: "Find carers & nurses", i: Stethoscope }, { k: "shortlists", l: "My shortlists", i: Heart },
-    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "meetings", l: "Meetings", i: Calendar },
+    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "news", l: "Industry news", i: Rss }, { k: "meetings", l: "Meetings", i: Calendar },
     { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "casestudies", l: "Case studies", i: Award }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
 };
@@ -2205,6 +2446,8 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   const screen = () => {
     switch (active) {
       case "command": return <CommandCenter go={go} name={firstName} />;
+      case "ops": return <OwnerOps isOwner={isOwner} />;
+      case "news": return <IndustryNews />;
       case "feed": return <LiveFeedScreen role={role} displayName={displayName} market={market} onMarket={setMarket} onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "suppliers": return <SuppliersScreen onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "leaderboard": return <Leaderboard go={go} market={market} />;
@@ -2212,14 +2455,16 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "dashboard": return <Dashboard go={go} name={firstName} sentN={sent.length} bookedN={booked.length} />;
       case "opportunities": return <Opportunities go={go} market={market} onPropose={openProposal} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "savedOpps": return <SavedOpps onPropose={openProposal} market={market} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
-      case "decisionMakers": return <DecisionMakers />;
+      case "decisionMakers": return <DecisionMakers plan={plan} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "outreach": return <Outreach />;
       case "proposals": return <Proposals onSaved={onSaved} initialOpp={propOpp} />;
       case "meetings": return <Meetings sent={sent} booked={booked} onBook={bookMeeting} onEdit={editMeeting} onDelete={deleteMeeting} />;
       case "pipeline": return <Pipeline sent={sent} moves={moves} onMove={moveDeal} onBack={moveBack} lost={lost} onWon={markWon} onLost={markLost} market={market} />;
+      case "weekly": return <WeeklyReport sent={sent} booked={booked} moves={moves} lost={lost} name={firstName} market={market} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "intel": return <Intel />;
       case "analytics": return <Analytics />;
       case "clinicians": return <ClinicianNetwork onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
+      case "execs": return <ExecNetwork onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "pricing": return <Pricing role={role} market={market} isOwner={isOwner} plan={plan} onChoose={(pk, annual) => { onPlan && onPlan(pk, annual); const unlocked = lockedFrom && (PLAN_ACCESS[pk] || []).includes(lockedFrom); const lockedLabel = (nav.find((n) => n.k === lockedFrom) || {}).l || "That feature"; const back = unlocked ? lockedFrom : null; setUpgradeTo(null); setLockedFrom(null); setToast(unlocked ? (lockedLabel + " unlocked") : (pk === "trial" ? "Free trial started" : "You are now on the " + (PLAN_LABEL[pk] || pk) + " plan")); setTimeout(() => setToast(null), 2800); if (back) go(back); }} highlight={upgradeTo} />;
       case "settings": return <SettingsScreen plan={plan} trialMsg={trialMsg} go={go} profileName={profileName} onName={onProfileName} />;
       case "admin": return <AdminScreen ownerEmail={ownerEmail} />;
@@ -2368,7 +2613,7 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
         </div>
         <div>
           <div style={{ height: 1, background: "rgba(255,255,255,.1)", margin: "0 0 22px" }} />
-          <div className="row" style={{ gap: 28 }}>{[["100K+", "Decision makers"], ["8,473", "Clinicians"], ["50+", "Countries"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
+          <div className="row" style={{ gap: 28 }}>{[["8,500+", "LinkedIn community"], ["100K+", "Decision-makers reached"], ["50+", "Countries"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
         </div>
       </div>
       <div className="login-auth" style={{ flex: "1 1 0", background: "#fff", padding: "46px 42px", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -2405,6 +2650,7 @@ export default function App() {
   useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_profile_name"); setProfileName(r?.value || ""); } catch (e) {} })(); }, [session, stage]);
   const email = ((session && session.user && session.user.email) || "").toLowerCase();
   const founder = FOUNDER_IDENTITY[email] || null;
+  useEffect(() => { if (founder && stage === "app") setRole("operator"); }, [founder, stage]);
   const isOwner = OWNER_EMAILS.length === 0 || OWNER_EMAILS.includes(email);
 
   const loadAccount = async () => {

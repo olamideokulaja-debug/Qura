@@ -165,3 +165,19 @@ After deploying, visit `https://YOUR-APP.vercel.app/api/refresh-intel?key=YOUR_C
 
 ### Pointing at exact board papers
 `SOURCES_ICB` and `SOURCES_BODIES` in `api/refresh-intel.js` hold each source name and URL. Replace a URL with the exact board-papers/meetings page for sharper extraction; anything left unreadable simply uses its baseline points.
+
+## Industry news refresh (Vercel Cron)
+
+- Function: `api/refresh-news.js`. `vercel.json` runs it daily at 05:00 UTC.
+- It pulls public healthcare news per region (UK, Nigeria, Middle East, International) from Google News RSS and writes them to Supabase shared rows (`qura_news_uk`, `qura_news_ng`, `qura_news_me`, `qura_news_intl`, `qura_news_updated`). The Industry news page reads these, falling back to a built-in baseline per region.
+- Uses `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (already set) and the optional `CRON_SECRET`. Trigger once manually at `/api/refresh-news?key=YOUR_CRON_SECRET`.
+- Licensed sources (e.g. HSJ) are not pulled directly; they can be added when licensed.
+
+## To connect later (email sending)
+
+The mailshots (Decision makers) and the automatic Friday delivery of the Weekly activity
+report send real emails, which needs an email provider (e.g. Resend or SendGrid) plus a
+verified qura.health domain. The screens, Qura Credits (5 messages/day on standard, more on
+premium; 10 follow-invites/day) and limits all work now; only the outbound email delivery
+waits on that provider. Once added, wire an `api/send-mail.js` and set the provider API key
+as a Vercel env var.
