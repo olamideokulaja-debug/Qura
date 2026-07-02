@@ -1255,6 +1255,91 @@ function CareHub({ go, name }) {
   );
 }
 
+function Shortlists({ onToast }) {
+  const SEED = [
+    { id: "c1", name: "Dr. Amara Nguyen", role: "Consultant Sonographer", loc: "Sydney, AU", band: "Consultant", rate: "\u00a362/hr", status: "Contacted", note: "Open to UK relocation; strong obstetric imaging." },
+    { id: "c2", name: "James Okoro", role: "CT Radiographer", loc: "Lagos, NG", band: "Band 7", rate: "\u00a338/hr", status: "Saved", note: "" },
+    { id: "c3", name: "Sofia Marchetti", role: "Cardiac Sonographer", loc: "Milan, IT", band: "Band 8a", rate: "\u00a355/hr", status: "Interviewing", note: "Echo specialist; available from September." },
+    { id: "c4", name: "Hannah Williams", role: "Complex Care Nurse", loc: "Leeds, UK", band: "Band 6", rate: "\u00a329/hr", status: "Saved", note: "Paediatric complex care." },
+  ];
+  const STATUSES = ["Saved", "Contacted", "Interviewing", "Offer"];
+  const SC = { Saved: "#6B7C9C", Contacted: "#1E54E6", Interviewing: "#0E8C7E", Offer: "#C8102E" };
+  const [items, setItems] = useState(null);
+  const [q, setQ] = useState("");
+  const [nm, setNm] = useState("");
+  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_shortlist"); if (r?.value) { const v = JSON.parse(r.value); setItems(Array.isArray(v) ? v : SEED); return; } } catch (e) {} setItems(SEED); })(); }, []);
+  const persist = (next) => { setItems(next); try { window.storage?.set("qura_shortlist", JSON.stringify(next)); } catch (e) {} };
+  const remove = (id) => persist(items.filter((x) => x.id !== id));
+  const cycle = (id) => persist(items.map((x) => x.id === id ? { ...x, status: STATUSES[(STATUSES.indexOf(x.status) + 1) % STATUSES.length] } : x));
+  const setNote = (id, v) => persist(items.map((x) => x.id === id ? { ...x, note: v } : x));
+  const add = () => { if (!nm.trim()) return; persist([{ id: "n" + Date.now(), name: nm.trim(), role: "New candidate", loc: "", band: "", rate: "", status: "Saved", note: "" }, ...items]); setNm(""); if (onToast) onToast("Added to shortlist"); };
+  if (!items) return (<div><PageHead title="Shortlists" sub="Your saved candidates." /><div className="card muted" style={{ padding: 40, textAlign: "center" }}>Loading...</div></div>);
+  const shown = items.filter((x) => (x.name + x.role + x.loc).toLowerCase().includes(q.toLowerCase()));
+  const by = (st) => items.filter((x) => x.status === st).length;
+  return (
+    <div>
+      <PageHead title="Shortlists" sub="Your saved candidates, tracked from first save to offer." right={<span className="chip chip-cyan"><Heart size={12} /> {items.length} saved</span>} />
+      <div className="grid-stats" style={{ marginBottom: 16 }}>{STATUSES.map((st) => (<Stat key={st} label={st} value={String(by(st))} icon={Heart} accent={st === "Interviewing" ? "cyan" : undefined} />))}</div>
+      <div className="row" style={{ gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        <div className="row" style={{ gap: 8, flex: 1, minWidth: 200, background: "#fff", border: "1px solid var(--line)", borderRadius: 10, padding: "8px 12px" }}><Search size={16} className="faint" /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search saved candidates" style={{ border: "none", outline: "none", flex: 1, fontSize: 13.5, background: "transparent" }} /></div>
+        <div className="row" style={{ gap: 8 }}><input value={nm} onChange={(e) => setNm(e.target.value)} placeholder="Add a candidate name" onKeyDown={(e) => e.key === "Enter" && add()} style={{ border: "1px solid var(--line)", borderRadius: 10, padding: "9px 12px", fontSize: 13.5 }} /><button className="btn btn-primary" onClick={add}><Plus size={15} /> Add</button></div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{shown.map((x) => (
+        <div key={x.id} className="card" style={{ padding: 18 }}>
+          <div className="row" style={{ justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+            <div className="row" style={{ gap: 12, minWidth: 0 }}>
+              <Avatar initials={x.name.split(" ").slice(-2).map((z) => z[0]).join("")} size={42} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 15 }}>{x.name}</div>
+                <div className="faint" style={{ fontSize: 12.5 }}>{[x.role, x.band, x.loc].filter(Boolean).join(" \u00b7 ")}</div>
+                {x.rate && <div className="faint" style={{ fontSize: 12, marginTop: 2 }}>{x.rate}</div>}
+              </div>
+            </div>
+            <div className="row" style={{ gap: 8, flexShrink: 0 }}>
+              <button onClick={() => cycle(x.id)} className="chip" style={{ cursor: "pointer", background: (SC[x.status] || "#6B7C9C") + "1A", color: SC[x.status] || "#6B7C9C", border: "1px solid " + (SC[x.status] || "#6B7C9C") + "44", fontWeight: 700 }}>{x.status}</button>
+              <button onClick={() => remove(x.id)} className="btn btn-light" style={{ padding: "7px 9px" }}><Trash2 size={15} /></button>
+            </div>
+          </div>
+          <input value={x.note} onChange={(e) => setNote(x.id, e.target.value)} placeholder="Add a note..." style={{ width: "100%", marginTop: 12, padding: "9px 11px", border: "1px solid var(--line)", borderRadius: 9, fontSize: 13, boxSizing: "border-box", background: "var(--bg)" }} />
+        </div>
+      ))}{!shown.length && <div className="card" style={{ padding: 40, textAlign: "center" }}><div className="muted">No candidates match. Add one above to start a shortlist.</div></div>}</div>
+    </div>
+  );
+}
+
+function MessagesScreen() {
+  const SEED = [
+    { id: "m1", who: "St George's NHS Trust", init: "SG", role: "Imaging procurement", msgs: [{ me: false, t: "Are your sonographers available for a weekend insourcing block in August?", time: "09:12" }, { me: true, t: "Yes, we have 4 available. Shall I send profiles?", time: "09:20" }, { me: false, t: "Please do, with day rates.", time: "09:24" }] },
+    { id: "m2", who: "Dr. Amara Nguyen", init: "AN", role: "Consultant Sonographer", msgs: [{ me: false, t: "Thanks for the UK relocation details. What visa route would apply?", time: "Yesterday" }, { me: true, t: "The Health & Care Worker visa. Our concierge can handle it end to end.", time: "Yesterday" }] },
+    { id: "m3", who: "Harley Street Clinic", init: "HS", role: "Private fertility clinic", msgs: [{ me: false, t: "Could you share candidates for a fertility sonographer role?", time: "Mon" }] },
+  ];
+  const [convos, setConvos] = useState(SEED);
+  const [active, setActive] = useState(SEED[0].id);
+  const [draft, setDraft] = useState("");
+  const cur = convos.find((c) => c.id === active);
+  const send = () => { if (!draft.trim()) return; setConvos((cs) => cs.map((c) => c.id === active ? { ...c, msgs: [...c.msgs, { me: true, t: draft.trim(), time: "Now" }] } : c)); setDraft(""); };
+  return (
+    <div>
+      <PageHead title="Messages" sub="Your conversations with providers, agencies and candidates." />
+      <div className="card" style={{ padding: 0, overflow: "hidden", display: "grid", gridTemplateColumns: "260px 1fr", minHeight: 460 }}>
+        <div style={{ borderRight: "1px solid var(--line)", overflowY: "auto" }}>{convos.map((c) => (
+          <button key={c.id} onClick={() => setActive(c.id)} style={{ width: "100%", textAlign: "left", padding: "14px 16px", border: "none", borderBottom: "1px solid var(--line)", cursor: "pointer", background: active === c.id ? "var(--bg)" : "#fff", display: "flex", gap: 11, alignItems: "center" }}>
+            <Avatar initials={c.init} size={38} />
+            <div style={{ minWidth: 0, flex: 1 }}><div style={{ fontWeight: 600, fontSize: 13.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.who}</div><div className="faint" style={{ fontSize: 11.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.msgs[c.msgs.length - 1].t}</div></div>
+          </button>
+        ))}</div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div className="row" style={{ gap: 11, padding: "14px 18px", borderBottom: "1px solid var(--line)" }}><Avatar initials={cur.init} size={36} /><div><div style={{ fontWeight: 600, fontSize: 14 }}>{cur.who}</div><div className="faint" style={{ fontSize: 12 }}>{cur.role}</div></div></div>
+          <div style={{ flex: 1, padding: 18, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", background: "var(--bg)" }}>{cur.msgs.map((m, i) => (
+            <div key={i} style={{ alignSelf: m.me ? "flex-end" : "flex-start", maxWidth: "72%" }}><div style={{ background: m.me ? "var(--blue)" : "#fff", color: m.me ? "#fff" : "var(--text)", padding: "10px 13px", borderRadius: 14, fontSize: 13.5, lineHeight: 1.45, border: m.me ? "none" : "1px solid var(--line)" }}>{m.t}</div><div className="faint" style={{ fontSize: 10.5, marginTop: 3, textAlign: m.me ? "right" : "left" }}>{m.time}</div></div>
+          ))}</div>
+          <div className="row" style={{ gap: 10, padding: 14, borderTop: "1px solid var(--line)" }}><input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Write a message..." style={{ flex: 1, border: "1px solid var(--line)", borderRadius: 10, padding: "11px 14px", fontSize: 13.5 }} /><button className="btn btn-primary" onClick={send}><Send size={15} /> Send</button></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const Placeholder = ({ title }) => (<div><PageHead title={title} sub="This area is part of the prototype scope." /><div className="card" style={{ padding: 48, textAlign: "center" }}><MessageSquare size={28} className="faint" style={{ margin: "0 auto 12px" }} /><div className="muted">Content for {title.toLowerCase()} lives here in the full build.</div></div></div>);
 
 /* ===================== Pulse command center ===================== */
@@ -2103,11 +2188,11 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "careHub": return <CareHub go={go} name={firstName} />;
       case "relocation": return <RelocationHub role={role} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "findAgencies": return <FindAgencies />;
-      case "shortlists": return <Placeholder title="Shortlists" />;
+      case "shortlists": return <Shortlists onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "profile": return <ClinicianProfile />;
       case "myopps": return <MyOpportunities />;
       case "network": return <NetworkScreen />;
-      case "messages": return <Placeholder title="Messages" />;
+      case "messages": return <MessagesScreen />;
       default: return <Dashboard go={go} name={firstName} />;
     }
   };
