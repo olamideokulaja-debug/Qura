@@ -464,8 +464,10 @@ const Dashboard = ({ go, sentN = 0, bookedN = 0, name }) => (
     </div>
   </div>
 );
-const Opportunities = ({ go, onPropose, market = "all" }) => {
+const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
   const [f, setF] = useState("All"); const [q, setQ] = useState("");
+  const [savedIds, setSavedIds] = useState([]);
+  const saveOpp = async (o) => { const id = o.org + "|" + o.role; const entry = { id, org: o.org, role: o.role, market: o.market, val: o.val, loc: o.loc, close: o.close, source: o.source, score: o.score, pr: o.pr }; try { let list = []; try { const r = await window.storage?.get("qura_saved_opps"); if (r?.value) list = JSON.parse(r.value); } catch (e) {} if (!Array.isArray(list)) list = []; if (!list.some((x) => x.id === id)) { list = [entry, ...list]; await window.storage?.set("qura_saved_opps", JSON.stringify(list)); } } catch (e) {} setSavedIds((v) => v.includes(id) ? v : [...v, id]); if (onToast) onToast("Opportunity saved"); };
   const mapMkt = { all: "All", nhs: "NHS UK", private: "Private UK", international: "International" };
   useEffect(() => { setF(mapMkt[market] || "All"); }, [market]);
   const markets = ["All", "NHS UK", "Private UK", "International", "Africa", "Middle East"];
@@ -482,7 +484,7 @@ const Opportunities = ({ go, onPropose, market = "all" }) => {
           <div key={i} className="card lift" style={{ padding: 18 }}>
             <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
               <div className="row" style={{ gap: 14 }}><div style={{ width: 46, height: 46, borderRadius: 12, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><Building2 size={20} color="#1E54E6" /></div><div><div className="row" style={{ gap: 9 }}><span style={{ fontWeight: 600, fontSize: 15.5 }}>{o.org}</span><span className="chip chip-cyan"><Sparkles size={11} /> {o.score}</span><span className="chip chip-grey" style={{ fontSize: 11 }}>{o.market}</span></div><div className="muted row hsm" style={{ fontSize: 13, gap: 14, marginTop: 4 }}><span>{o.role}</span><span className="row" style={{ gap: 4 }}><MapPin size={12} />{o.loc}</span><span className="row" style={{ gap: 4 }}><Radar size={12} />{o.source}</span></div></div></div>
-              <div className="row" style={{ gap: 16 }}><div style={{ textAlign: "right" }}><div className="disp" style={{ fontWeight: 700, fontSize: 17 }}>{convMoney(o.val, market)}</div><span className="row faint" style={{ fontSize: 12, gap: 4, justifyContent: "flex-end" }}><Clock size={11} />Closes {o.close}</span></div><span className={"chip " + prChip(o.pr)}>{prLabel(o.pr)}</span><button className="btn btn-ai hsm" onClick={() => onPropose(o)}><Sparkles size={14} /> Propose</button></div>
+              <div className="row" style={{ gap: 16 }}><div style={{ textAlign: "right" }}><div className="disp" style={{ fontWeight: 700, fontSize: 17 }}>{convMoney(o.val, market)}</div><span className="row faint" style={{ fontSize: 12, gap: 4, justifyContent: "flex-end" }}><Clock size={11} />Closes {o.close}</span></div><span className={"chip " + prChip(o.pr)}>{prLabel(o.pr)}</span><button className={"btn hsm " + (savedIds.includes(o.org + "|" + o.role) ? "btn-light" : "btn-ghost")} onClick={() => saveOpp(o)} disabled={savedIds.includes(o.org + "|" + o.role)}>{savedIds.includes(o.org + "|" + o.role) ? <><Star size={14} fill="currentColor" /> Saved</> : <><Star size={14} /> Save</>}</button><button className="btn btn-ai hsm" onClick={() => onPropose(o)}><Sparkles size={14} /> Propose</button></div>
             </div>
           </div>
         ))}
@@ -896,10 +898,23 @@ const Analytics = () => (
   </div>
 );
 const Stars = ({ n }) => (<span className="row" style={{ gap: 1 }}>{[1, 2, 3, 4, 5].map((i) => (<Star key={i} size={13} color="#F2A33C" fill={i <= Math.round(n) ? "#F2A33C" : "none"} />))}</span>);
-const ClinicianNetwork = () => (
+function ClinicianNetwork({ onToast }) {
+  const [saved, setSaved] = useState([]);
+  const save = async (c) => {
+    const entry = { id: "cn_" + c.name.replace(/[^A-Za-z0-9]+/g, ""), name: c.name, role: c.spec, loc: c.loc, band: "", rate: c.rate, status: "Saved", note: "Last placed: " + c.last };
+    try {
+      let list = [];
+      try { const r = await window.storage?.get("qura_shortlist"); if (r?.value) list = JSON.parse(r.value); } catch (e) {}
+      if (!Array.isArray(list)) list = [];
+      if (!list.some((x) => x.name === c.name)) { list = [entry, ...list]; await window.storage?.set("qura_shortlist", JSON.stringify(list)); }
+    } catch (e) {}
+    setSaved((v) => v.includes(c.name) ? v : [...v, c.name]);
+    if (onToast) onToast(c.name + " saved to shortlist");
+  };
+  return (
   <div>
     <PageHead title="Clinician network" sub="Rated by hospitals on Qura, so hiring managers place quality candidates faster" right={<span className="chip chip-cyan"><Star size={12} color="#06776F" fill="#06776F" /> Hospital-verified ratings</span>} />
-    <div className="grid-3">{CLINICIANS.map((c, i) => (
+    <div className="grid-3">{CLINICIANS.map((c, i) => { const on = saved.includes(c.name); return (
       <div key={i} className="card lift" style={{ padding: 18 }}>
         <div className="row" style={{ justifyContent: "space-between" }}><div style={{ width: 46, height: 46, borderRadius: 999, background: "#EEF3FF", color: "#1E54E6", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{c.name.split(" ").slice(-2).map((x) => x[0]).join("")}</div><span className="chip chip-cyan"><Sparkles size={11} /> {c.match}%</span></div>
         <div style={{ fontWeight: 600, fontSize: 15, marginTop: 12 }}>{c.name}</div>
@@ -908,11 +923,12 @@ const ClinicianNetwork = () => (
         <div style={{ background: "var(--cyan-soft)", padding: "7px 11px", borderRadius: 9, marginTop: 10, fontSize: 12, color: "#06776F", fontWeight: 600 }}>{`${c.rating.toFixed(1)} stars on ${APP_NAME}`}</div>
         <div className="faint row" style={{ fontSize: 12, gap: 5, marginTop: 9 }}><BadgeCheck size={12} /> Last placed: {c.last}</div>
         <div className="row" style={{ justifyContent: "space-between", marginTop: 10 }}><span style={{ fontWeight: 600, fontSize: 14 }}>{c.rate}</span><span className="chip chip-low">{c.avail}</span></div>
-        <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center", marginTop: 12, padding: "9px" }}><UserCheck size={14} /> Shortlist</button>
+        <button onClick={() => save(c)} disabled={on} className={"btn " + (on ? "btn-light" : "btn-ghost")} style={{ width: "100%", justifyContent: "center", marginTop: 12, padding: "9px" }}>{on ? <><Check size={14} /> Saved to shortlist</> : <><UserCheck size={14} /> Shortlist</>}</button>
       </div>
-    ))}</div>
+    ); })}</div>
   </div>
-);
+  );
+}
 const FindAgencies = () => {
   const [f, setF] = useState("All");
   const list = AGENCIES.filter((a) => f === "All" || (f === "Framework" && a.framework) || (f === "Non-framework" && !a.framework) || (f === "CQC" && a.cqc) || (f === "Non-CQC" && !a.cqc));
@@ -1086,8 +1102,13 @@ function SettingsScreen({ plan, trialMsg, go, profileName, onName }) {
   );
 }
 function RelocationHub({ onToast, role }) {
-  const CORRIDORS = [{ k: "in-uk", l: "International to UK", live: true }, { k: "uk-anz", l: "UK to Australia & NZ", live: false }, { k: "uk-me", l: "UK to Middle East", live: false }];
+  const CORRIDORS = [{ k: "in-uk", l: "International to UK", live: true }, { k: "uk-anz", l: "UK to Australia & NZ", live: true }, { k: "uk-me", l: "UK to Middle East", live: false }];
   const [corr, setCorr] = useState("in-uk");
+  const CM = {
+    "in-uk": { chip: "International to UK", visa: "Health & Care Worker visa, Certificate of Sponsorship and right-to-work checks.", reg: "GMC, NMC and HCPC registration, with OSCE or PLAB support.", regPartner: "Pass the OSCE" },
+    "uk-anz": { chip: "UK to Australia & NZ", visa: "Skilled and health-workforce visa sponsorship for Australia and New Zealand.", reg: "AHPRA (Australia) and NZ council registration, with bridging support.", regPartner: "AHPRA Ready" },
+    "uk-me": { chip: "UK to Middle East", visa: "Employment visa and licensing sponsorship across the Gulf.", reg: "DHA, DOH and MOH licensing (Dubai, Abu Dhabi and wider Gulf).", regPartner: "Gulf Licensing Co" },
+  };
   const SERVICES = [
     { k: "visa", n: "Visas & sponsorship", i: ShieldCheck, c: "#1E54E6", from: 1450, d: "Health & Care Worker visa, Certificate of Sponsorship and right-to-work checks.", partner: "Meridian Immigration" },
     { k: "reg", n: "Registration & licensing", i: Award, c: "#0E8C7E", from: 650, d: "GMC, NMC and HCPC registration (AHPRA and equivalents for other markets).", partner: "Pass the OSCE" },
@@ -1109,7 +1130,7 @@ function RelocationHub({ onToast, role }) {
   const request = () => { if (onToast) onToast(pack.length ? ("Relocation pack requested" + (who ? " for " + who : "")) : "Add a service to your pack first"); };
   return (
     <div>
-      <PageHead title="Relocation & mobility" sub="Move talent between countries with a Qura-managed concierge on a vetted partner network. Pay-as-you-go, with no long contracts." right={<span className="chip chip-cyan"><Globe size={13} /> International to UK</span>} />
+      <PageHead title="Relocation & mobility" sub="Move talent between countries with a Qura-managed concierge on a vetted partner network. Pay-as-you-go, with no long contracts." right={<span className="chip chip-cyan"><Globe size={13} /> {CM[corr].chip}</span>} />
       <div className="row" style={{ gap: 8, marginBottom: 16, flexWrap: "wrap" }}>{CORRIDORS.map((c) => (<button key={c.k} onClick={() => c.live && setCorr(c.k)} disabled={!c.live} style={{ cursor: c.live ? "pointer" : "not-allowed", padding: "8px 14px", borderRadius: 999, fontSize: 13, fontWeight: 600, background: corr === c.k ? "var(--navy)" : "#fff", color: corr === c.k ? "#fff" : c.live ? "var(--navy)" : "var(--muted)", border: "1px solid var(--line)", opacity: c.live ? 1 : .65 }}>{c.l}{!c.live && <span style={{ fontSize: 10, marginLeft: 6 }}>soon</span>}</button>))}</div>
       <div className="card" style={{ padding: 16, marginBottom: 18, background: "var(--cyan-soft)", border: "none" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><Sparkles size={18} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 13.5, lineHeight: 1.55 }}>Build a relocation pack for a candidate below. Qura coordinates every step through vetted partners, so agencies, providers and clinicians get one managed move. You pay only for the services you choose, plus a small marketplace fee.</div></div></div>
       <div className="grid g2" style={{ gap: 20, alignItems: "start" }}>
@@ -1117,8 +1138,8 @@ function RelocationHub({ onToast, role }) {
           <div key={x.k} className="card" style={{ padding: 18, border: on ? "2px solid var(--cyan)" : "1px solid var(--line)" }}>
             <div className="row" style={{ justifyContent: "space-between" }}><div style={{ width: 42, height: 42, borderRadius: 11, background: "#EEF3FF", display: "grid", placeItems: "center" }}><x.i size={20} color={x.c} /></div><span className="faint" style={{ fontSize: 12 }}>from {fmt(x.from)}</span></div>
             <div style={{ fontWeight: 600, fontSize: 15, margin: "12px 0 4px" }}>{x.n}</div>
-            <p className="muted" style={{ fontSize: 12.5, margin: 0, lineHeight: 1.5, minHeight: 52 }}>{x.d}</p>
-            <div className="faint" style={{ fontSize: 11.5, margin: "10px 0 12px" }}>Partner: {x.partner}</div>
+            <p className="muted" style={{ fontSize: 12.5, margin: 0, lineHeight: 1.5, minHeight: 52 }}>{x.k === "visa" ? CM[corr].visa : x.k === "reg" ? CM[corr].reg : x.d}</p>
+            <div className="faint" style={{ fontSize: 11.5, margin: "10px 0 12px" }}>Partner: {x.k === "reg" ? CM[corr].regPartner : x.partner}</div>
             <button onClick={() => toggle(x.k)} className={"btn " + (on ? "btn-primary" : "btn-light")} style={{ width: "100%", justifyContent: "center", fontSize: 13 }}>{on ? "Added to pack" : "Add to pack"}</button>
           </div>
         ); })}</div>
@@ -1336,6 +1357,27 @@ function MessagesScreen() {
           <div className="row" style={{ gap: 10, padding: 14, borderTop: "1px solid var(--line)" }}><input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Write a message..." style={{ flex: 1, border: "1px solid var(--line)", borderRadius: 10, padding: "11px 14px", fontSize: 13.5 }} /><button className="btn btn-primary" onClick={send}><Send size={15} /> Send</button></div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function SavedOpps({ onPropose, market = "all", onToast }) {
+  const [items, setItems] = useState(null);
+  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_saved_opps"); const v = r?.value ? JSON.parse(r.value) : []; setItems(Array.isArray(v) ? v : []); } catch (e) { setItems([]); } })(); }, []);
+  const remove = async (id) => { const next = (items || []).filter((x) => x.id !== id); setItems(next); try { await window.storage?.set("qura_saved_opps", JSON.stringify(next)); } catch (e) {} if (onToast) onToast("Removed from saved"); };
+  if (!items) return (<div><PageHead title="Saved opportunities" sub="Opportunities you have bookmarked." /><div className="card muted" style={{ padding: 40, textAlign: "center" }}>Loading...</div></div>);
+  return (
+    <div>
+      <PageHead title="Saved opportunities" sub="Opportunities you have bookmarked, ready to action." right={<span className="chip chip-cyan"><Star size={12} /> {items.length} saved</span>} />
+      {!items.length ? <div className="card" style={{ padding: 44, textAlign: "center" }}><Star size={26} className="faint" style={{ margin: "0 auto 12px" }} /><div className="muted">No saved opportunities yet. Open Opportunities and tap Save on any that interest you.</div></div> :
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{items.map((o) => (
+        <div key={o.id} className="card lift" style={{ padding: 18 }}>
+          <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+            <div className="row" style={{ gap: 14 }}><div style={{ width: 46, height: 46, borderRadius: 12, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><Building2 size={20} color="#1E54E6" /></div><div><div className="row" style={{ gap: 9 }}><span style={{ fontWeight: 600, fontSize: 15.5 }}>{o.org}</span>{o.score ? <span className="chip chip-cyan"><Sparkles size={11} /> {o.score}</span> : null}<span className="chip chip-grey" style={{ fontSize: 11 }}>{o.market}</span></div><div className="muted row hsm" style={{ fontSize: 13, gap: 14, marginTop: 4 }}><span>{o.role}</span>{o.loc ? <span className="row" style={{ gap: 4 }}><MapPin size={12} />{o.loc}</span> : null}{o.source ? <span className="row" style={{ gap: 4 }}><Radar size={12} />{o.source}</span> : null}</div></div></div>
+            <div className="row" style={{ gap: 16 }}><div style={{ textAlign: "right" }}><div className="disp" style={{ fontWeight: 700, fontSize: 17 }}>{convMoney(o.val, market)}</div>{o.close ? <span className="row faint" style={{ fontSize: 12, gap: 4, justifyContent: "flex-end" }}><Clock size={11} />Closes {o.close}</span> : null}</div><button className="btn btn-light" onClick={() => remove(o.id)}><Trash2 size={14} /></button><button className="btn btn-ai hsm" onClick={() => onPropose && onPropose(o)}><Sparkles size={14} /> Propose</button></div>
+          </div>
+        </div>
+      ))}</div>}
     </div>
   );
 }
@@ -1823,6 +1865,14 @@ function Landing({ onEnter, onDemo }) {
             <div className="row" style={{ gap: 12, paddingLeft: 56 }}><Avatar src={OLA_IMG} size={42} /><div><div style={{ fontWeight: 600, fontSize: 14.5, color: "#0A3B36" }}>Ola Folawiyo</div><div style={{ color: "#3A726B", fontSize: 13 }}>Founder, MD &amp; CEO</div></div></div>
           </div>
         </Reveal>
+
+        <Reveal>
+          <div className="card" style={{ marginTop: 16, padding: "36px 40px", background: "#EEF3FF", border: "none", position: "relative" }}>
+            <Quote size={38} color="rgba(30,84,230,.32)" style={{ position: "absolute", top: 26, left: 30 }} />
+            <p className="disp" style={{ color: "#0A1730", fontSize: 23, fontWeight: 500, lineHeight: 1.45, margin: "0 0 18px", paddingLeft: 56, maxWidth: 880 }}>"I want healthcare talent to reach where it is needed most, across every market and without friction. When hospitals, agencies and clinicians connect on merit and value, and financing and supply follow, health systems grow stronger everywhere."</p>
+            <div className="row" style={{ gap: 12, paddingLeft: 56 }}><Avatar src={OLA2_IMG} size={42} /><div><div style={{ fontWeight: 600, fontSize: 14.5, color: "#0A1730" }}>Dr. Olamide Okulaja</div><div style={{ color: "#3B5580", fontSize: 13 }}>Co-Founder &amp; Chief Growth Officer</div></div></div>
+          </div>
+        </Reveal>
       </div>
 
       <div style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
@@ -1989,7 +2039,7 @@ const RoleSelect = ({ onPick }) => {
 /* ===================== shell ===================== */
 const NAVS = {
   operator: [
-    { k: "command", l: "MCC", i: Activity }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target },
+    { k: "command", l: "MCC", i: Activity }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target }, { k: "savedOpps", l: "Saved", i: Star },
     { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "proposals", l: "Proposals", i: FileText },
     { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe },
     { k: "analytics", l: "Analytics", i: BarChart3 }, { k: "clinicians", l: "Clinician network", i: Stethoscope },
@@ -1998,7 +2048,7 @@ const NAVS = {
     { k: "register", l: "Register a company", i: ClipboardList }, { k: "whyqura", l: "Why Qura wins", i: Trophy }, { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "staffing", l: "Site staffing", i: Building2 }, { k: "mobileunits", l: "Mobile units", i: Truck }, { k: "brand", l: "Brand channels", i: Sparkles }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
   agency: [
-    { k: "dashboard", l: "Dashboard", i: LayoutDashboard }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target },
+    { k: "dashboard", l: "Dashboard", i: LayoutDashboard }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target }, { k: "savedOpps", l: "Saved", i: Star },
     { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "outreach", l: "Outreach", i: Send },
     { k: "proposals", l: "Proposals", i: FileText }, { k: "meetings", l: "Meetings", i: Calendar },
     { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe },
@@ -2160,7 +2210,8 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "leaderboard": return <Leaderboard go={go} market={market} />;
       case "inbox": return <SupplierInbox go={go} market={market} onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "dashboard": return <Dashboard go={go} name={firstName} sentN={sent.length} bookedN={booked.length} />;
-      case "opportunities": return <Opportunities go={go} market={market} onPropose={openProposal} />;
+      case "opportunities": return <Opportunities go={go} market={market} onPropose={openProposal} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
+      case "savedOpps": return <SavedOpps onPropose={openProposal} market={market} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "decisionMakers": return <DecisionMakers />;
       case "outreach": return <Outreach />;
       case "proposals": return <Proposals onSaved={onSaved} initialOpp={propOpp} />;
@@ -2168,7 +2219,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "pipeline": return <Pipeline sent={sent} moves={moves} onMove={moveDeal} onBack={moveBack} lost={lost} onWon={markWon} onLost={markLost} market={market} />;
       case "intel": return <Intel />;
       case "analytics": return <Analytics />;
-      case "clinicians": return <ClinicianNetwork />;
+      case "clinicians": return <ClinicianNetwork onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "pricing": return <Pricing role={role} market={market} isOwner={isOwner} plan={plan} onChoose={(pk, annual) => { onPlan && onPlan(pk, annual); const unlocked = lockedFrom && (PLAN_ACCESS[pk] || []).includes(lockedFrom); const lockedLabel = (nav.find((n) => n.k === lockedFrom) || {}).l || "That feature"; const back = unlocked ? lockedFrom : null; setUpgradeTo(null); setLockedFrom(null); setToast(unlocked ? (lockedLabel + " unlocked") : (pk === "trial" ? "Free trial started" : "You are now on the " + (PLAN_LABEL[pk] || pk) + " plan")); setTimeout(() => setToast(null), 2800); if (back) go(back); }} highlight={upgradeTo} />;
       case "settings": return <SettingsScreen plan={plan} trialMsg={trialMsg} go={go} profileName={profileName} onName={onProfileName} />;
       case "admin": return <AdminScreen ownerEmail={ownerEmail} />;
