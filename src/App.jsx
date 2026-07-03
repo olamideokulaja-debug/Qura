@@ -1636,9 +1636,15 @@ function AgencyBot({ plan = "starter" }) {
   const [draft, setDraft] = useState(""); const [busy, setBusy] = useState(false);
   const system = () => "You are the 24/7 AI assistant for " + (cfg.name || "a UK healthcare recruitment agency") + ", speaking to hospitals and clients on their behalf. Services and knowledge: " + (cfg.kb || "specialist healthcare recruitment across fragile professions such as sonography, audiology and radiography.") + " Preferred phrases to weave in where natural: " + (cfg.phrases || "fragile professions, verified candidates, rapid turnaround") + ". Tone: " + cfg.tone + ". " + (cfg.guard ? "Guardrails: never commit to specific rates, availability or start dates without confirming a human will verify; qualify every enquiry by asking role, specialty, location, timeframe and budget; never invent candidate names." : "") + " Be concise, helpful and commercial. Qualify leads, answer FAQs, and help draft responses.";
   const send = async () => { if (!draft.trim()) return; const um = { me: true, t: draft.trim() }; const hist = [...msgs, um]; setMsgs(hist); setDraft(""); setBusy(true);
-    try { const res = await fetch("/api/anthropic", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, system: system(), messages: hist.filter((m) => m.t).map((m) => ({ role: m.me ? "user" : "assistant", content: m.t })) }) });
-      const data = await res.json(); const txt = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("").trim(); setMsgs((x) => [...x, { me: false, t: txt || "Sorry, I could not respond just now." }]);
-    } catch (e) { setMsgs((x) => [...x, { me: false, t: "The assistant is unavailable in this preview; it responds once deployed." }]); }
+    try {
+      let convo = hist.filter((m) => m.t).map((m) => ({ role: m.me ? "user" : "assistant", content: m.t }));
+      while (convo.length && convo[0].role !== "user") convo.shift();
+      const res = await fetch("/api/anthropic", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, system: system(), messages: convo }) });
+      const data = await res.json();
+      const txt = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("").trim();
+      const err = data && data.error ? (typeof data.error === "string" ? data.error : (data.error.message || JSON.stringify(data.error))) : "";
+      setMsgs((x) => [...x, { me: false, t: txt || (err ? ("Assistant error: " + err) : "Sorry, I could not respond just now.") }]);
+    } catch (e) { setMsgs((x) => [...x, { me: false, t: "Network error reaching the assistant: " + String(e) }]); }
     setBusy(false);
   };
   return (
