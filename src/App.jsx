@@ -653,15 +653,15 @@ const FEED_SEED = [
   { id: "f3", org: "Meridian Private Hospitals Group", who: "James Aluko", title: "Group Procurement Director", init: "JA", ago: "1d", body: "Expanding endoscopy across three sites. Seeking a supplier for decontamination equipment plus a managed sonography service. Now at proposal stage with a shortlisted partner.", reqs: ["Endoscopy decontamination", "Managed sonography", "3 sites"], market: "private", budget: "£920K", status: 2, posted: "Mon 11:20", responders: 5 },
   { id: "f4", org: "Coastal Care Partnership", who: "Priya Nair", title: "Director of Operations", init: "PN", ago: "3d", body: "Cardiac diagnostics mobile unit requirement, now closed. Thank you to everyone who responded so quickly.", reqs: ["Cardiac diagnostics", "Mobile unit"], market: "private", budget: "£310K", status: 4, posted: "Tue 08:00", fulfilled: "Thu 15:30", days: 2, responders: 9, winnerId: "s4", winner: "anon" },
   { id: "f5", org: "Gulf Health Group (Dubai)", who: "Dr. Layla Hassan", title: "Chief Medical Officer", init: "LH", ago: "6h", body: "Opening two new diagnostic centres across the UAE. We are seeking managed sonography and MRI imaging partners, and welcome UK-based suppliers who can support international deployment.", reqs: ["MRI imaging", "Managed sonography", "UAE deployment", "International"], market: "international", budget: "$2.4M", status: 0, posted: "Tue 07:30", responders: 3 },
-  { id: "au1", org: "Western Sydney Imaging Group", who: "Dr. Nadia Rahman", title: "Clinical Director", init: "NR", ago: "3h", body: "The South West Sydney growth corridor is expanding fast and the July 2025 MBS reforms have opened up MRI access, so our volumes are climbing. We urgently need 4 sonographers and 3 CT/MRI radiographers across Liverpool and Campbelltown. Sponsorship available for the right overseas candidates.", reqs: ["4 sonographers", "3 CT/MRI radiographers", "Liverpool & Campbelltown", "Sponsorship available"], market: "australia", budget: "A$1.2M", status: 0, posted: "Wed 08:10", responders: 5 },
+  { id: "au1", fragile: true, org: "Western Sydney Imaging Group", who: "Dr. Nadia Rahman", title: "Clinical Director", init: "NR", ago: "3h", body: "The South West Sydney growth corridor is expanding fast and the July 2025 MBS reforms have opened up MRI access, so our volumes are climbing. We urgently need 4 sonographers and 3 CT/MRI radiographers across Liverpool and Campbelltown. Sponsorship available for the right overseas candidates.", reqs: ["4 sonographers", "3 CT/MRI radiographers", "Liverpool & Campbelltown", "Sponsorship available"], market: "australia", budget: "A$1.2M", status: 0, posted: "Wed 08:10", responders: 5 },
   { id: "au2", org: "Melbourne Cardiac Diagnostics", who: "Tom Fitzgerald", title: "Operations Manager", init: "TF", ago: "7h", body: "Growing our private echo service and need experienced cardiac sonographers. With roughly a quarter of the workforce nearing retirement, we are open to part-time, flexible and relocating candidates.", reqs: ["Cardiac sonographers", "Echocardiography", "Part-time or full-time"], market: "australia", budget: "A$540K", status: 1, posted: "Wed 05:30", responders: 6 },
-  { id: "au3", org: "Queensland Regional Health Service", who: "Dr. Ava Nguyen", title: "Imaging Lead", init: "AN", ago: "1d", body: "Radiographers remain in national shortage across nearly every state, and regional access is our biggest challenge. Seeking CT radiographers and a locum sonographer for our rural sites, with generous regional loadings.", reqs: ["CT radiographers", "Locum sonographer", "Regional loadings"], market: "australia", budget: "A$780K", status: 0, posted: "Tue 14:05", responders: 3 },
+  { id: "au3", fragile: true, org: "Queensland Regional Health Service", who: "Dr. Ava Nguyen", title: "Imaging Lead", init: "AN", ago: "1d", body: "Radiographers remain in national shortage across nearly every state, and regional access is our biggest challenge. Seeking CT radiographers and a locum sonographer for our rural sites, with generous regional loadings.", reqs: ["CT radiographers", "Locum sonographer", "Regional loadings"], market: "australia", budget: "A$780K", status: 0, posted: "Tue 14:05", responders: 3 },
   { id: "au4", org: "Perth Allied Health Network", who: "Sophie Clarke", title: "Workforce Lead", init: "SC", ago: "2d", body: "Building a broad allied health and nursing pipeline. With around half of advertised imaging roles going unfilled, we are widening our search to allied health professionals and nurses across Western Australia. International applications welcome.", reqs: ["Allied health professionals", "Registered nurses", "International welcome"], market: "australia", budget: "A$1.5M", status: 0, posted: "Mon 10:40", responders: 4 },
-  { id: "nz1", org: "Auckland Community Diagnostics", who: "Hana Williams", title: "Service Manager", init: "HW", ago: "5h", body: "Like most of New Zealand, we rely heavily on overseas-trained sonographers, with the majority of new registrants each year coming from abroad. We are recruiting 3 sonographers, with a supported supervision and orientation period on arrival.", reqs: ["3 sonographers", "Overseas-trained welcome", "Supervision & orientation"], market: "newzealand", budget: "NZ$900K", status: 0, posted: "Wed 06:55", responders: 4 },
-  { id: "nz2", org: "Wellington Regional Hospital", who: "Dr. James Patel", title: "Radiology Lead", init: "JP", ago: "1d", body: "Expanding our MRI service and need experienced MRI radiographers. Relocation support and registration assistance provided for international applicants.", reqs: ["MRI radiographers", "Relocation support", "Registration assistance"], market: "newzealand", budget: "NZ$620K", status: 1, posted: "Tue 09:20", responders: 5 },
+  { id: "nz1", fragile: true, org: "Auckland Community Diagnostics", who: "Hana Williams", title: "Service Manager", init: "HW", ago: "5h", body: "Like most of New Zealand, we rely heavily on overseas-trained sonographers, with the majority of new registrants each year coming from abroad. We are recruiting 3 sonographers, with a supported supervision and orientation period on arrival.", reqs: ["3 sonographers", "Overseas-trained welcome", "Supervision & orientation"], market: "newzealand", budget: "NZ$900K", status: 0, posted: "Wed 06:55", responders: 4 },
+  { id: "nz2", fragile: true, org: "Wellington Regional Hospital", who: "Dr. James Patel", title: "Radiology Lead", init: "JP", ago: "1d", body: "Expanding our MRI service and need experienced MRI radiographers. Relocation support and registration assistance provided for international applicants.", reqs: ["MRI radiographers", "Relocation support", "Registration assistance"], market: "newzealand", budget: "NZ$620K", status: 1, posted: "Tue 09:20", responders: 5 },
 ];
 
-function LiveFeedScreen({ onBook, onToast, role = "operator", market = "all", onMarket, displayName }) {
+function LiveFeedScreen({ onBook, onToast, role = "operator", market = "all", onMarket, displayName, go }) {
   const [feed, setFeed] = useState(FEED_SEED);
   const [draft, setDraft] = useState("");
   const [openId, setOpenId] = useState(null);
@@ -703,6 +703,7 @@ function LiveFeedScreen({ onBook, onToast, role = "operator", market = "all", on
   return (
     <div>
       <PageHead title="Live feed" sub="Real-time demand and supply across the Qura marketplace" right={<span className="chip chip-cyan"><span className="live" /> Live marketplace</span>} />
+      <div className="card" style={{ padding: 14, marginBottom: 16, background: "linear-gradient(120deg, var(--navy), #14294d)", color: "#fff", border: "none" }}><div className="row" style={{ justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div className="row" style={{ gap: 10 }}><Globe size={18} color="#5FE6DC" /><div style={{ fontSize: 13.5 }}><b>The market is mapped for you.</b> <span style={{ color: "#9FB0D0" }}>No more mapping regions by hand for hours.</span></div></div><button className="btn hsm" style={{ background: "#00C2B8", color: "#04211F", fontWeight: 700 }} onClick={() => go && go("marketmap")}>Open market map <ArrowRight size={14} /></button></div></div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12, marginBottom: 16 }}>{[["Live now", liveN, "var(--cyan)"], ["Fulfilled", fulfN, "var(--teal)"], ["Avg time to fill", avgFill ? avgFill + "d" : "\u2014", "var(--blue)"], ["Total responses", totalResp, "var(--navy)"]].map(([l, v, c]) => (<div key={l} className="card" style={{ padding: 16 }}><div className="num disp" style={{ fontSize: 24, fontWeight: 700, color: c }}>{v}</div><div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>{l}</div></div>))}</div>
       <button className="btn btn-light" style={{ marginBottom: 16 }} onClick={() => setShowAn((v) => !v)}><BarChart3 size={15} /> Marketplace analytics <ChevronRight size={14} style={{ transform: showAn ? "rotate(90deg)" : "none", transition: ".15s" }} /></button>
       {showAn && (<div className="g2" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14, marginBottom: 16 }}>
@@ -737,7 +738,7 @@ function LiveFeedScreen({ onBook, onToast, role = "operator", market = "all", on
             <div className="row" style={{ gap: 6, flexShrink: 0 }}>{p.market && <span className="chip" style={{ background: "var(--bg)", color: "var(--muted)", fontSize: 10 }}>{marketLabel[p.market]}</span>}<span className="chip" style={{ background: st.bg, color: st.c, gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: 999, background: st.c }} /> {st.l}</span></div>
           </div>
           <p style={{ fontSize: 14.5, lineHeight: 1.6, margin: "14px 0 0" }}>{p.body}</p>
-          {(p.budget || (p.reqs && p.reqs.length > 0)) && <div className="row" style={{ gap: 8, flexWrap: "wrap", marginTop: 12 }}>{p.budget && <span className="chip" style={{ background: "var(--cyan-soft)", color: "#06776F", fontWeight: 700 }}>Budget {p.budget}</span>}{(p.reqs || []).map((r, i) => (<span key={i} className="chip chip-grey">{r}</span>))}</div>}
+          {(p.budget || (p.reqs && p.reqs.length > 0)) && <div className="row" style={{ gap: 8, flexWrap: "wrap", marginTop: 12 }}>{p.fragile && <span className="chip" style={{ background: "rgba(200,16,46,.10)", color: "#C8102E", fontWeight: 700 }}>Fragile profession</span>}{p.budget && <span className="chip" style={{ background: "var(--cyan-soft)", color: "#06776F", fontWeight: 700 }}>Budget {p.budget}</span>}{(p.reqs || []).map((r, i) => (<span key={i} className="chip chip-grey">{r}</span>))}</div>}
           {p.status === 4 && (<div className="card" style={{ padding: 14, marginTop: 14, background: "var(--ok-bg)", border: "none" }}><div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}><div className="row" style={{ gap: 8, color: "#0C7A47", fontWeight: 600, fontSize: 13.5 }}><Check size={15} /> Fulfilled by a verified supplier{p.winner === "anon" ? " (anonymous)" : ""}</div><div className="row num" style={{ gap: 16, fontSize: 12.5 }}><span className="muted">Posted <b style={{ color: "var(--text)" }}>{p.posted}</b></span><span className="muted">Fulfilled <b style={{ color: "var(--text)" }}>{p.fulfilled}</b></span><span className="muted">Time to fill <b style={{ color: "var(--ok)" }}>{p.days}d</b></span></div></div></div>)}
           <div className="row" style={{ justifyContent: "space-between", marginTop: 16, gap: 10, flexWrap: "wrap" }}>
             <div className="row" style={{ gap: 8 }}>
@@ -1623,6 +1624,124 @@ function IndustryNews() {
   );
 }
 
+function AgencyBot({ plan = "starter" }) {
+  const premium = ["trial", "growth", "enterprise"].includes(plan);
+  const lab = { fontSize: 12.5, fontWeight: 600, display: "block", margin: "12px 0 5px" };
+  const inp = { width: "100%", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: 10, fontSize: 13.5, boxSizing: "border-box" };
+  const [cfg, setCfg] = useState({ name: "", kb: "", phrases: "", tone: "Professional", guard: true });
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_bot_config"); if (r?.value) { const v = JSON.parse(r.value); setCfg((c) => ({ ...c, ...v })); } } catch (e) {} })(); }, []);
+  const save = () => { try { window.storage?.set("qura_bot_config", JSON.stringify(cfg)); } catch (e) {} setSaved(true); setTimeout(() => setSaved(false), 1600); };
+  const [msgs, setMsgs] = useState([{ me: false, t: "Hi, I'm your 24/7 assistant. Ask me anything a hospital or client might, and I'll respond in your voice." }]);
+  const [draft, setDraft] = useState(""); const [busy, setBusy] = useState(false);
+  const system = () => "You are the 24/7 AI assistant for " + (cfg.name || "a UK healthcare recruitment agency") + ", speaking to hospitals and clients on their behalf. Services and knowledge: " + (cfg.kb || "specialist healthcare recruitment across fragile professions such as sonography, audiology and radiography.") + " Preferred phrases to weave in where natural: " + (cfg.phrases || "fragile professions, verified candidates, rapid turnaround") + ". Tone: " + cfg.tone + ". " + (cfg.guard ? "Guardrails: never commit to specific rates, availability or start dates without confirming a human will verify; qualify every enquiry by asking role, specialty, location, timeframe and budget; never invent candidate names." : "") + " Be concise, helpful and commercial. Qualify leads, answer FAQs, and help draft responses.";
+  const send = async () => { if (!draft.trim()) return; const um = { me: true, t: draft.trim() }; const hist = [...msgs, um]; setMsgs(hist); setDraft(""); setBusy(true);
+    try { const res = await fetch("/api/anthropic", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 500, system: system(), messages: hist.filter((m) => m.t).map((m) => ({ role: m.me ? "user" : "assistant", content: m.t })) }) });
+      const data = await res.json(); const txt = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("").trim(); setMsgs((x) => [...x, { me: false, t: txt || "Sorry, I could not respond just now." }]);
+    } catch (e) { setMsgs((x) => [...x, { me: false, t: "The assistant is unavailable in this preview; it responds once deployed." }]); }
+    setBusy(false);
+  };
+  return (
+    <div>
+      <PageHead title="AI assistant" sub="Your 24/7 bot that replies to enquiries, qualifies leads, answers FAQs and drafts responses in your voice" right={<span className="chip chip-cyan"><Sparkles size={12} /> Premium</span>} />
+      {!premium ? <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--cyan-soft)", border: "none" }}><div style={{ fontSize: 13.5 }}>The AI assistant is a Growth feature. You can set it up and preview it on your trial, then keep it on Growth or above.</div></div> : null}
+      <div className="grid g2" style={{ gap: 16, alignItems: "start" }}>
+        <div className="card" style={{ padding: 20 }}>
+          <SectionHead title="Fine-tune your bot" />
+          <label style={lab}>Agency name</label>
+          <input value={cfg.name} onChange={(e) => setCfg({ ...cfg, name: e.target.value })} placeholder="e.g. Amare Health" style={inp} />
+          <label style={lab}>Knowledge base</label>
+          <textarea value={cfg.kb} onChange={(e) => setCfg({ ...cfg, kb: e.target.value })} placeholder="What you do, specialties, frameworks you are on, coverage, USPs..." rows={4} style={{ ...inp, resize: "vertical" }} />
+          <label style={lab}>Key phrases to use</label>
+          <input value={cfg.phrases} onChange={(e) => setCfg({ ...cfg, phrases: e.target.value })} placeholder="fragile professions, verified candidates, master vendor..." style={inp} />
+          <label style={lab}>Tone</label>
+          <div className="row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 4 }}>{["Professional", "Warm", "Direct"].map((t) => (<button key={t} onClick={() => setCfg({ ...cfg, tone: t })} className="chip" style={{ cursor: "pointer", background: cfg.tone === t ? "var(--navy)" : "#fff", color: cfg.tone === t ? "#fff" : "var(--navy)", border: "1px solid var(--line)" }}>{t}</button>))}</div>
+          <label className="row" style={{ gap: 8, fontSize: 13, marginTop: 14, cursor: "pointer" }}><input type="checkbox" checked={cfg.guard} onChange={(e) => setCfg({ ...cfg, guard: e.target.checked })} /> Safety guardrails (no rates or promises without a human)</label>
+          <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={save}>{saved ? <><Check size={15} /> Saved</> : "Save bot"}</button>
+        </div>
+        <div className="card" style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 460 }}>
+          <div className="row" style={{ gap: 10, padding: "14px 18px", borderBottom: "1px solid var(--line)" }}><div style={{ width: 34, height: 34, borderRadius: 999, background: "var(--cyan-soft)", display: "grid", placeItems: "center" }}><Sparkles size={16} color="#06776F" /></div><div><div style={{ fontWeight: 600, fontSize: 14 }}>{cfg.name || "Your agency"} assistant</div><div className="faint" style={{ fontSize: 11.5 }}>Preview \u00b7 replies in your voice</div></div></div>
+          <div style={{ flex: 1, padding: 18, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", background: "var(--bg)" }}>{msgs.map((m, i) => (<div key={i} style={{ alignSelf: m.me ? "flex-end" : "flex-start", maxWidth: "80%" }}><div style={{ background: m.me ? "var(--blue)" : "#fff", color: m.me ? "#fff" : "var(--text)", padding: "10px 13px", borderRadius: 14, fontSize: 13.5, lineHeight: 1.45, border: m.me ? "none" : "1px solid var(--line)" }}>{m.t}</div></div>))}{busy ? <div className="faint" style={{ fontSize: 12 }}>Assistant is typing...</div> : null}</div>
+          <div className="row" style={{ gap: 10, padding: 14, borderTop: "1px solid var(--line)" }}><input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Type an enquiry a hospital might send..." style={{ flex: 1, border: "1px solid var(--line)", borderRadius: 10, padding: "11px 14px", fontSize: 13.5 }} /><button className="btn btn-primary" onClick={send} disabled={busy}><Send size={15} /> Send</button></div>
+        </div>
+      </div>
+      <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>Preview uses your live AI. Connecting the bot to reply automatically to real inbound enquiries (email, web form or WhatsApp) is a quick backend step we switch on when you are ready.</div>
+    </div>
+  );
+}
+
+function WhySwitch() {
+  const CRMS = ["Bullhorn", "Tracker", "Salesforce", "Access"];
+  const ROWS = [
+    { f: "Data accuracy", crm: "You maintain it by hand; it decays fast", qura: "Live, verified contacts with last-checked dates" },
+    { f: "Market mapping", crm: "Hours mapping regions manually", qura: "Mapped for you, continuously, in real time" },
+    { f: "Live opportunities", crm: "You chase and log leads yourself", qura: "A 24/7 feed of live vacancies and needs" },
+    { f: "Fragile professions", crm: "Generic pipelines", qura: "Niche vacancies summarised as they appear" },
+    { f: "Reach decision-makers", crm: "Cold lists you buy and clean", qura: "Verified decision-makers, credit-controlled" },
+    { f: "AI assistant", crm: "A bolt-on, if any", qura: "Built-in 24/7 bot that replies in your voice" },
+    { f: "Time to value", crm: "Months of setup and data entry", qura: "Live in minutes" },
+  ];
+  const cell = { padding: "13px 16px", fontSize: 13, borderTop: "1px solid var(--line)" };
+  return (
+    <div>
+      <PageHead title="Why switch to Qura" sub="The CRMs you know store your data. Qura keeps it correct, live and mapped for you." right={<span className="chip chip-cyan">vs legacy CRMs</span>} />
+      <div className="card" style={{ padding: 20, marginBottom: 16, background: "var(--navy)", color: "#fff", border: "none" }}>
+        <div className="grid g3" style={{ gap: 16 }}>{[["98.4%", "Contacts verified in the last 90 days"], ["Real time", "Market mapping, no manual region work"], ["24/7", "Live opportunities and AI cover"]].map(([n, l]) => (<div key={l}><div className="disp" style={{ fontSize: 28, fontWeight: 700 }}>{n}</div><div style={{ fontSize: 12.5, color: "#9FB0D0" }}>{l}</div></div>))}</div>
+      </div>
+      <div className="faint row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 12, fontSize: 12.5, alignItems: "center" }}>Coming from {CRMS.map((c) => (<span key={c} className="chip chip-grey" style={{ fontWeight: 600 }}>{c}</span>))} ? Here is what changes.</div>
+      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr 1fr" }}>
+          <div style={{ padding: "14px 16px", fontWeight: 700, fontSize: 13, background: "var(--bg)" }}>Capability</div>
+          <div style={{ padding: "14px 16px", fontWeight: 700, fontSize: 13, background: "var(--bg)", borderLeft: "1px solid var(--line)" }}>Legacy CRM</div>
+          <div style={{ padding: "14px 16px", fontWeight: 700, fontSize: 13, background: "var(--cyan-soft)", color: "#06776F", borderLeft: "1px solid var(--line)" }}>Qura</div>
+          {ROWS.map((r, i) => ([
+            <div key={"f" + i} style={{ ...cell, fontWeight: 600, fontSize: 13.5 }}>{r.f}</div>,
+            <div key={"c" + i} style={{ ...cell, color: "var(--muted)", borderLeft: "1px solid var(--line)" }}>{r.crm}</div>,
+            <div key={"q" + i} style={{ ...cell, borderLeft: "1px solid var(--line)" }}><span className="row" style={{ gap: 7, alignItems: "flex-start" }}><Check size={15} color="#0E8C7E" style={{ flexShrink: 0, marginTop: 1 }} />{r.qura}</span></div>,
+          ]))}
+        </div>
+      </div>
+      <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>Qura complements your CRM or replaces it. Correct data is the value: every contact carries a last-checked date, and the register is continuously re-verified.</div>
+    </div>
+  );
+}
+
+function MarketMap({ go }) {
+  const REGIONS = [
+    { r: "London", dm: 62, opps: 14, vac: 210, sup: 48 },
+    { r: "South East", dm: 38, opps: 9, vac: 140, sup: 30 },
+    { r: "Midlands", dm: 29, opps: 7, vac: 120, sup: 24 },
+    { r: "North West", dm: 24, opps: 6, vac: 98, sup: 19 },
+    { r: "Yorkshire & Humber", dm: 18, opps: 5, vac: 76, sup: 15 },
+    { r: "Scotland", dm: 14, opps: 4, vac: 60, sup: 12 },
+    { r: "Wales", dm: 9, opps: 3, vac: 40, sup: 8 },
+    { r: "International", dm: 14, opps: 11, vac: 180, sup: 22 },
+  ];
+  const totals = REGIONS.reduce((a, x) => ({ dm: a.dm + x.dm, opps: a.opps + x.opps, vac: a.vac + x.vac, sup: a.sup + x.sup }), { dm: 0, opps: 0, vac: 0, sup: 0 });
+  const maxV = Math.max(...REGIONS.map((x) => x.vac));
+  return (
+    <div>
+      <PageHead title="Market map" sub="The market, mapped for you and kept live. No more mapping regions by hand for hours." right={<span className="chip chip-cyan"><Globe size={12} /> Auto-mapped</span>} />
+      <div className="grid-stats" style={{ marginBottom: 18 }}>
+        <Stat label="Decision-makers" value={totals.dm.toLocaleString()} icon={Users} />
+        <Stat label="Live opportunities" value={String(totals.opps)} icon={Target} accent="cyan" />
+        <Stat label="Open vacancies" value={totals.vac.toLocaleString()} icon={Rss} />
+        <Stat label="Suppliers mapped" value={String(totals.sup)} icon={Package} accent="cyan" />
+      </div>
+      <div className="card" style={{ padding: 20 }}>
+        <SectionHead title="Coverage by region" action={<span className="faint" style={{ fontSize: 12 }}>Updated continuously</span>} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>{REGIONS.map((x) => (
+          <div key={x.r} onClick={() => go && go("feed")} className="lift" style={{ cursor: "pointer", padding: "12px 14px", border: "1px solid var(--line)", borderRadius: 12 }}>
+            <div className="row" style={{ justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 6 }}><span style={{ fontWeight: 600, fontSize: 14 }}>{x.r}</span><span className="faint hsm" style={{ fontSize: 12.5 }}>{x.dm} decision-makers \u00b7 {x.opps} opportunities \u00b7 {x.sup} suppliers</span></div>
+            <div className="row" style={{ gap: 10, alignItems: "center" }}><div style={{ flex: 1, height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}><div style={{ width: Math.max(4, (x.vac / maxV) * 100) + "%", height: "100%", background: "linear-gradient(90deg, var(--teal), var(--cyan))", borderRadius: 999 }} /></div><span className="num" style={{ fontSize: 13, width: 96, textAlign: "right" }}>{x.vac} vacancies</span></div>
+          </div>
+        ))}</div>
+      </div>
+      <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>Qura maps the market continuously from live activity, so your team never spends hours mapping regions manually. Tap any region to jump to its live feed.</div>
+    </div>
+  );
+}
+
 const Placeholder = ({ title }) => (<div><PageHead title={title} sub="This area is part of the prototype scope." /><div className="card" style={{ padding: 48, textAlign: "center" }}><MessageSquare size={28} className="faint" style={{ margin: "0 auto 12px" }} /><div className="muted">Content for {title.toLowerCase()} lives here in the full build.</div></div></div>);
 
 /* ===================== Pulse command center ===================== */
@@ -2006,7 +2125,7 @@ function Landing({ onEnter, onDemo }) {
           <div className="reveal"><span className="chip chip-cyan" style={{ padding: "7px 15px" }}><Sparkles size={14} /> Healthcare Growth CRM · 24/7 live, every market worldwide</span></div>
           <h1 className="disp heroh reveal" style={{ fontWeight: 700, margin: "26px auto 0", maxWidth: 880 }}>Stop rushing to the cheapest bidder. <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Start choosing the best.</span></h1>
           <div className="reveal" style={{ display: "flex", justifyContent: "center", margin: "14px 0 4px" }}><PulseLine /></div>
-          <p className="muted reveal" style={{ fontSize: 19, maxWidth: 680, margin: "14px auto 0", lineHeight: 1.6 }}>{APP_NAME} is the 24/7 live healthcare marketplace and growth CRM, working across the NHS, private hospitals and clinics, GP practices, complex care, care homes, SEND and international markets, from London to Sydney to Doha. Private providers can sign up in minutes, with no procurement sign-off, while every buyer sees live, specialist intelligence so the right partner is chosen on merit, not against a deadline.</p>
+          <p className="muted reveal" style={{ fontSize: 19, maxWidth: 680, margin: "14px auto 0", lineHeight: 1.6 }}>{APP_NAME} is the 24/7 live healthcare marketplace and growth CRM, working across the NHS, private hospitals and clinics, GP practices, complex care, care homes, SEND and international markets, from London to Sydney to Doha. Private providers can sign up in minutes, with no procurement sign-off, while every buyer sees live, specialist intelligence so the right partner is chosen on merit, not against a deadline. Qura specialises in fragile professions, the scarce clinical roles the NHS most struggles to fill, and maps the market for you in real time, so agencies stop mapping regions by hand for hours.</p>
           <div className="row reveal" style={{ gap: 14, justifyContent: "center", marginTop: 34, flexWrap: "wrap" }}><button className="btn lift" style={{ padding: "15px 28px", fontSize: 16, background: "var(--blue)", color: "#fff", boxShadow: "0 6px 18px rgba(45,107,255,.32)" }} onClick={onEnter}>Get started / Sign in <ArrowRight size={18} /></button><a href="#founders" className="btn btn-dark lift" style={{ padding: "15px 28px", fontSize: 16 }}>Meet the founders</a></div>
           <div className="row faint reveal" style={{ gap: 8, justifyContent: "center", marginTop: 28, fontSize: 13.5 }}><ShieldCheck size={15} /> For private clinics, GP practices, complex care, care homes, SEND, NHS trusts, agencies and international health systems, framework or not, CQC or not</div>
         </div>
@@ -2045,6 +2164,26 @@ function Landing({ onEnter, onDemo }) {
 
       <div className="wrap" style={{ padding: "48px 24px" }}>
         <Reveal><div className="grid g4">{stats.map((s) => (<div key={s.l} style={{ textAlign: "center" }}><div className="num" style={{ fontSize: 40, fontWeight: 600, color: "var(--navy)" }}>{s.n}</div><div className="muted" style={{ fontSize: 14, marginTop: 2 }}>{s.l}</div></div>))}</div></Reveal>
+      </div>
+
+      <div className="wrap" style={{ padding: "8px 24px 8px" }}>
+        <Reveal>
+          <div className="card" style={{ padding: "40px 40px", background: "linear-gradient(160deg, var(--cyan-soft), #fff 75%)", border: "1px solid var(--line)" }}>
+            <div className="grid g2" style={{ gap: 30, alignItems: "center" }}>
+              <div>
+                <div className="eyebrow" style={{ color: "#06776F" }}>Built for fragile professions</div>
+                <h2 className="disp" style={{ fontSize: 30, fontWeight: 700, margin: "12px 0 12px", lineHeight: 1.15 }}>The roles the NHS struggles most to fill</h2>
+                <p className="muted" style={{ fontSize: 15.5, lineHeight: 1.6, margin: "0 0 16px", maxWidth: 460 }}>Fragile professions are the scarce, hard-to-sustain clinical roles that keep services running: sonography, audiology, echocardiography, radiography and allied diagnostics. Qura specialises in them, summarising niche vacancies the moment they appear and mapping the market for you in real time. No more mapping regions by hand for hours.</p>
+                <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>{["Sonography", "Audiology", "Echocardiography", "Radiography", "Respiratory", "Pathology"].map((x) => (<span key={x} className="chip" style={{ background: "#fff", border: "1px solid var(--line)", fontWeight: 600 }}>{x}</span>))}</div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                {[["Niche vacancies, summarised", "Fragile-profession roles surfaced the moment they go live.", Radar], ["Mapping done for you", "The market is mapped continuously, so your team stops mapping regions manually.", Globe], ["Live 24/7", "The feed never sleeps, across every market.", Rss], ["Merit over deadline", "The right specialist, chosen on fit rather than urgency.", Award]].map(([t, d, I]) => (
+                  <div key={t} className="card" style={{ padding: 16 }}><div style={{ width: 38, height: 38, borderRadius: 10, background: "#EEF3FF", display: "grid", placeItems: "center" }}><I size={18} color="#1E54E6" /></div><div style={{ fontWeight: 600, fontSize: 14, marginTop: 10 }}>{t}</div><div className="muted" style={{ fontSize: 12.5, marginTop: 4, lineHeight: 1.45 }}>{d}</div></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Reveal>
       </div>
 
       <div style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
@@ -2281,7 +2420,7 @@ const RoleSelect = ({ onPick }) => {
 const NAVS = {
   operator: [
     { k: "command", l: "MCC", i: Activity }, { k: "ops", l: "Sign-ups & financials", i: BarChart3 }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target }, { k: "savedOpps", l: "Saved", i: Star },
-    { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "execs", l: "Executive network", i: Briefcase }, { k: "proposals", l: "Proposals", i: FileText },
+    { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "execs", l: "Executive network", i: Briefcase }, { k: "aibot", l: "AI assistant", i: Sparkles }, { k: "whyswitch", l: "Why switch", i: Award }, { k: "marketmap", l: "Market map", i: Radar }, { k: "proposals", l: "Proposals", i: FileText },
     { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "weekly", l: "Weekly report", i: FileText }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "news", l: "Industry news", i: Rss },
     { k: "analytics", l: "Analytics", i: BarChart3 }, { k: "clinicians", l: "Clinician network", i: Stethoscope },
     { k: "clients", l: "Clients & targets", i: Building2 }, { k: "casestudies", l: "Case studies", i: Award },
@@ -2290,7 +2429,7 @@ const NAVS = {
   ],
   agency: [
     { k: "dashboard", l: "Dashboard", i: LayoutDashboard }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target }, { k: "savedOpps", l: "Saved", i: Star },
-    { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "execs", l: "Executive network", i: Briefcase }, { k: "outreach", l: "Outreach", i: Send },
+    { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "execs", l: "Executive network", i: Briefcase }, { k: "aibot", l: "AI assistant", i: Sparkles }, { k: "whyswitch", l: "Why switch", i: Award }, { k: "marketmap", l: "Market map", i: Radar }, { k: "outreach", l: "Outreach", i: Send },
     { k: "proposals", l: "Proposals", i: FileText }, { k: "meetings", l: "Meetings", i: Calendar },
     { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "weekly", l: "Weekly report", i: FileText }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "news", l: "Industry news", i: Rss },
     { k: "analytics", l: "Analytics", i: BarChart3 }, { k: "clinicians", l: "Clinician network", i: Stethoscope },
@@ -2446,9 +2585,12 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   const screen = () => {
     switch (active) {
       case "command": return <CommandCenter go={go} name={firstName} />;
+      case "aibot": return <AgencyBot plan={plan} />;
+      case "whyswitch": return <WhySwitch />;
+      case "marketmap": return <MarketMap go={go} />;
       case "ops": return <OwnerOps isOwner={isOwner} />;
       case "news": return <IndustryNews />;
-      case "feed": return <LiveFeedScreen role={role} displayName={displayName} market={market} onMarket={setMarket} onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
+      case "feed": return <LiveFeedScreen role={role} displayName={displayName} go={go} market={market} onMarket={setMarket} onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "suppliers": return <SuppliersScreen onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "leaderboard": return <Leaderboard go={go} market={market} />;
       case "inbox": return <SupplierInbox go={go} market={market} onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
