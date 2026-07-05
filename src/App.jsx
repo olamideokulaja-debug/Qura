@@ -124,6 +124,8 @@ a{transition:color .15s ease}
 .glow-hover{transition:box-shadow .3s ease,transform .3s ease}
 .glow-hover:hover{box-shadow:0 18px 50px rgba(14,140,126,.18);transform:translateY(-3px)}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.001s!important;transition-duration:.06s!important}}
+.cura p{text-align:justify;text-justify:inter-word;-webkit-hyphens:auto;hyphens:auto}
+.cura [style*="text-align: center"] p,.cura [style*="text-align:center"] p{text-align:center;-webkit-hyphens:manual;hyphens:manual}
 .navlink{color:var(--muted);font-size:14.5px;font-weight:500;text-decoration:none;transition:color .15s}
 .navlink:hover{color:var(--navy)}
 `;
