@@ -201,9 +201,9 @@ const ALERTS = [
   { txt: "Clinician sign-ups hit a new weekly high", c: "ok" },
 ];
 const TESTIMONIALS = [
-  { name: "Jeremy", role: "Sonographer", quote: "They were great every step of the way, even calling out of hours and visiting once I had relocated to the UK." },
-  { name: "Sarah", role: "Sonographer", quote: "A reliable point of contact with the Trust who kept me informed, advocated for me and helped me secure a permanent role." },
-  { name: "Nikita", role: "Sonographer", quote: "A really good experience, always checking in with timely feedback that left me feeling reassured." },
+  { name: "Jane", role: "Sonographer", quote: "They were great every step of the way, even calling out of hours and visiting once I had relocated to the UK." },
+  { name: "Fred", role: "Sonographer", quote: "A reliable point of contact with the Trust who kept me informed, advocated for me and helped me secure a permanent role." },
+  { name: "Lucy", role: "Sonographer", quote: "A really good experience, always checking in with timely feedback that left me feeling reassured." },
 ];
 const CASE_STUDIES = [{
   title: "CDC Sonography Programme", sector: "NHS England", tag: "Diagnostics",
@@ -211,7 +211,7 @@ const CASE_STUDIES = [{
   pillars: [
     { t: "Clinically led screening", b: "Rigorous pre-screening using bespoke clinical competency assessments." },
     { t: "Dedicated account management", b: "A single account lead owned the journey with direct NHS England liaison throughout." },
-    { t: "International pipeline", b: "Established reach across Australia, New Zealand and Canada to access talent others cannot." },
+    { t: "International pipeline", b: "Established reach across Australia, New Zealand, Canada and South Africa to access talent others cannot." },
   ],
   milestones: [
     { m: "Week 2", o: "8 clinically approved CVs submitted and approved by the NHS England team" },
@@ -281,11 +281,12 @@ const SITES = [
   { name: "Leeds North Diagnostic Hub", type: "Community diagnostic centre", open: "Opens Sep 2026", mgr: "Operational Manager, West Yorkshire", clinical: ["Sonographers ×2", "Biomedical scientists ×2"], nonclinical: ["Reception ×2"], shortlisted: 5, status: "Planning" },
 ];
 const MOBILE_UNITS = [
-  { name: "Medneo UK", spec: "MRI & CT mobile units", coverage: "National", clients: "NHS + private", status: "Verified" },
-  { name: "Cobalt Mobile Imaging", spec: "MRI & PET-CT units", coverage: "South & Midlands", clients: "NHS", status: "Verified" },
-  { name: "Alliance Mobile Diagnostics", spec: "CT, MRI, ultrasound", coverage: "National", clients: "NHS + private", status: "Verified" },
-  { name: "InHealth Mobile", spec: "MRI, CT, breast screening", coverage: "National", clients: "NHS", status: "Verified" },
-  { name: "Vista Mobile Health", spec: "Ultrasound & echo units", coverage: "North", clients: "NHS + private", status: "New" },
+  { name: "InHealth", spec: "Mobile MRI, CT & breast screening", coverage: "National", clients: "Private + NHS", status: "Verified" },
+  { name: "Vanguard Healthcare Solutions", spec: "Mobile theatres & endoscopy units", coverage: "National", clients: "Private + NHS", status: "Verified" },
+  { name: "Medneo", spec: "Mobile & modular MRI and CT", coverage: "National", clients: "Private", status: "Verified" },
+  { name: "Compleo", spec: "Mobile diagnostic & imaging units", coverage: "National", clients: "Private", status: "Verified" },
+  { name: "Alliance Medical Mobile", spec: "Mobile CT, MRI & PET-CT", coverage: "National", clients: "Private + NHS", status: "Verified" },
+  { name: "Cobalt Mobile Imaging", spec: "Mobile MRI & PET-CT", coverage: "South & Midlands", clients: "Private", status: "New" },
 ];
 const CHANNELS = [
   { k: "Mobile app", h: "Qura for iOS & Android", i: Smartphone }, { k: "Website", h: "qura.health", i: Globe },
@@ -604,12 +605,12 @@ const SUP_PERF = { s1: { winRate: 74, avgFill: 3.1, wins: 31 }, s2: { winRate: 6
 const perfFor = (id) => SUP_PERF[id] || { isNew: true };
 const perfFrom = (id, feed) => { const base = SUP_PERF[id]; const won = (feed || []).filter((p) => p.status === 4 && p.winnerId === id && p.days); if (!base && won.length === 0) return { isNew: true }; const wins = (base ? base.wins : 0) + won.length; const totalDays = (base ? base.avgFill * base.wins : 0) + won.reduce((a, p) => a + p.days, 0); const avgFill = wins ? +(totalDays / wins).toFixed(1) : (base ? base.avgFill : null); return { winRate: base ? base.winRate : null, avgFill, wins, isNew: false, freshWins: won.length }; };
 const SUPPLIERS = [
-  { id: "s1", name: "Medneo Imaging Systems", type: "Medical device company", init: "MI", tag: "MRI, CT and diagnostic imaging hardware with rapid, relocatable deployment.", cats: ["MRI", "imaging", "CT", "diagnostic", "equipment"], loc: "London & Munich", rating: 4.9, premium: true, verified: true, kit: [{ n: "1.5T Mobile MRI", s: "Relocatable, 6-week install", lead: "4 weeks" }, { n: "Wide-bore 3T MRI", s: "Fixed site, full service", lead: "10 weeks" }, { n: "128-slice CT", s: "Cardiac & oncology ready", lead: "6 weeks" }] },
-  { id: "s2", name: "SonoStaff Clinical", type: "Managed clinical service", init: "SS", tag: "Consultant-led sonography and gynaecology insourcing teams inside Trust governance.", cats: ["sonography", "sonographers", "gynaecology", "insourcing", "ultrasound"], loc: "Manchester", rating: 4.8, premium: true, verified: true, kit: [{ n: "Sonographer teams", s: "Weekend & evening lists", lead: "3 weeks" }, { n: "Consultant gynaecology clinics", s: "Inside Trust governance", lead: "4 weeks" }] },
-  { id: "s3", name: "Endocare Solutions", type: "Medical device company", init: "EC", tag: "Endoscopy decontamination and managed scope services, JAG-compliant.", cats: ["endoscopy", "decontamination", "scopes"], loc: "Leeds", rating: 4.7, premium: false, verified: true, kit: [{ n: "AER decontamination units", s: "JAG-compliant", lead: "5 weeks" }, { n: "Managed scope pool", s: "Loan & maintenance", lead: "2 weeks" }] },
-  { id: "s4", name: "CardioMobile UK", type: "Medical device company", init: "CM", tag: "Mobile cardiac diagnostics and echocardiography units for community settings.", cats: ["cardiac", "mobile", "echo", "diagnostics"], loc: "Bristol", rating: 4.9, premium: true, verified: true, kit: [{ n: "Mobile cardiac unit", s: "Echo, ECG, stress testing", lead: "3 weeks" }, { n: "Community echo clinic", s: "BSE-accredited staff", lead: "4 weeks" }] },
-  { id: "s5", name: "Apex Growth Partners", type: "Healthcare agency", init: "AP", tag: "Framework-approved staffing across imaging, theatres and diagnostics.", cats: ["staffing", "radiographers", "imaging", "MRI", "theatres"], loc: "Birmingham", rating: 4.6, premium: true, verified: true, kit: [{ n: "MRI radiographers", s: "Framework rates", lead: "2 weeks" }, { n: "Theatre teams", s: "Insourcing & agency", lead: "3 weeks" }] },
-  { id: "s6", name: "Vantage Diagnostics", type: "Medical device company", init: "VD", tag: "Point-of-care ultrasound and portable imaging for diagnostic centres.", cats: ["ultrasound", "imaging", "sonography", "point-of-care", "equipment"], loc: "Glasgow", rating: 4.7, premium: false, verified: true, kit: [{ n: "Portable ultrasound fleet", s: "POCUS, rapid roll-out", lead: "2 weeks" }, { n: "Reporting workstation", s: "PACS-integrated", lead: "3 weeks" }] },
+  { id: "s1", name: "Harley Street Imaging", type: "Harley Street clinic", init: "HI", tag: "Consultant-led private MRI, ultrasound and self-pay diagnostics in central London.", cats: ["MRI", "ultrasound", "diagnostic", "private", "self-pay"], loc: "Harley Street, London", rating: 4.9, premium: true, verified: true, kit: [{ n: "Private MRI", s: "Same-week appointments", lead: "1 week" }, { n: "Consultant ultrasound", s: "Obstetric & MSK", lead: "3 days" }, { n: "Executive health checks", s: "Self-pay packages", lead: "1 week" }] },
+  { id: "s2", name: "The Wellington Private Hospital", type: "Private hospital", init: "WP", tag: "Full-service private hospital with theatres, imaging and inpatient care.", cats: ["private hospital", "theatres", "imaging", "inpatient"], loc: "London", rating: 4.8, premium: true, verified: true, kit: [{ n: "Private theatres", s: "Elective surgery", lead: "2 weeks" }, { n: "Diagnostic imaging", s: "MRI, CT and ultrasound", lead: "1 week" }] },
+  { id: "s3", name: "Dr. A. Rahman (Independent)", type: "Self-employed consultant", init: "AR", tag: "Independent consultant offering private clinics and remote reporting.", cats: ["consultant", "private clinic", "reporting", "self-employed"], loc: "Harley Street, London", rating: 4.9, premium: false, verified: true, kit: [{ n: "Private clinics", s: "Consultant-led", lead: "1 week" }, { n: "Remote reporting", s: "24 to 48h turnaround", lead: "2 days" }] },
+  { id: "s4", name: "Cromwell Private Clinic", type: "Private clinic", init: "CP", tag: "Independent multi-specialty private clinic with diagnostics and outpatient care.", cats: ["private clinic", "outpatient", "diagnostics", "multi-specialty"], loc: "Kensington, London", rating: 4.7, premium: true, verified: true, kit: [{ n: "Outpatient clinics", s: "Multi-specialty", lead: "1 week" }, { n: "Day-case procedures", s: "Minor surgery", lead: "2 weeks" }] },
+  { id: "s5", name: "Nuffield Private Practice", type: "Private hospital", init: "NP", tag: "Private hospital group offering surgery, diagnostics and consultant clinics.", cats: ["private hospital", "surgery", "diagnostics"], loc: "Regional", rating: 4.6, premium: false, verified: true, kit: [{ n: "Consultant clinics", s: "Self-pay & insured", lead: "1 week" }, { n: "Elective surgery", s: "Day-case & inpatient", lead: "3 weeks" }] },
+  { id: "s6", name: "London Women's Health Clinic", type: "Private clinic", init: "LW", tag: "Women's health and fertility clinic with consultant sonography and gynaecology.", cats: ["private clinic", "womens health", "fertility", "sonography", "gynaecology"], loc: "Harley Street, London", rating: 4.9, premium: true, verified: true, kit: [{ n: "Fertility sonography", s: "Consultant-led", lead: "3 days" }, { n: "Gynaecology clinics", s: "Private & self-pay", lead: "1 week" }] },
 ];
 
 const KIT_STOP = new Set(["and","the","for","with","full","service","services","ready","site","fixed","week","weeks","unit","units","team","teams","rate","rates","pool","loan","staff","clinic","clinics","relocatable","install","managed","approved","framework","compliant","integrated","point","care","based","new"]);
@@ -792,7 +793,7 @@ function SuppliersScreen({ onBook, onToast }) {
   const pf = sel ? dynamicPerf(sel.id) : null;
   return (
     <div>
-      <PageHead title="Suppliers & equipment" sub="Medical device companies and managed services, matched to live demand" right={<span className="chip chip-cyan">{SUPPLIERS.length} verified suppliers</span>} />
+      <PageHead title="Private clinics" sub="Private hospitals, Harley Street clinics and independent consultants" right={<span className="chip chip-cyan">{SUPPLIERS.length} verified clinics</span>} />
       <div className="card" style={{ padding: 20, marginBottom: 18, border: "1.5px solid var(--cyan)", background: "linear-gradient(120deg,var(--cyan-soft),#fff 65%)" }}>
         <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
           <div><span className="chip chip-cyan" style={{ fontSize: 10 }}>Your company</span><div className="disp" style={{ fontWeight: 700, fontSize: 18, marginTop: 8 }}>{cat.name}</div><div className="muted" style={{ fontSize: 13, marginTop: 2 }}>{cat.tag}</div></div>
@@ -1149,12 +1150,20 @@ function SettingsScreen({ plan, trialMsg, go, profileName, onName }) {
   const [saved, setSaved] = useState(false);
   useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_settings"); if (r?.value) { const s = JSON.parse(r.value); if (s.p) setP(s.p); if (s.n) setN(s.n); } } catch (e) {} })(); }, []);
   const save = () => { try { window.storage?.set("qura_settings", JSON.stringify({ p, n })); } catch (e) {} try { window.storage?.set("qura_profile_name", p.name || ""); } catch (e) {} if (onName) onName(p.name || ""); setSaved(true); setTimeout(() => setSaved(false), 1800); };
+  const [showPriv, setShowPriv] = useState(false);
+  const [dnote, setDnote] = useState("");
+  const [comms, setComms] = useState(true);
+  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_consent_comms"); if (r && r.value != null) setComms(r.value === "true" || r.value === true); } catch (e) {} })(); }, []);
+  const setCommsV = (v) => { setComms(v); try { window.storage?.set("qura_consent_comms", String(v)); } catch (e) {} };
+  const downloadData = async () => { const data = {}; try { const r = await window.storage?.list?.("qura_"); const keys = (r && r.keys) || []; for (const k of keys) { try { const v = await window.storage?.get(k); data[k] = v ? v.value : null; } catch (e) {} } } catch (e) {} try { const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "qura-my-data.json"; a.click(); URL.revokeObjectURL(url); setDnote("Your data has been downloaded."); } catch (e) { setDnote("Download is not available here."); } };
+  const eraseData = async () => { if (typeof window !== "undefined" && window.confirm && !window.confirm("Delete all your Qura data on this account? This cannot be undone.")) return; try { const r = await window.storage?.list?.("qura_"); const keys = (r && r.keys) || []; for (const k of keys) { try { await window.storage?.delete(k); } catch (e) {} } } catch (e) {} setDnote("Your data has been deleted."); };
   const field = (label, key, type) => (<div style={{ marginBottom: 16 }}><label style={{ fontSize: 13, fontWeight: 600, display: "block", marginBottom: 6 }}>{label}</label><input className="in" type={type || "text"} value={p[key]} onChange={(e) => setP((x) => ({ ...x, [key]: e.target.value }))} /></div>);
   const notif = [["opps", "New high-fit opportunities", "Alert me when a strong-fit opportunity is published"], ["replies", "Proposal opens & replies", "Tell me when a decision-maker engages a proposal"], ["forums", "Round-table invites", "Invitations and confirmations for forums"], ["digest", "Weekly digest", "A Monday summary of pipeline and market moves"]];
   return (
     <div>
       <PageHead title="Settings" sub="Manage your profile and notification preferences" right={<button className="btn btn-primary" onClick={save}>{saved ? <><Check size={15} /> Saved</> : "Save changes"}</button>} />
       <div className="card" style={{ padding: 20, marginBottom: 16, background: "linear-gradient(120deg,var(--cyan-soft),#fff 70%)" }}><div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}><div><div className="faint" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>Your plan</div><div className="disp" style={{ fontWeight: 700, fontSize: 20, marginTop: 4 }}>{plan ? (PLAN_LABEL[plan] || plan) : "No plan selected"}</div>{trialMsg && <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>{trialMsg}</div>}</div><button className="btn btn-primary" onClick={() => go && go("pricing")}>Manage plan</button></div></div>
+      <div className="card" style={{ padding: 20, marginBottom: 16 }}><SectionHead title="Your data & privacy" /><p className="muted" style={{ fontSize: 13, margin: "0 0 12px", lineHeight: 1.55 }}>Qura follows UK GDPR. Your data is stored per account, never sold, and you can access, export or erase it at any time.</p><label className="row" style={{ gap: 8, fontSize: 13, cursor: "pointer", marginBottom: 14 }}><input type="checkbox" checked={comms} onChange={(e) => setCommsV(e.target.checked)} /> I consent to receive product updates and marketing from Qura</label><div className="row" style={{ gap: 8, flexWrap: "wrap" }}><button className="btn btn-light" onClick={() => setShowPriv((v) => !v)}><ShieldCheck size={15} /> {showPriv ? "Hide" : "View"} privacy notice</button><button className="btn btn-light" onClick={downloadData}><FileText size={15} /> Download my data</button><button className="btn btn-light" style={{ color: "var(--red)" }} onClick={eraseData}><Trash2 size={15} /> Delete my data</button></div>{dnote ? <div className="chip chip-cyan" style={{ marginTop: 12 }}>{dnote}</div> : null}{showPriv ? <div style={{ marginTop: 14, borderTop: "1px solid var(--line)", paddingTop: 14 }}><PrivacyContent /></div> : null}</div>
       <div className="card" style={{ padding: 20, marginBottom: 16 }}><SectionHead title="Testing" /><div className="row" style={{ justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div className="muted" style={{ fontSize: 13, maxWidth: 360 }}>Reset the trial, plan and onboarding walkthrough to preview the first-run experience again.</div><button className="btn btn-light" style={{ color: "var(--red)" }} onClick={async () => { for (const k of ["qura_trial", "qura_trial_welcomed", "qura_plan", "qura_upgrade", "qura_tour_done", "qura_trial_events"]) { try { await window.storage?.delete(k); } catch (e) {} } try { window.location.reload(); } catch (e) {} }}>Reset trial & onboarding</button></div></div>
       <div className="grid-2" style={{ alignItems: "start" }}>
         <div className="card" style={{ padding: 24 }}><SectionHead title="Profile" />{field("Full name", "name")}<div className="muted" style={{ fontSize: 12, margin: "-8px 0 14px" }}>This name shows on your top bar, account menu and the requirements you post.</div>{field("Work email", "email", "email")}{field("Title", "title")}{field("Region", "region")}</div>
@@ -1636,7 +1645,7 @@ function AgencyBot({ plan = "starter" }) {
   const save = () => { try { window.storage?.set("qura_bot_config", JSON.stringify(cfg)); } catch (e) {} setSaved(true); setTimeout(() => setSaved(false), 1600); };
   const [msgs, setMsgs] = useState([{ me: false, t: "Hi, I'm your 24/7 assistant. Ask me anything a hospital or client might, and I'll respond in your voice." }]);
   const [draft, setDraft] = useState(""); const [busy, setBusy] = useState(false);
-  const system = () => "You are the 24/7 AI assistant for " + (cfg.name || "a UK healthcare recruitment agency") + ", speaking to hospitals and clients on their behalf. Services and knowledge: " + (cfg.kb || "specialist healthcare recruitment across fragile professions such as sonography, audiology and radiography.") + " Preferred phrases to weave in where natural: " + (cfg.phrases || "fragile professions, verified candidates, rapid turnaround") + ". Tone: " + cfg.tone + ". " + (cfg.guard ? "Guardrails: never commit to specific rates, availability or start dates without confirming a human will verify; qualify every enquiry by asking role, specialty, location, timeframe and budget; never invent candidate names." : "") + " Be concise, helpful and commercial. Qualify leads, answer FAQs, and help draft responses. Write in British English. Do not use emojis, markdown headings or blockquotes. Short numbered lists are fine when qualifying. Keep formatting light.";
+  const system = () => "You are the 24/7 AI assistant for " + (cfg.name || "a UK healthcare workforce supplier") + ", speaking to hospitals and clients on their behalf. Services and knowledge: " + (cfg.kb || "specialist healthcare recruitment across fragile professions such as sonography, audiology and radiography.") + " Preferred phrases to weave in where natural: " + (cfg.phrases || "fragile professions, verified candidates, rapid turnaround") + ". Tone: " + cfg.tone + ". " + (cfg.guard ? "Guardrails: never commit to specific rates, availability or start dates without confirming a human will verify; qualify every enquiry by asking role, specialty, location, timeframe and budget; never invent candidate names." : "") + " Be concise, helpful and commercial. Qualify leads, answer FAQs, and help draft responses. Write in British English. Do not use emojis, markdown headings or blockquotes. Short numbered lists are fine when qualifying. Keep formatting light.";
   const send = async () => { if (!draft.trim()) return; const um = { me: true, t: draft.trim() }; const hist = [...msgs, um]; setMsgs(hist); setDraft(""); setBusy(true);
     try {
       let convo = hist.filter((m) => m.t).map((m) => ({ role: m.me ? "user" : "assistant", content: m.t }));
@@ -1747,6 +1756,34 @@ function MarketMap({ go }) {
       </div>
       <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>Qura maps the market continuously from live activity, so your team never spends hours mapping regions manually. Tap any region to jump to its live feed.</div>
     </div>
+  );
+}
+
+function PrivacyContent() {
+  return (
+    <div style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--text)" }}>
+      <p style={{ marginTop: 0 }}>Qura is committed to protecting your personal data in line with the UK GDPR and the Data Protection Act 2018.</p>
+      <p><b>What we collect.</b> Account details you provide (name, email, role), the data you add (shortlists, notes, messages) and the basic usage needed to run the service.</p>
+      <p><b>Lawful basis.</b> We process account data to provide the service you signed up for (contract), and professional business-contact information on the basis of legitimate interests, balanced against individuals' rights. Contact details are masked until consent is confirmed.</p>
+      <p><b>Your rights.</b> You can access, correct, export or delete your data, object to processing, and withdraw consent at any time. Use the data controls in Settings, or contact privacy@qura.health.</p>
+      <p><b>Retention & security.</b> Data is stored per account and kept only as long as needed. We do not sell your data and we do not show third-party ads.</p>
+      <p><b>Personal profiles.</b> Individuals' names and contact details are anonymised or withheld until written consent is given, in line with GDPR.</p>
+      <p className="faint" style={{ fontSize: 12 }}>This is a plain-English summary. For a specific request, contact privacy@qura.health.</p>
+    </div>
+  );
+}
+
+function CookieConsent() {
+  const [show, setShow] = useState(false);
+  const [open, setOpen] = useState(false);
+  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_cookie_consent"); if (!r || !r.value) setShow(true); } catch (e) { setShow(true); } })(); }, []);
+  const choose = (v) => { try { window.storage?.set("qura_cookie_consent", v); } catch (e) {} setShow(false); };
+  if (!show && !open) return null;
+  return (
+    <>
+      {open ? <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(6,14,30,.55)", zIndex: 90, display: "grid", placeItems: "center", padding: 20 }}><div onClick={(e) => e.stopPropagation()} className="card" style={{ maxWidth: 560, width: "100%", padding: 26, maxHeight: "82vh", overflowY: "auto" }}><div className="row" style={{ justifyContent: "space-between", marginBottom: 10 }}><h3 className="disp" style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Privacy & data protection</h3><button className="btn btn-light" style={{ padding: "6px 9px" }} onClick={() => setOpen(false)}>Close</button></div><PrivacyContent /></div></div> : null}
+      {show ? <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 80, padding: 16, display: "flex", justifyContent: "center" }}><div className="card" style={{ maxWidth: 720, width: "100%", padding: 16, boxShadow: "0 12px 40px rgba(10,23,51,.28)" }}><div className="row" style={{ gap: 14, justifyContent: "space-between", flexWrap: "wrap", alignItems: "center" }}><div style={{ fontSize: 13, lineHeight: 1.5, flex: 1, minWidth: 220 }}>We use essential cookies to run Qura and, with your consent, a little analytics to improve it. See our <button onClick={() => setOpen(true)} style={{ background: "none", border: "none", color: "var(--blue)", fontWeight: 600, cursor: "pointer", padding: 0 }}>privacy notice</button>.</div><div className="row" style={{ gap: 8 }}><button className="btn btn-light" onClick={() => choose("essential")}>Essential only</button><button className="btn btn-primary" onClick={() => choose("all")}>Accept all</button></div></div></div></div> : null}
+    </>
   );
 }
 
@@ -2105,7 +2142,7 @@ function Landing({ onEnter, onDemo }) {
   ];
   const feed = lens === "global" ? TEASER : TEASER.filter((x) => x.region === lens);
   const shown = feed.length ? Array.from({ length: Math.min(4, feed.length) }, (_, i) => feed[(tick + i) % feed.length]) : [];
-  const stats = [{ n: "10+", l: "Years in healthcare BD" }, { n: "8,500+", l: "LinkedIn followers" }, { n: "208", l: "Decision-maker contacts" }, { n: "50+", l: "Countries reached" }];
+  const stats = [{ n: "32+", l: "Combined years in healthcare" }, { n: "13,000+", l: "Combined LinkedIn following" }, { n: "208", l: "Decision-maker contacts" }, { n: "50+", l: "Countries reached" }];
   const edge = [
     { i: Brain, t: "A decade of real deals, encoded", b: "Qura's analytics are shaped by 10 years of contracts our experts have actually closed, so every score reflects how the market really behaves.", c: "#5B3FD6", bg: "var(--violet-soft)" },
     { i: Zap, t: "AI that works the way experts work", b: "The platform scans thousands of opportunities, scores fit and drafts proposals in seconds, following the playbook that built a multi-million-pound pipeline.", c: "#06776F", bg: "var(--cyan-soft)" },
@@ -2257,15 +2294,15 @@ function Landing({ onEnter, onDemo }) {
         <Reveal>
           <div className="card" style={{ marginTop: 16, padding: "36px 40px", background: "#EEF3FF", border: "none", position: "relative" }}>
             <Quote size={38} color="rgba(30,84,230,.32)" style={{ position: "absolute", top: 26, left: 30 }} />
-            <p className="disp" style={{ color: "#0A1730", fontSize: 23, fontWeight: 500, lineHeight: 1.45, margin: "0 0 18px", paddingLeft: 56, maxWidth: 880 }}>"I want healthcare talent to reach where it is needed most, across every market and without friction. When hospitals, agencies and clinicians connect on merit and value, and financing and supply follow, health systems grow stronger everywhere."</p>
-            <div className="row" style={{ gap: 12, paddingLeft: 56 }}><Avatar src={OLA2_IMG} size={42} /><div><div style={{ fontWeight: 600, fontSize: 14.5, color: "#0A1730" }}>Dr. Olamide Okulaja</div><div style={{ color: "#3B5580", fontSize: 13 }}>Co-Founder &amp; Chief Growth Officer</div></div></div>
+            <p className="disp" style={{ color: "#0A1730", fontSize: 23, fontWeight: 500, lineHeight: 1.45, margin: "0 0 18px", paddingLeft: 56, maxWidth: 880 }}>"I want healthcare talent to reach where it is needed most, across every market and without friction. When hospitals, workforce suppliers and clinicians connect on merit and value, and financing and supply follow, health systems grow stronger everywhere."</p>
+            <div className="row" style={{ gap: 12, paddingLeft: 56 }}><Avatar src={OLA2_IMG} size={42} /><div><div style={{ fontWeight: 600, fontSize: 14.5, color: "#0A1730" }}>Dr. Olamide Okulaja</div><div style={{ color: "#3B5580", fontSize: 13 }}>Co-Founder &amp; Chief Growth Officer</div><a href="https://www.linkedin.com/in/olamide-o-11233632" target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: 6, color: "#1E54E6", fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>LinkedIn profile</a></div></div>
           </div>
         </Reveal>
       </div>
 
       <div style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap" style={{ padding: "78px 24px" }}>
-          <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 44px" }}><div className="eyebrow">Voices from the field</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, marginTop: 14 }}>Clinicians we have moved</h2><p className="muted" style={{ fontSize: 17, marginTop: 12 }}>Real words from clinicians placed across NHS and private roles.</p></div></Reveal>
+          <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 44px" }}><div className="eyebrow">Voices from the field</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, marginTop: 14 }}>Clinicians we have relocated</h2><p className="muted" style={{ fontSize: 17, marginTop: 12 }}>Real words from clinicians placed across NHS and private roles.</p></div></Reveal>
           <div className="grid g3">{TESTIMONIALS.map((t, idx) => (<Reveal key={t.name} delay={idx * 90}><div className="card lift" style={{ padding: 26, height: "100%" }}><Quote size={26} color="var(--cyan)" /><p style={{ fontSize: 15, margin: "14px 0 18px", lineHeight: 1.6 }}>{t.quote}</p><div className="row" style={{ gap: 11 }}><div style={{ width: 40, height: 40, borderRadius: 999, background: "var(--cyan-soft)", color: "#06776F", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{t.name[0]}</div><div><div style={{ fontWeight: 600, fontSize: 14 }}>{t.name}</div><div className="faint" style={{ fontSize: 12.5 }}>{t.role}</div></div></div></div></Reveal>))}</div>
         </div>
       </div>
@@ -2299,7 +2336,7 @@ function Landing({ onEnter, onDemo }) {
 /* ===================== auth ===================== */
 function Login({ onNext, onHome, onSignup }) {
   const [role, setRole] = useState("operator");
-  const ROLES = [["operator", "Operator (Founders)"], ["agency", "Healthcare Agency"], ["hospital", "Hospital / Provider"], ["clinician", "Clinician"]];
+  const ROLES = [["operator", "Operator (Founders)"], ["agency", "Workforce supplier"], ["hospital", "Hospital / Provider"], ["clinician", "Clinician"]];
   return (
   <div style={{ minHeight: "100vh", position: "relative", display: "grid", placeItems: "center", padding: 24, overflow: "hidden", background: "radial-gradient(135% 120% at 0% 0%, #102A4F 0%, #0A1730 46%, #070E20 100%)" }}>
     <div className="login-orb" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
@@ -2310,11 +2347,11 @@ function Login({ onNext, onHome, onSignup }) {
         <div>
           <span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC", border: "1px solid rgba(0,194,184,.32)" }}><Sparkles size={13} /> Healthcare growth engine</span>
           <h1 className="disp" style={{ fontSize: 33, fontWeight: 700, margin: "24px 0 14px", lineHeight: 1.12 }}>Win the right work, faster.</h1>
-          <p style={{ color: "#9FB0D0", fontSize: 15, lineHeight: 1.6, maxWidth: 380 }}>One intelligent platform linking agencies, hospitals and clinicians across NHS, private and international markets.</p>
+          <p style={{ color: "#9FB0D0", fontSize: 15, lineHeight: 1.6, maxWidth: 380 }}>One intelligent platform linking workforce suppliers, hospitals and clinicians across NHS, private and international markets.</p>
         </div>
         <div>
           <div style={{ height: 1, background: "rgba(255,255,255,.1)", margin: "0 0 22px" }} />
-          <div className="row" style={{ gap: 28 }}>{[["8,500+", "LinkedIn community"], ["100K+", "Decision-makers reached"], ["50+", "Countries"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
+          <div className="row" style={{ gap: 28 }}>{[["13,000+", "LinkedIn community"], ["100K+", "Decision-makers reached"], ["50+", "Countries"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
         </div>
       </div>
       <div className="login-auth" style={{ flex: "1 1 0", background: "#fff", padding: "46px 42px", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -2427,7 +2464,7 @@ const RoleSelect = ({ onPick }) => {
 /* ===================== shell ===================== */
 const NAVS = {
   operator: [
-    { k: "command", l: "MCC", i: Activity }, { k: "ops", l: "Sign-ups & financials", i: BarChart3 }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target }, { k: "savedOpps", l: "Saved", i: Star },
+    { k: "command", l: "MCC", i: Activity }, { k: "ops", l: "Sign-ups & financials", i: BarChart3 }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Private clinics", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Enquiry inbox", i: Inbox }, { k: "opportunities", l: "Clinical Demand", i: Target }, { k: "savedOpps", l: "Saved", i: Star },
     { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "execs", l: "Executive network", i: Briefcase }, { k: "aibot", l: "AI assistant", i: Sparkles }, { k: "whyswitch", l: "Why switch", i: Award }, { k: "marketmap", l: "Market map", i: Radar }, { k: "proposals", l: "Proposals", i: FileText },
     { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "weekly", l: "Weekly report", i: FileText }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "news", l: "Industry news", i: Rss },
     { k: "analytics", l: "Analytics", i: BarChart3 }, { k: "clinicians", l: "Clinician network", i: Stethoscope },
@@ -2436,7 +2473,7 @@ const NAVS = {
     { k: "register", l: "Register a company", i: ClipboardList }, { k: "whyqura", l: "Why Qura wins", i: Trophy }, { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "staffing", l: "Site staffing", i: Building2 }, { k: "mobileunits", l: "Mobile units", i: Truck }, { k: "brand", l: "Brand channels", i: Sparkles }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
   agency: [
-    { k: "dashboard", l: "Dashboard", i: LayoutDashboard }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Suppliers", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Supplier inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target }, { k: "savedOpps", l: "Saved", i: Star },
+    { k: "dashboard", l: "Dashboard", i: LayoutDashboard }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Private clinics", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Enquiry inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target }, { k: "savedOpps", l: "Saved", i: Star },
     { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "execs", l: "Executive network", i: Briefcase }, { k: "aibot", l: "AI assistant", i: Sparkles }, { k: "whyswitch", l: "Why switch", i: Award }, { k: "marketmap", l: "Market map", i: Radar }, { k: "outreach", l: "Outreach", i: Send },
     { k: "proposals", l: "Proposals", i: FileText }, { k: "meetings", l: "Meetings", i: Calendar },
     { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "weekly", l: "Weekly report", i: FileText }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "news", l: "Industry news", i: Rss },
@@ -2448,7 +2485,7 @@ const NAVS = {
   hospital: [
     { k: "feed", l: "Post & live feed", i: Rss }, { k: "clinicians", l: "Candidate search", i: Stethoscope }, { k: "execs", l: "Executive network", i: Briefcase }, { k: "shortlists", l: "My shortlists", i: Heart },
     { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "news", l: "Industry news", i: Rss },
-    { k: "hdash", l: "Dashboard", i: LayoutDashboard }, { k: "weekly", l: "Weekly report", i: FileText }, { k: "findAgencies", l: "Find agencies", i: Briefcase }, { k: "meetings", l: "Meetings", i: Calendar },
+    { k: "hdash", l: "Dashboard", i: LayoutDashboard }, { k: "weekly", l: "Weekly report", i: FileText }, { k: "findAgencies", l: "Find workforce suppliers", i: Briefcase }, { k: "meetings", l: "Meetings", i: Calendar },
     { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "staffing", l: "Site staffing", i: Building2 }, { k: "mobileunits", l: "Mobile units", i: Truck },
     { k: "casestudies", l: "Case studies", i: Award }, { k: "events", l: "Round-tables", i: Ticket }, { k: "whyqura", l: "Why Qura wins", i: Trophy }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
@@ -2459,7 +2496,7 @@ const NAVS = {
   gp: [
     { k: "feed", l: "Post & live feed", i: Rss }, { k: "gpHub", l: "GP hub", i: Stethoscope }, { k: "clinicians", l: "Find GPs & locums", i: UserCheck }, { k: "shortlists", l: "My shortlists", i: Heart },
     { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "news", l: "Industry news", i: Rss }, { k: "meetings", l: "Meetings", i: Calendar },
-    { k: "findAgencies", l: "Find agencies", i: Briefcase }, { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "casestudies", l: "Case studies", i: Award }, { k: "pricing", l: "Pricing", i: CreditCard },
+    { k: "findAgencies", l: "Find workforce suppliers", i: Briefcase }, { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "casestudies", l: "Case studies", i: Award }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
   care: [
     { k: "feed", l: "Post & live feed", i: Rss }, { k: "careHub", l: "Care hub", i: Heart }, { k: "clinicians", l: "Find carers & nurses", i: Stethoscope }, { k: "shortlists", l: "My shortlists", i: Heart },
@@ -2469,7 +2506,7 @@ const NAVS = {
 };
 const ROLE_META = {
   operator: { label: "Co-Founder · Operator", who: "Operator", img: undefined },
-  agency: { label: "Healthcare agency", who: "Apex Growth Partners" },
+  agency: { label: "Workforce supplier", who: "Apex Growth Partners" },
   hospital: { label: "Hospital / provider", who: "King's College Hospital" },
   clinician: { label: "Clinician", who: "Dr. Sarah Ahmed" },
   gp: { label: "GP practice", who: "The Practice" },
@@ -2693,7 +2730,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
 function RoleChoiceScreen({ onPick, onHome }) {
   const roles = [
     { k: "operator", t: "Operator (Founder)", d: "Run and grow the marketplace across every market.", i: Activity, c: "#00C2B8", bg: "rgba(0,194,184,.14)" },
-    { k: "agency", t: "Healthcare Agency", d: "Win and manage placements and contracts.", i: Briefcase, c: "#2D6BFF", bg: "rgba(45,107,255,.14)" },
+    { k: "agency", t: "Workforce supplier", d: "Win and manage placements and contracts.", i: Briefcase, c: "#2D6BFF", bg: "rgba(45,107,255,.14)" },
     { k: "hospital", t: "Hospital / Provider", d: "Post vacancies and see our candidates.", i: Building2, c: "#0E8C7E", bg: "rgba(14,140,126,.14)" },
     { k: "gp", t: "GP Practice", d: "Fill sessions and find available GPs.", i: Stethoscope, c: "#0E8C7E", bg: "rgba(14,140,126,.14)" },
     { k: "care", t: "Complex Care, Care Homes & SEND", d: "Staff the care sector, compliance built in.", i: Heart, c: "#C8102E", bg: "rgba(200,16,46,.12)" },
@@ -2759,11 +2796,11 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
         <div>
           <span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC", border: "1px solid rgba(0,194,184,.32)" }}><Sparkles size={13} /> Healthcare growth engine</span>
           <h1 className="disp" style={{ fontSize: 33, fontWeight: 700, margin: "24px 0 14px", lineHeight: 1.12 }}>Win the right work, faster.</h1>
-          <p style={{ color: "#9FB0D0", fontSize: 15, lineHeight: 1.6, maxWidth: 380 }}>One intelligent platform linking agencies, hospitals and clinicians across NHS, private and international markets.</p>
+          <p style={{ color: "#9FB0D0", fontSize: 15, lineHeight: 1.6, maxWidth: 380 }}>One intelligent platform linking workforce suppliers, hospitals and clinicians across NHS, private and international markets.</p>
         </div>
         <div>
           <div style={{ height: 1, background: "rgba(255,255,255,.1)", margin: "0 0 22px" }} />
-          <div className="row" style={{ gap: 28 }}>{[["8,500+", "LinkedIn community"], ["100K+", "Decision-makers reached"], ["50+", "Countries"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
+          <div className="row" style={{ gap: 28 }}>{[["13,000+", "LinkedIn community"], ["100K+", "Decision-makers reached"], ["50+", "Countries"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
         </div>
       </div>
       <div className="login-auth" style={{ flex: "1 1 0", background: "#fff", padding: "46px 42px", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -2852,12 +2889,13 @@ export default function App() {
   const switchRole = (rk) => { setRole(rk); };
   const logout = async () => { try { if (supabase) await supabase.auth.signOut(); } catch (e) {} setStage("landing"); if (!supabaseEnabled) setRole(null); };
   const home = () => setStage("landing");
-  const roleLabelOf = (r) => ({ operator: "Operator", agency: "Healthcare Agency", hospital: "Hospital / Provider", clinician: "Clinician" }[r] || r);
+  const roleLabelOf = (r) => ({ operator: "Operator", agency: "Workforce supplier", hospital: "Hospital / Provider", clinician: "Clinician" }[r] || r);
 
   if (!ready) return <div className="cura" style={{ display: "grid", placeItems: "center", height: "100vh" }}><style>{STYLES}</style><Loader2 size={28} className="pulse" color="#2D6BFF" /></div>;
   return (
     <div className="cura">
       <style>{STYLES}</style>
+      <CookieConsent />
       {stage === "landing" && <Landing onEnter={goSignIn} onDemo={() => setStage("demo")} />}
       {stage === "demo" && <DemoBooking onHome={home} onSignIn={goSignIn} />}
       {stage === "roleChoice" && <RoleChoiceScreen onPick={pickRole} onHome={home} />}
