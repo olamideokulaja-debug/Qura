@@ -100,6 +100,30 @@ button{font-family:inherit;cursor:pointer;border:none;background:none}
 .heroh{font-size:clamp(34px,6.2vw,58px);line-height:1.06;letter-spacing:-.01em}
 .draw{stroke-dasharray:900;stroke-dashoffset:900;animation:draw 2.4s .3s ease forwards}
 @keyframes draw{to{stroke-dashoffset:0}}
+/* ---- UI upscale ---- */
+.card{position:relative;transition:box-shadow .3s cubic-bezier(.2,.7,.2,1),transform .3s cubic-bezier(.2,.7,.2,1),border-color .3s ease}
+.card:hover{transform:translateY(-2px);border-color:#DCE4F1}
+.lift:hover{transform:translateY(-4px)}
+.btn{position:relative;overflow:hidden}
+.btn::after{content:'';position:absolute;inset:0;background:linear-gradient(120deg,transparent 32%,rgba(255,255,255,.30) 50%,transparent 68%);transform:translateX(-130%);transition:transform .65s ease;pointer-events:none}
+.btn:hover::after{transform:translateX(130%)}
+.chip{transition:transform .15s ease,box-shadow .15s ease}
+.navitem{position:relative;transition:background .18s ease,color .18s ease,transform .18s ease}
+.navitem:hover{transform:translateX(2px)}
+.navitem.active{background:linear-gradient(90deg,rgba(0,194,184,.22),rgba(0,194,184,.05))}
+.in:focus,.login-field:focus-within{box-shadow:0 0 0 4px rgba(14,140,126,.15)}
+.gradient-text{background:linear-gradient(100deg,var(--teal),var(--cyan) 45%,var(--blue));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.orb-float{animation:orbf 9s ease-in-out infinite}
+@keyframes orbf{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(0,-22px) scale(1.07)}}
+.reveal{animation:rv .8s cubic-bezier(.2,.7,.2,1) both}
+.stagger>*{animation:rv .7s cubic-bezier(.2,.7,.2,1) both}
+.stagger>*:nth-child(1){animation-delay:.04s}.stagger>*:nth-child(2){animation-delay:.1s}.stagger>*:nth-child(3){animation-delay:.16s}.stagger>*:nth-child(4){animation-delay:.22s}.stagger>*:nth-child(5){animation-delay:.28s}.stagger>*:nth-child(6){animation-delay:.34s}
+a{transition:color .15s ease}
+::selection{background:rgba(0,194,184,.22)}
+.mesh{background:radial-gradient(60% 90% at 12% 8%,rgba(0,194,184,.13),transparent 60%),radial-gradient(50% 80% at 90% 10%,rgba(45,107,255,.11),transparent 60%),radial-gradient(60% 90% at 50% 100%,rgba(124,92,255,.09),transparent 60%)}
+.glow-hover{transition:box-shadow .3s ease,transform .3s ease}
+.glow-hover:hover{box-shadow:0 18px 50px rgba(14,140,126,.18);transform:translateY(-3px)}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.001s!important;transition-duration:.06s!important}}
 .navlink{color:var(--muted);font-size:14.5px;font-weight:500;text-decoration:none;transition:color .15s}
 .navlink:hover{color:var(--navy)}
 `;
@@ -2107,6 +2131,37 @@ const Reveal = ({ children, delay = 0, style }) => {
   }, []);
   return <div ref={ref} className="rv" style={{ transitionDelay: delay + "ms", ...(style || {}) }}>{children}</div>;
 };
+
+function CountUp({ v, dur = 1200 }) {
+  const ref = useRef(null);
+  const [disp, setDisp] = useState(String(v));
+  useEffect(() => {
+    const str = String(v);
+    const m = str.match(/^([^0-9]*)([0-9][0-9,\.]*)(.*)$/);
+    if (!m) { setDisp(str); return; }
+    const pre = m[1], suf = m[3];
+    const target = parseFloat(m[2].replace(/,/g, ""));
+    if (!isFinite(target)) { setDisp(str); return; }
+    let started = false;
+    const run = () => {
+      const t0 = performance.now();
+      const tick = (now) => {
+        const p = Math.min(1, (now - t0) / dur);
+        const eased = 1 - Math.pow(1 - p, 3);
+        setDisp(pre + Math.round(target * eased).toLocaleString() + suf);
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    };
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") { run(); return; }
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting && !started) { started = true; run(); io.disconnect(); } }), { threshold: 0.4 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [v]);
+  return <span ref={ref}>{disp}</span>;
+}
+
 const CONFERENCE = {
   tag: "NHS Confederation · NHS Providers · London · Feb 2026",
   title: "Care Closer to Home Conference 2026",
@@ -2208,7 +2263,7 @@ function Landing({ onEnter, onDemo }) {
       </div>
 
       <div className="wrap" style={{ padding: "48px 24px" }}>
-        <Reveal><div className="grid g4">{stats.map((s) => (<div key={s.l} style={{ textAlign: "center" }}><div className="num" style={{ fontSize: 40, fontWeight: 600, color: "var(--navy)" }}>{s.n}</div><div className="muted" style={{ fontSize: 14, marginTop: 2 }}>{s.l}</div></div>))}</div></Reveal>
+        <Reveal><div className="grid g4">{stats.map((s) => (<div key={s.l} style={{ textAlign: "center" }}><div className="num" style={{ fontSize: 40, fontWeight: 600, color: "var(--navy)" }}><CountUp v={s.n} /></div><div className="muted" style={{ fontSize: 14, marginTop: 2 }}>{s.l}</div></div>))}</div></Reveal>
       </div>
 
       <div className="wrap" style={{ padding: "8px 24px 8px" }}>
@@ -2287,7 +2342,7 @@ function Landing({ onEnter, onDemo }) {
           <div className="card" style={{ marginTop: 24, padding: "36px 40px", background: "var(--cyan-soft)", border: "none", position: "relative" }}>
             <Quote size={38} color="rgba(0,119,111,.4)" style={{ position: "absolute", top: 26, left: 30 }} />
             <p className="disp" style={{ color: "#0A3B36", fontSize: 23, fontWeight: 500, lineHeight: 1.45, margin: "0 0 18px", paddingLeft: 56, maxWidth: 880 }}>"My goal is to build the world's leading business development platform for healthcare, so every organisation can grow through better data, smarter automation and stronger commercial intelligence."</p>
-            <div className="row" style={{ gap: 12, paddingLeft: 56 }}><Avatar src={OLA_IMG} size={42} /><div><div style={{ fontWeight: 600, fontSize: 14.5, color: "#0A3B36" }}>Ola Folawiyo</div><div style={{ color: "#3A726B", fontSize: 13 }}>Founder, MD &amp; CEO</div></div></div>
+            <div className="row" style={{ gap: 12, paddingLeft: 56 }}><Avatar src={OLA_IMG} size={42} /><div><div style={{ fontWeight: 600, fontSize: 14.5, color: "#0A3B36" }}>Ola Folawiyo</div><div style={{ color: "#3A726B", fontSize: 13 }}>Founder, MD &amp; CEO</div><a href="https://www.linkedin.com/in/ola-folawiyo-922160142/" target="_blank" rel="noreferrer" style={{ display: "inline-block", marginTop: 6, color: "#1E54E6", fontSize: 12.5, fontWeight: 600, textDecoration: "none" }}>LinkedIn profile</a></div></div>
           </div>
         </Reveal>
 
@@ -2339,8 +2394,8 @@ function Login({ onNext, onHome, onSignup }) {
   const ROLES = [["operator", "Operator (Founders)"], ["agency", "Workforce supplier"], ["hospital", "Hospital / Provider"], ["clinician", "Clinician"]];
   return (
   <div style={{ minHeight: "100vh", position: "relative", display: "grid", placeItems: "center", padding: 24, overflow: "hidden", background: "radial-gradient(135% 120% at 0% 0%, #102A4F 0%, #0A1730 46%, #070E20 100%)" }}>
-    <div className="login-orb" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
-    <div className="login-orb" style={{ bottom: -150, left: -110, width: 480, height: 480, background: "radial-gradient(circle, rgba(45,107,255,.22), transparent 70%)" }} />
+    <div className="login-orb orb-float" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
+    <div className="login-orb orb-float" style={{ bottom: -150, left: -110, width: 480, height: 480, background: "radial-gradient(circle, rgba(45,107,255,.22), transparent 70%)" }} />
     <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 30, left: 34, zIndex: 4 }}><Wordmark light /></button>
     <div className="row login-card reveal" style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 940, gap: 0, borderRadius: 24, overflow: "hidden", boxShadow: "0 40px 110px rgba(0,0,0,.5)", alignItems: "stretch", border: "1px solid rgba(255,255,255,.1)" }}>
       <div className="login-brand hsm" style={{ flex: "1 1 0", padding: "46px 44px", background: "linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02))", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
@@ -2382,7 +2437,7 @@ function DemoBooking({ onHome, onSignIn }) {
   const lbl = { fontSize: 13, fontWeight: 600, display: "block", margin: "14px 0 6px" };
   return (
     <div style={{ minHeight: "100vh", position: "relative", display: "grid", placeItems: "center", padding: 24, overflow: "hidden", background: "radial-gradient(135% 120% at 0% 0%, #102A4F 0%, #0A1730 46%, #070E20 100%)" }}>
-      <div className="login-orb" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
+      <div className="login-orb orb-float" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
       <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 30, left: 34, zIndex: 4 }}><Wordmark light /></button>
       <div className="card reveal" style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 560, padding: 40 }}>
         {done ? (
@@ -2738,8 +2793,8 @@ function RoleChoiceScreen({ onPick, onHome }) {
   ];
   return (
     <div style={{ minHeight: "100vh", position: "relative", display: "grid", placeItems: "center", padding: 24, overflow: "hidden", background: "radial-gradient(135% 120% at 0% 0%, #102A4F 0%, #0A1730 46%, #070E20 100%)" }}>
-      <div className="login-orb" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
-      <div className="login-orb" style={{ bottom: -150, left: -110, width: 480, height: 480, background: "radial-gradient(circle, rgba(45,107,255,.22), transparent 70%)" }} />
+      <div className="login-orb orb-float" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
+      <div className="login-orb orb-float" style={{ bottom: -150, left: -110, width: 480, height: 480, background: "radial-gradient(circle, rgba(45,107,255,.22), transparent 70%)" }} />
       <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 30, left: 34, zIndex: 4 }}><Wordmark light /></button>
       <div className="reveal" style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 680 }}>
         <div style={{ textAlign: "center", marginBottom: 26 }}>
@@ -2788,8 +2843,8 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
   const up = mode === "up";
   return (
   <div style={{ minHeight: "100vh", position: "relative", display: "grid", placeItems: "center", padding: 24, overflow: "hidden", background: "radial-gradient(135% 120% at 0% 0%, #102A4F 0%, #0A1730 46%, #070E20 100%)" }}>
-    <div className="login-orb" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
-    <div className="login-orb" style={{ bottom: -150, left: -110, width: 480, height: 480, background: "radial-gradient(circle, rgba(45,107,255,.22), transparent 70%)" }} />
+    <div className="login-orb orb-float" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
+    <div className="login-orb orb-float" style={{ bottom: -150, left: -110, width: 480, height: 480, background: "radial-gradient(circle, rgba(45,107,255,.22), transparent 70%)" }} />
     <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 30, left: 34, zIndex: 4 }}><Wordmark light /></button>
     <div className="row login-card reveal" style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 940, gap: 0, borderRadius: 24, overflow: "hidden", boxShadow: "0 40px 110px rgba(0,0,0,.5)", alignItems: "stretch", border: "1px solid rgba(255,255,255,.1)" }}>
       <div className="login-brand hsm" style={{ flex: "1 1 0", padding: "46px 44px", background: "linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02))", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
