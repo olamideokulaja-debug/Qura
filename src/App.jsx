@@ -126,6 +126,8 @@ a{transition:color .15s ease}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.001s!important;transition-duration:.06s!important}}
 .cura p{text-align:justify;text-justify:inter-word;-webkit-hyphens:auto;hyphens:auto}
 .cura [style*="text-align: center"] p,.cura [style*="text-align:center"] p{text-align:center;-webkit-hyphens:manual;hyphens:manual}
+.lb .sec{display:none!important}
+.lb[data-view="home"] .sec.home,.lb[data-view="market"] .sec.market,.lb[data-view="fragile"] .sec.fragile,.lb[data-view="solutions"] .sec.solutions,.lb[data-view="founders"] .sec.founders,.lb[data-view="pricing"] .sec.pricing{display:block!important}
 .navlink{color:var(--muted);font-size:14.5px;font-weight:500;text-decoration:none;transition:color .15s}
 .navlink:hover{color:var(--navy)}
 `;
@@ -2387,13 +2389,13 @@ function Landing({ onEnter, onDemo }) {
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(255,255,255,.82)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap row" style={{ justifyContent: "space-between", height: 72 }}>
           <span onClick={() => setView("home")} style={{ cursor: "pointer" }}><Wordmark /></span>
-          <div className="row hsm" style={{ gap: 24 }}>{view !== "home" ? <button onClick={() => setView("home")} className="navlink" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15, fontWeight: 600, color: "var(--blue)" }}>Home</button> : null}{["Platform", "Founders", "Pricing"].map((x) => (<button key={x} onClick={() => setView(x.toLowerCase())} className="navlink" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15, fontWeight: 500, color: view === x.toLowerCase() ? "var(--blue)" : "var(--text)" }}>{x}</button>))}</div>
+          <div className="row hsm" style={{ gap: 20 }}>{[["Home", "home"], ["Marketplace", "market"], ["Fragile professions", "fragile"], ["Solutions", "solutions"], ["Founders", "founders"], ["Pricing", "pricing"]].map(([l, k]) => (<button key={k} onClick={() => { setView(k); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} className="navlink" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: view === k ? 700 : 500, color: view === k ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{l}</button>))}</div>
           <div className="row" style={{ gap: 12 }}><button className="btn btn-light hsm" style={{ background: "var(--bg)" }} onClick={onDemo}>Book a demo</button><button className="btn btn-primary" onClick={onEnter}>Get started / Sign in</button></div>
         </div>
       </div>
 
-      {view === "home" ? <>
-      <div style={{ background: "radial-gradient(115% 85% at 50% -8%, #E6F4F2 0%, #F3F9FD 44%, #fff 100%)", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
+      <div className="lb" data-view={view}>
+      <div className="sec home" style={{ background: "radial-gradient(115% 85% at 50% -8%, #E6F4F2 0%, #F3F9FD 44%, #fff 100%)", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
         <div className="wrap" style={{ padding: "92px 24px 70px", textAlign: "center" }}>
           <div className="reveal"><span className="chip chip-cyan" style={{ padding: "7px 15px" }}><Sparkles size={14} /> Healthcare Growth CRM · 24/7 live, every market worldwide</span></div>
           <h1 className="disp heroh reveal" style={{ fontWeight: 700, margin: "26px auto 0", maxWidth: 880 }}>Stop rushing to the cheapest bidder. <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Start choosing the best.</span></h1>
@@ -2404,7 +2406,7 @@ function Landing({ onEnter, onDemo }) {
         </div>
       </div>
 
-      <div style={{ background: "var(--navy)", borderBottom: "1px solid var(--line)" }}>
+      <div className="sec market" style={{ background: "var(--navy)", borderBottom: "1px solid var(--line)" }}>
         <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}`}</style>
         <div className="wrap" style={{ padding: "44px 24px 48px" }}>
           <div className="grid g2" style={{ gap: 30, alignItems: "center" }}>
@@ -2435,11 +2437,11 @@ function Landing({ onEnter, onDemo }) {
         </div>
       </div>
 
-      <div className="wrap" style={{ padding: "48px 24px" }}>
+      <div className="wrap sec home" style={{ padding: "48px 24px" }}>
         <Reveal><div className="grid g4">{stats.map((s) => (<div key={s.l} style={{ textAlign: "center" }}><div className="num" style={{ fontSize: 40, fontWeight: 600, color: "var(--navy)" }}><CountUp v={s.n} /></div><div className="muted" style={{ fontSize: 14, marginTop: 2 }}>{s.l}</div></div>))}</div></Reveal>
       </div>
 
-      <div className="wrap" style={{ padding: "8px 24px 8px" }}>
+      <div className="wrap sec fragile" style={{ padding: "8px 24px 8px" }}>
         <Reveal>
           <div className="card" style={{ padding: "40px 40px", background: "linear-gradient(160deg, var(--cyan-soft), #fff 75%)", border: "1px solid var(--line)" }}>
             <div className="grid g2" style={{ gap: 30, alignItems: "center" }}>
@@ -2459,7 +2461,7 @@ function Landing({ onEnter, onDemo }) {
         </Reveal>
       </div>
 
-      <div style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
+      <div className="sec solutions" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap" style={{ padding: "72px 24px" }}>
           <Reveal><div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 38px" }}><div className="eyebrow">Specialist new business, every solution</div><h2 className="disp" style={{ fontSize: 34, fontWeight: 700, marginTop: 12 }}>Five ways to win work, <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>perm first</span></h2><p className="muted" style={{ fontSize: 16.5, marginTop: 10, lineHeight: 1.6 }}>Live opportunities across permanent, insourcing, contract and international placements, with locum cover when it is genuinely needed.</p></div></Reveal>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14 }}>{SOLUTIONS.map((s, i) => (<Reveal key={s.l} delay={i * 55}><div className="card lift" style={{ padding: 20, height: "100%", opacity: s.subtle ? 0.7 : 1, borderColor: s.lead ? "var(--cyan)" : "var(--line)" }}><div style={{ width: 44, height: 44, borderRadius: 12, background: s.lead ? "var(--cyan-soft)" : "#EEF3FF", display: "grid", placeItems: "center" }}><s.i size={20} color={s.lead ? "#06776F" : "#1E54E6"} /></div><div className="row" style={{ gap: 7, marginTop: 12, flexWrap: "wrap" }}><span style={{ fontWeight: 600, fontSize: 16 }}>{s.l}</span>{s.lead && <span className="chip chip-cyan" style={{ fontSize: 10 }}>Perm-first</span>}{s.subtle && <span className="chip chip-grey" style={{ fontSize: 10 }}>on demand</span>}</div><div className="muted" style={{ fontSize: 13, marginTop: 5 }}>{s.d}</div></div></Reveal>))}</div>
@@ -2468,14 +2470,14 @@ function Landing({ onEnter, onDemo }) {
         </div>
       </div>
 
-      <div id="platform" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
+      <div id="platform" className="sec solutions" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap" style={{ padding: "78px 24px" }}>
           <Reveal><div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 48px" }}><div className="eyebrow">The personal touch behind the intelligence</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, marginTop: 14 }}>Analytics with <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>experts</span> behind them</h2><p className="muted" style={{ fontSize: 17, marginTop: 12, lineHeight: 1.6 }}>Most platforms hand you a dashboard and wish you luck. {APP_NAME} hands you the judgment of experts who have spent over a decade winning healthcare contracts.</p></div></Reveal>
           <div className="grid g3">{edge.map((e, idx) => (<Reveal key={e.t} delay={idx * 90}><div className="card lift" style={{ padding: 28, height: "100%" }}><div style={{ width: 54, height: 54, borderRadius: 15, background: e.bg, display: "grid", placeItems: "center" }}><e.i size={24} color={e.c} /></div><h3 style={{ fontSize: 19, fontWeight: 600, margin: "18px 0 8px" }}>{e.t}</h3><p className="muted" style={{ fontSize: 15, margin: 0, lineHeight: 1.6 }}>{e.b}</p></div></Reveal>))}</div>
         </div>
       </div>
 
-      <div id="founders" className="wrap" style={{ padding: "84px 24px" }}>
+      <div id="founders" className="wrap sec founders" style={{ padding: "84px 24px" }}>
         <Reveal><div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 46px" }}><div className="eyebrow">Meet the founders</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, marginTop: 12 }}>Built by people who have <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>won the work</span></h2><p className="muted" style={{ fontSize: 16.5, marginTop: 10 }}>Two founders, one mission: put a decade of healthcare deal-making into every team's hands.</p></div></Reveal>
         <div className="grid g2" style={{ gap: 28, alignItems: "stretch" }}>
           {FOUNDERS.map((f, i) => (
@@ -2528,24 +2530,24 @@ function Landing({ onEnter, onDemo }) {
         </Reveal>
       </div>
 
-      <div style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
+      <div className="sec founders" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap" style={{ padding: "78px 24px" }}>
           <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 44px" }}><div className="eyebrow">Voices from the field</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, marginTop: 14 }}>Clinicians we have relocated</h2><p className="muted" style={{ fontSize: 17, marginTop: 12 }}>Real words from clinicians placed across NHS and private roles.</p></div></Reveal>
           <div className="grid g3">{TESTIMONIALS.map((t, idx) => (<Reveal key={t.name} delay={idx * 90}><div className="card lift" style={{ padding: 26, height: "100%" }}><Quote size={26} color="var(--cyan)" /><p style={{ fontSize: 15, margin: "14px 0 18px", lineHeight: 1.6 }}>{t.quote}</p><div className="row" style={{ gap: 11 }}><div style={{ width: 40, height: 40, borderRadius: 999, background: "var(--cyan-soft)", color: "#06776F", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{t.name[0]}</div><div><div style={{ fontWeight: 600, fontSize: 14 }}>{t.name}</div><div className="faint" style={{ fontSize: 12.5 }}>{t.role}</div></div></div></div></Reveal>))}</div>
         </div>
       </div>
 
-      <div className="wrap" style={{ padding: "78px 24px" }}>
+      <div className="wrap sec solutions" style={{ padding: "78px 24px" }}>
         <Reveal><div style={{ textAlign: "center", maxWidth: 600, margin: "0 auto 44px" }}><h2 className="disp" style={{ fontSize: 36, fontWeight: 700 }}>Why teams choose {APP_NAME}</h2><p className="muted" style={{ fontSize: 17, marginTop: 12 }}>The reach of seasoned experts and the speed of modern AI, on one platform.</p></div></Reveal>
         <div className="grid g2">{why.map((w, idx) => (<Reveal key={w.t} delay={idx * 70}><div className="card lift row" style={{ padding: 24, gap: 18, alignItems: "flex-start", height: "100%" }}><div style={{ width: 48, height: 48, borderRadius: 13, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><w.i size={22} color="#1E54E6" /></div><div><h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>{w.t}</h3><p className="muted" style={{ fontSize: 15, margin: 0, lineHeight: 1.6 }}>{w.b}</p></div></div></Reveal>))}</div>
       </div>
 
-      <div className="wrap" style={{ padding: "20px 24px 60px", textAlign: "center" }}>
+      <div className="wrap sec home" style={{ padding: "20px 24px 60px", textAlign: "center" }}>
         <div className="faint" style={{ fontSize: 13, fontWeight: 600, letterSpacing: ".08em", marginBottom: 22 }}>TRUSTED BY LEADING HEALTHCARE ORGANISATIONS</div>
         <div className="row" style={{ gap: 14, justifyContent: "center", flexWrap: "wrap" }}>{trusted.map((t) => (<span key={t} className="disp" style={{ fontWeight: 600, fontSize: 16, color: "#8A97AE", padding: "8px 16px", border: "1px solid var(--line)", borderRadius: 10 }}>{t}</span>))}</div>
       </div>
 
-      <div id="pricing" style={{ background: "var(--navy)" }}>
+      <div id="pricing" className="sec pricing" style={{ background: "var(--navy)" }}>
         <div className="wrap" style={{ padding: "80px 24px", textAlign: "center" }}>
           <Reveal>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}><PulseLine w={260} color="#5FE6DC" /></div>
@@ -2556,7 +2558,7 @@ function Landing({ onEnter, onDemo }) {
         </div>
       </div>
 
-      </> : <LandingSubPage view={view} go={setView} onEnter={onEnter} onDemo={onDemo} />}
+      </div>
       <div className="wrap row" style={{ padding: "32px 24px", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}><Wordmark /><div className="faint" style={{ fontSize: 13.5 }}>One platform. Every market. Limitless growth.</div><div className="faint" style={{ fontSize: 13 }}>© {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM</div></div>
     </div>
   );
