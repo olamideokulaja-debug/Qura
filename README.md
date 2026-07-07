@@ -181,3 +181,9 @@ verified qura.health domain. The screens, Qura Credits (5 messages/day on standa
 premium; 10 follow-invites/day) and limits all work now; only the outbound email delivery
 waits on that provider. Once added, wire an `api/send-mail.js` and set the provider API key
 as a Vercel env var.
+
+## Email sending (Resend)
+
+- Function: `api/send-mail.js`. The Weekly report "Email me" button now sends the report to the signed-in user's email.
+- To switch it on: create an account at resend.com, verify your sending domain (e.g. qura.health), create an API key, then in Vercel set env vars `RESEND_API_KEY` (your key) and optionally `MAIL_FROM` (e.g. `Qura <noreply@qura.health>`). Redeploy.
+- Until the key is set, the button reports "Email is not configured yet". The same function can later power mailshots, introductions and interest notifications once real recipient data and consent are in place.
