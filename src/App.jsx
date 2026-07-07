@@ -2387,9 +2387,9 @@ function Landing({ onEnter, onDemo }) {
   return (
     <div style={{ background: "#fff" }}>
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(255,255,255,.82)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--line)" }}>
-        <div className="wrap row" style={{ justifyContent: "space-between", height: 72 }}>
+        <div className="row" style={{ justifyContent: "space-between", height: 72, padding: "0 20px" }}>
           <span onClick={() => setView("home")} style={{ cursor: "pointer" }}><Wordmark /></span>
-          <div className="row hsm" style={{ gap: 20 }}>{[["Home", "home"], ["Marketplace", "market"], ["Fragile professions", "fragile"], ["Solutions", "solutions"], ["Founders", "founders"], ["Pricing", "pricing"]].map(([l, k]) => (<button key={k} onClick={() => { setView(k); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} className="navlink" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: view === k ? 700 : 500, color: view === k ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{l}</button>))}</div>
+          <div className="row hsm" style={{ gap: 18 }}>{[["Home", "home"], ["Marketplace", "market"], ["Fragile professions", "fragile"], ["Solutions", "solutions"], ["Founders", "founders"], ["Pricing", "pricing"]].map(([l, k]) => (<button key={k} onClick={() => { setView(k); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} className="navlink" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: view === k ? 700 : 500, color: view === k ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{l}</button>))}</div>
           <div className="row" style={{ gap: 12 }}><button className="btn btn-light hsm" style={{ background: "var(--bg)" }} onClick={onDemo}>Book a demo</button><button className="btn btn-primary" onClick={onEnter}>Get started / Sign in</button></div>
         </div>
       </div>
@@ -2612,6 +2612,7 @@ function Login({ onNext, onHome, onSignup }) {
     <div className="login-orb orb-float" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
     <div className="login-orb orb-float" style={{ bottom: -150, left: -110, width: 480, height: 480, background: "radial-gradient(circle, rgba(45,107,255,.22), transparent 70%)" }} />
     <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 30, left: 34, zIndex: 4 }}><Wordmark light /></button>
+      <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 32, right: 34, zIndex: 4, padding: "8px 14px", borderRadius: 999, background: "rgba(255,255,255,.12)", color: "#fff", border: "1px solid rgba(255,255,255,.28)", cursor: "pointer", fontSize: 13.5, fontWeight: 600 }}>{"←"} Back to home</button>
     <div className="row login-card reveal" style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 940, gap: 0, borderRadius: 24, overflow: "hidden", boxShadow: "0 40px 110px rgba(0,0,0,.5)", alignItems: "stretch", border: "1px solid rgba(255,255,255,.1)" }}>
       <div className="login-brand hsm" style={{ flex: "1 1 0", padding: "46px 44px", background: "linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02))", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
         <div>
@@ -2654,6 +2655,7 @@ function DemoBooking({ onHome, onSignIn }) {
     <div style={{ minHeight: "100vh", position: "relative", display: "grid", placeItems: "center", padding: 24, overflow: "hidden", background: "radial-gradient(135% 120% at 0% 0%, #102A4F 0%, #0A1730 46%, #070E20 100%)" }}>
       <div className="login-orb orb-float" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
       <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 30, left: 34, zIndex: 4 }}><Wordmark light /></button>
+      <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 32, right: 34, zIndex: 4, padding: "8px 14px", borderRadius: 999, background: "rgba(255,255,255,.12)", color: "#fff", border: "1px solid rgba(255,255,255,.28)", cursor: "pointer", fontSize: 13.5, fontWeight: 600 }}>{"←"} Back to home</button>
       <div className="card reveal" style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 560, padding: 40 }}>
         {done ? (
           <div style={{ textAlign: "center", padding: "20px 0" }}><div style={{ width: 60, height: 60, borderRadius: 999, background: "var(--ok-bg)", display: "grid", placeItems: "center", margin: "0 auto 18px" }}><Check size={30} color="#0C7A47" /></div><h2 className="disp" style={{ fontSize: 24, fontWeight: 700 }}>Demo requested</h2><p className="muted" style={{ fontSize: 14.5, marginTop: 8 }}>Thank you {f.name || "there"}. Our team will reach out to {f.email || "you"} to confirm a time. We look forward to showing you {APP_NAME}.</p><div className="row" style={{ gap: 10, justifyContent: "center", marginTop: 22 }}><button className="btn btn-light" onClick={onHome}>Back to home</button><button className="btn btn-primary" onClick={onSignIn}>Sign in</button></div></div>
@@ -3014,6 +3016,7 @@ function RoleChoiceScreen({ onPick, onHome }) {
       <div className="login-orb orb-float" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
       <div className="login-orb orb-float" style={{ bottom: -150, left: -110, width: 480, height: 480, background: "radial-gradient(circle, rgba(45,107,255,.22), transparent 70%)" }} />
       <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 30, left: 34, zIndex: 4 }}><Wordmark light /></button>
+      <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 32, right: 34, zIndex: 4, padding: "8px 14px", borderRadius: 999, background: "rgba(255,255,255,.12)", color: "#fff", border: "1px solid rgba(255,255,255,.28)", cursor: "pointer", fontSize: 13.5, fontWeight: 600 }}>{"←"} Back to home</button>
       <div className="reveal" style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 680 }}>
         <div style={{ textAlign: "center", marginBottom: 26 }}>
           <span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC", border: "1px solid rgba(0,194,184,.32)" }}><Sparkles size={13} /> Set up your account</span>
@@ -3064,6 +3067,7 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
     <div className="login-orb orb-float" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
     <div className="login-orb orb-float" style={{ bottom: -150, left: -110, width: 480, height: 480, background: "radial-gradient(circle, rgba(45,107,255,.22), transparent 70%)" }} />
     <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 30, left: 34, zIndex: 4 }}><Wordmark light /></button>
+      <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 32, right: 34, zIndex: 4, padding: "8px 14px", borderRadius: 999, background: "rgba(255,255,255,.12)", color: "#fff", border: "1px solid rgba(255,255,255,.28)", cursor: "pointer", fontSize: 13.5, fontWeight: 600 }}>{"←"} Back to home</button>
     <div className="row login-card reveal" style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 940, gap: 0, borderRadius: 24, overflow: "hidden", boxShadow: "0 40px 110px rgba(0,0,0,.5)", alignItems: "stretch", border: "1px solid rgba(255,255,255,.1)" }}>
       <div className="login-brand hsm" style={{ flex: "1 1 0", padding: "46px 44px", background: "linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02))", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
         <div>
