@@ -187,3 +187,20 @@ as a Vercel env var.
 - Function: `api/send-mail.js`. The Weekly report "Email me" button now sends the report to the signed-in user's email.
 - To switch it on: create an account at resend.com, verify your sending domain (e.g. qura.health), create an API key, then in Vercel set env vars `RESEND_API_KEY` (your key) and optionally `MAIL_FROM` (e.g. `Qura <noreply@qura.health>`). Redeploy.
 - Until the key is set, the button reports "Email is not configured yet". The same function can later power mailshots, introductions and interest notifications once real recipient data and consent are in place.
+
+## Payments (Stripe) — going live
+
+The Pricing page now launches real Stripe Checkout for paid plans when `VITE_BILLING_ENABLED=true`. Free/trial and Enterprise (contact sales) plans do not charge.
+
+**Env vars (Vercel):**
+- `STRIPE_SECRET_KEY` — your live secret key.
+- `STRIPE_WEBHOOK_SECRET` — from the webhook you create (below).
+- `VITE_BILLING_ENABLED=true`.
+- Price IDs. Generic (apply to every persona): `STRIPE_PRICE_STARTER_MONTHLY`, `STRIPE_PRICE_STARTER_ANNUAL`, `STRIPE_PRICE_GROWTH_MONTHLY`, `STRIPE_PRICE_GROWTH_ANNUAL`.
+- Optional per-persona overrides (only if you want different prices per audience): `STRIPE_PRICE_AGENCY_GROWTH_ANNUAL`, `STRIPE_PRICE_BUYER_GROWTH_ANNUAL`, `STRIPE_PRICE_CLINICIAN_GROWTH_ANNUAL`, and the same pattern for STARTER / MONTHLY. The app first looks for the persona-specific price, then falls back to the generic one.
+
+**Steps:**
+1. In Stripe (live mode), create a Product per plan (e.g. Starter, Growth) with a monthly and an annual recurring Price. Copy each Price ID (starts with `price_`).
+2. In Vercel, add the env vars above with those Price IDs. Set `VITE_BILLING_ENABLED=true`.
+3. In Stripe, add a webhook endpoint pointing to `https://your-domain/api/stripe-webhook`, subscribe to checkout and subscription events, and copy its signing secret into `STRIPE_WEBHOOK_SECRET`.
+4. Redeploy. Test one real subscription end to end before announcing.

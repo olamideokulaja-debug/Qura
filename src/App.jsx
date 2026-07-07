@@ -1154,7 +1154,7 @@ const Pricing = ({ plan, onChoose, highlight, role = "agency", market = "all", i
           <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>{t.feats.map((f, j) => (<div key={j} className="row" style={{ gap: 9, fontSize: 13.5, alignItems: "flex-start" }}><Check size={15} color={t.tag ? "var(--blue)" : "var(--cyan)"} style={{ flexShrink: 0, marginTop: 2 }} />{f}</div>))}
             {!t.addon && <div style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 12 }}><div className="faint" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 8 }}>Premium features</div>{PREMIUM_FEATURES.map(([pk, pl]) => { const on = acc.includes(pk); return (<div key={pk} className="row" style={{ gap: 9, fontSize: 13, marginBottom: 6, color: on ? "var(--text)" : "var(--muted)" }}>{on ? <Check size={15} color="#0E8C7E" style={{ flexShrink: 0 }} /> : <span style={{ width: 15, height: 15, borderRadius: 999, border: "1.5px solid var(--line)", flexShrink: 0 }} />}{pl}</div>); })}</div>}
           </div>
-          <button className={"btn " + (isCur ? "btn-light" : t.addon ? "btn-light" : t.free ? "btn-primary" : t.tag ? "btn-blue" : t.dark ? "btn-dark" : "btn-light")} style={{ justifyContent: "center", marginTop: 20 }} disabled={isCur || t.addon} onClick={() => { if (!isCur && t.key && onChoose) onChoose(t.key, annual); }}>{isCur ? "Current plan" : t.cta}</button>
+          <button className={"btn " + (isCur ? "btn-light" : t.addon ? "btn-light" : t.free ? "btn-primary" : t.tag ? "btn-blue" : t.dark ? "btn-dark" : "btn-light")} style={{ justifyContent: "center", marginTop: 20 }} disabled={isCur || t.addon} onClick={() => { if (isCur || !t.key) return; const paid = !t.free && !t.custom && !t.addon; if (paid && billingEnabled) { startCheckout(group + ":" + t.key, annual); } else if (onChoose) { onChoose(t.key, annual); } }}>{isCur ? "Current plan" : t.cta}</button>
         </div>
       ); })}</div>
       <div className="muted" style={{ fontSize: 12.5, marginTop: 16, lineHeight: 1.5 }}>Prices shown in {cur.code} and exclude VAT. The free option needs no card. Annual plans are billed up front and save roughly two months versus paying monthly. Relocation services are charged as pay-as-you-go add-ons.</div>
@@ -1866,7 +1866,22 @@ const RESIDENCE_LIST = ["United Kingdom", "Ireland", "Australia", "New Zealand",
 function ClinicianRegistration({ onToast }) {
   const [f, setF] = useState({ cat: "", prof: "", regNo: "", country: "", years: "", sector: "", cv: "", declare: false });
   const [done, setDone] = useState(false);
+  const [cvBusy, setCvBusy] = useState(false);
   const upd = (k, v) => setF((s) => ({ ...s, [k]: v }));
+  const onCv = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    upd("cv", file.name);
+    if (supabase && supabase.storage) {
+      setCvBusy(true);
+      try {
+        const path = "uploads/" + Date.now() + "_" + file.name.replace(/[^A-Za-z0-9._-]/g, "_");
+        const { error } = await supabase.storage.from("cvs").upload(path, file, { upsert: false });
+        if (!error) setF((st) => ({ ...st, cvPath: path }));
+      } catch (err) {}
+      setCvBusy(false);
+    }
+  };
   const profs = f.cat === "Nurse / Midwife" ? NURSE_TYPES : f.cat === "Allied Health Professional" ? AHP_TYPES : f.cat === "Doctor" ? DOCTOR_SPECIALTIES : [];
   const body = REG_BODY[f.cat] || "professional";
   const isUK = f.country === "United Kingdom";
@@ -1925,8 +1940,8 @@ function ClinicianRegistration({ onToast }) {
           <div style={{ height: 1, background: "var(--line)", margin: "22px 0" }} />
           <SectionHead title="3. Proof of experience" />
           <label style={lab}>Upload your CV (PDF or Word)</label>
-          <label className="btn btn-light" style={{ cursor: "pointer", justifyContent: "center", width: "100%" }}><FileText size={15} /> {f.cv ? "Replace CV" : "Choose file"}<input type="file" accept=".pdf,.doc,.docx" onChange={(e) => upd("cv", (e.target.files && e.target.files[0] && e.target.files[0].name) || "")} style={{ display: "none" }} /></label>
-          {f.cv ? <div className="row" style={{ gap: 8, marginTop: 8, fontSize: 13 }}><Check size={15} color="#0E8C7E" /> {f.cv}</div> : null}
+          <label className="btn btn-light" style={{ cursor: "pointer", justifyContent: "center", width: "100%" }}><FileText size={15} /> {cvBusy ? "Uploading..." : (f.cv ? "Replace CV" : "Choose file")}<input type="file" accept=".pdf,.doc,.docx" onChange={onCv} style={{ display: "none" }} /></label>
+          {f.cv ? <div className="row" style={{ gap: 8, marginTop: 8, fontSize: 13 }}><Check size={15} color="#0E8C7E" /> {f.cv}{f.cvPath ? <span className="faint" style={{ fontSize: 11.5 }}>(stored securely)</span> : null}</div> : null}
           <label className="row" style={{ gap: 9, fontSize: 13, cursor: "pointer", marginTop: 18, alignItems: "flex-start", lineHeight: 1.45 }}><input type="checkbox" checked={f.declare} onChange={(e) => upd("declare", e.target.checked)} style={{ marginTop: 2 }} /> I confirm the information provided is accurate, my registration is current, and I consent to Qura holding this data in line with the privacy notice.</label>
         </div>
         <div className="card" style={{ padding: 22, position: "sticky", top: 16 }}>
@@ -1985,6 +2000,17 @@ function LiveProjects({ onToast }) {
         </div>
       ); })}</div>
       <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>Expressing interest notifies the workforce supplier or hospital directly, so strong candidates engage the moment a matching project goes live.</div>
+    </div>
+  );
+}
+
+function CookieContent() {
+  return (
+    <div style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--text)" }}>
+      <p style={{ marginTop: 0 }}>Qura uses essential cookies and browser storage to run the service, for example keeping you signed in and remembering your consent choice. With your consent, we may use a little analytics to improve the product.</p>
+      <p><b>Your choice.</b> On your first visit you can choose Accept all or Essential only. You can change this at any time by clearing your browser storage or contacting privacy@qura.health.</p>
+      <p><b>Third parties.</b> Payment (Stripe) and hosting (Vercel) may set cookies when their features are used, under their own notices.</p>
+      <p className="faint" style={{ fontSize: 12 }}>The full cookie policy is available on request at privacy@qura.health.</p>
     </div>
   );
 }
@@ -2354,6 +2380,7 @@ const PulseLine = ({ w = 320, color = "var(--cyan)" }) => (
 
 function Landing({ onEnter, onDemo }) {
   const [view, setView] = useState("home");
+  const [policy, setPolicy] = useState(null);
   const [lens, setLens] = useState("global");
   const [tick, setTick] = useState(0);
   useEffect(() => { const id = setInterval(() => setTick((t) => t + 1), 2600); return () => clearInterval(id); }, []);
@@ -2579,7 +2606,8 @@ function Landing({ onEnter, onDemo }) {
       </div>
 
       </div>
-      <div className="wrap row" style={{ padding: "32px 24px", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}><Wordmark /><div className="faint" style={{ fontSize: 13.5 }}>One platform. Every market. Limitless growth.</div><div className="faint" style={{ fontSize: 13 }}>© {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM</div></div>
+      <div className="wrap row" style={{ padding: "32px 24px", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}><Wordmark /><div className="row" style={{ gap: 18, flexWrap: "wrap", alignItems: "center" }}><button onClick={() => setPolicy("privacy")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Privacy</button><button onClick={() => setPolicy("cookies")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Cookies</button><span className="faint" style={{ fontSize: 13 }}>© {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM</span></div></div>
+      {policy ? <div onClick={() => setPolicy(null)} style={{ position: "fixed", inset: 0, background: "rgba(6,14,30,.55)", zIndex: 95, display: "grid", placeItems: "center", padding: 20 }}><div onClick={(e) => e.stopPropagation()} className="card" style={{ maxWidth: 620, width: "100%", padding: 28, maxHeight: "84vh", overflowY: "auto" }}><div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}><h3 className="disp" style={{ fontSize: 21, fontWeight: 700, margin: 0 }}>{policy === "privacy" ? "Privacy & data protection" : "Cookie notice"}</h3><button className="btn btn-light" style={{ padding: "6px 10px" }} onClick={() => setPolicy(null)}>Close</button></div>{policy === "privacy" ? <PrivacyContent /> : <CookieContent />}</div></div> : null}
     </div>
   );
 }

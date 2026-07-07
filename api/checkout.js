@@ -1,9 +1,14 @@
 import Stripe from "stripe";
 
-const priceFor = (plan, annual) => ({
-  starter: annual ? process.env.STRIPE_PRICE_STARTER_ANNUAL : process.env.STRIPE_PRICE_STARTER_MONTHLY,
-  growth: annual ? process.env.STRIPE_PRICE_GROWTH_ANNUAL : process.env.STRIPE_PRICE_GROWTH_MONTHLY,
-}[plan]);
+const priceFor = (plan, annual) => {
+  const period = annual ? "ANNUAL" : "MONTHLY";
+  const parts = String(plan || "").split(":");
+  const group = parts.length > 1 ? parts[0].toUpperCase() : "";
+  const key = (parts.length > 1 ? parts[1] : parts[0]).toUpperCase();
+  const specific = group ? process.env["STRIPE_PRICE_" + group + "_" + key + "_" + period] : null;
+  const generic = process.env["STRIPE_PRICE_" + key + "_" + period];
+  return specific || generic || null;
+};
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
