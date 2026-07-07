@@ -2396,13 +2396,13 @@ function Landing({ onEnter, onDemo }) {
 
       <div className="lb" data-view={view}>
       <div className="sec home" style={{ background: "radial-gradient(115% 85% at 50% -8%, #E6F4F2 0%, #F3F9FD 44%, #fff 100%)", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
-        <div className="wrap" style={{ padding: "92px 24px 70px", textAlign: "center" }}>
+        <div className="wrap" style={{ padding: "56px 24px 36px", textAlign: "center" }}>
           <div className="reveal"><span className="chip chip-cyan" style={{ padding: "7px 15px" }}><Sparkles size={14} /> Healthcare Growth CRM · 24/7 live, every market worldwide</span></div>
           <h1 className="disp heroh reveal" style={{ fontWeight: 700, margin: "26px auto 0", maxWidth: 880 }}>Stop rushing to the cheapest bidder. <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Start choosing the best.</span></h1>
           <div className="reveal" style={{ display: "flex", justifyContent: "center", margin: "14px 0 4px" }}><PulseLine /></div>
-          <p className="muted reveal" style={{ fontSize: 19, maxWidth: 680, margin: "14px auto 0", lineHeight: 1.6 }}>{APP_NAME} is the 24/7 live healthcare marketplace and growth CRM, working across the NHS, private hospitals and clinics, GP practices, complex care, care homes, SEND and international markets, from London to Sydney to Doha. Private providers can sign up in minutes, with no procurement sign-off, while every buyer sees live, specialist intelligence so the right partner is chosen on merit, not against a deadline. Qura specialises in fragile professions, the scarce clinical roles the NHS most struggles to fill, and maps the market for you in real time, so agencies stop mapping regions by hand for hours.</p>
-          <div className="row reveal" style={{ gap: 14, justifyContent: "center", marginTop: 34, flexWrap: "wrap" }}><button className="btn lift" style={{ padding: "15px 28px", fontSize: 16, background: "var(--blue)", color: "#fff", boxShadow: "0 6px 18px rgba(45,107,255,.32)" }} onClick={onEnter}>Get started / Sign in <ArrowRight size={18} /></button><button onClick={() => setView("founders")} className="btn btn-dark lift" style={{ padding: "15px 28px", fontSize: 16 }}>Meet the founders</button></div>
-          <div className="row faint reveal" style={{ gap: 8, justifyContent: "center", marginTop: 28, fontSize: 13.5 }}><ShieldCheck size={15} /> For private clinics, GP practices, complex care, care homes, SEND, NHS trusts, agencies and international health systems, framework or not, CQC or not</div>
+          <p className="muted reveal" style={{ fontSize: 19, maxWidth: 620, margin: "14px auto 0", lineHeight: 1.6 }}>{APP_NAME} is the 24/7 live healthcare marketplace and growth CRM across the NHS, private and international markets. It specialises in fragile professions and maps the market for you in real time.</p>
+          
+          <div className="row faint reveal" style={{ gap: 8, justifyContent: "center", marginTop: 18, fontSize: 13.5 }}><ShieldCheck size={15} /> For private clinics, GP practices, care providers, NHS trusts, workforce suppliers and international health systems</div>
         </div>
       </div>
 
@@ -2437,7 +2437,7 @@ function Landing({ onEnter, onDemo }) {
         </div>
       </div>
 
-      <div className="wrap sec home" style={{ padding: "48px 24px" }}>
+      <div className="wrap sec home" style={{ padding: "22px 24px" }}>
         <Reveal><div className="grid g4">{stats.map((s) => (<div key={s.l} style={{ textAlign: "center" }}><div className="num" style={{ fontSize: 40, fontWeight: 600, color: "var(--navy)" }}><CountUp v={s.n} /></div><div className="muted" style={{ fontSize: 14, marginTop: 2 }}>{s.l}</div></div>))}</div></Reveal>
       </div>
 
@@ -2542,8 +2542,8 @@ function Landing({ onEnter, onDemo }) {
         <div className="grid g2">{why.map((w, idx) => (<Reveal key={w.t} delay={idx * 70}><div className="card lift row" style={{ padding: 24, gap: 18, alignItems: "flex-start", height: "100%" }}><div style={{ width: 48, height: 48, borderRadius: 13, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><w.i size={22} color="#1E54E6" /></div><div><h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>{w.t}</h3><p className="muted" style={{ fontSize: 15, margin: 0, lineHeight: 1.6 }}>{w.b}</p></div></div></Reveal>))}</div>
       </div>
 
-      <div className="wrap sec home" style={{ padding: "20px 24px 60px", textAlign: "center" }}>
-        <div className="faint" style={{ fontSize: 13, fontWeight: 600, letterSpacing: ".08em", marginBottom: 22 }}>TRUSTED BY LEADING HEALTHCARE ORGANISATIONS</div>
+      <div className="wrap sec home" style={{ padding: "4px 24px 34px", textAlign: "center" }}>
+        <div className="faint" style={{ fontSize: 13, fontWeight: 600, letterSpacing: ".08em", marginBottom: 12 }}>TRUSTED BY LEADING HEALTHCARE ORGANISATIONS</div>
         <div className="row" style={{ gap: 14, justifyContent: "center", flexWrap: "wrap" }}>{trusted.map((t) => (<span key={t} className="disp" style={{ fontWeight: 600, fontSize: 16, color: "#8A97AE", padding: "8px 16px", border: "1px solid var(--line)", borderRadius: 10 }}>{t}</span>))}</div>
       </div>
 
