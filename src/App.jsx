@@ -2836,6 +2836,8 @@ const ROLE_META = {
 const FOUNDER_IDENTITY = {
   "olamideokulaja@gmail.com": { who: "Dr. Olamide Okulaja", label: "Co-Founder & CGO", img: OLA2_IMG },
   "folawiyoconsultancy@gmail.com": { who: "Ola Folawiyo", label: "Co-Founder & CEO", img: OLA_IMG },
+  "olamideokulaja@qurahealth.org": { who: "Dr. Olamide Okulaja", label: "Co-Founder & CGO", img: OLA2_IMG },
+  "olafolawiyo@qurahealth.org": { who: "Ola Folawiyo", label: "Co-Founder & CEO", img: OLA_IMG },
 };
 
 const TOUR = [
