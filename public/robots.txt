@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://qura.health/sitemap.xml
+Sitemap: https://qurahealth.org/sitemap.xml

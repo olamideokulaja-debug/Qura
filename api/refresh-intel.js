@@ -32,7 +32,7 @@ async function fetchText(url) {
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 12000);
-    const r = await fetch(url, { signal: ctrl.signal, headers: { "User-Agent": "QuraIntelBot/1.0 (+https://qura.health)" } });
+    const r = await fetch(url, { signal: ctrl.signal, headers: { "User-Agent": "QuraIntelBot/1.0 (+https://qurahealth.org)" } });
     clearTimeout(t);
     if (!r.ok) return "";
     const html = await r.text();

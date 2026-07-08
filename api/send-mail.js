@@ -3,7 +3,7 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const key = process.env.RESEND_API_KEY;
-  const from = process.env.MAIL_FROM || "Qura <noreply@qura.health>";
+  const from = process.env.MAIL_FROM || "Qura <noreply@qurahealth.org>";
   if (!key) return res.status(500).json({ error: "RESEND_API_KEY is not set" });
   let body = req.body;
   if (!body || typeof body === "string") { try { body = JSON.parse(body || "{}"); } catch (e) { body = {}; } }

@@ -295,8 +295,8 @@ const CRM_BEST = [
   { i: Sparkles, t: "HubSpot-style automation", b: "AI outreach, proposals and follow-ups that run themselves." },
 ];
 const FOUNDERS = [
-  { name: "Ola Folawiyo", title: "Co-Founder & Chief Executive Officer", img: OLA_IMG, email: "ola@qura.health", linkedin: LINKEDIN, bio: "A healthcare business development and workforce strategy specialist with over a decade of experience delivering commercial growth across the NHS, independent healthcare and international markets. He has led strategic workforce and diagnostics partnerships with NHS England, Integrated Care Boards (ICBs), Community Diagnostic Centres (CDCs) and NHS Trusts, helping secure high-value workforce and service transformation projects. At Qura, he brings one of the UK's strongest healthcare decision-maker networks and deep commercial expertise to help healthcare organisations build better partnerships and grow through data, technology and trusted connections.", tags: ["Business development", "Workforce solutions", "NHS & ICBs", "International"] },
-  { name: "Dr. Olamide Okulaja", title: "Co-Founder & Chief Growth Officer", img: OLA2_IMG, email: "olamide@qura.health", linkedin: "https://www.linkedin.com/in/olamide-okulaja-6a72232a4/", bio: "A healthcare strategist, economist and financing specialist who scales health systems across Africa and beyond. As Chief Growth Officer at a leading African digital-health company, he has built public and private partnerships connecting care, financing and supply, including Lagos State's tech-enabled malaria pre-elimination programme with the WHO and World Bank. At Qura he leads growth, bringing that systems thinking to the UK healthcare workforce so partners are chosen on merit and value.", tags: ["Health financing", "Growth strategy", "Public-private partnerships", "Health economics"] },
+  { name: "Ola Folawiyo", title: "Co-Founder & Chief Executive Officer", img: OLA_IMG, email: "ola@qurahealth.org", linkedin: LINKEDIN, bio: "A healthcare business development and workforce strategy specialist with over a decade of experience delivering commercial growth across the NHS, independent healthcare and international markets. He has led strategic workforce and diagnostics partnerships with NHS England, Integrated Care Boards (ICBs), Community Diagnostic Centres (CDCs) and NHS Trusts, helping secure high-value workforce and service transformation projects. At Qura, he brings one of the UK's strongest healthcare decision-maker networks and deep commercial expertise to help healthcare organisations build better partnerships and grow through data, technology and trusted connections.", tags: ["Business development", "Workforce solutions", "NHS & ICBs", "International"] },
+  { name: "Dr. Olamide Okulaja", title: "Co-Founder & Chief Growth Officer", img: OLA2_IMG, email: "olamide@qurahealth.org", linkedin: "https://www.linkedin.com/in/olamide-okulaja-6a72232a4/", bio: "A healthcare strategist, economist and financing specialist who scales health systems across Africa and beyond. As Chief Growth Officer at a leading African digital-health company, he has built public and private partnerships connecting care, financing and supply, including Lagos State's tech-enabled malaria pre-elimination programme with the WHO and World Bank. At Qura he leads growth, bringing that systems thinking to the UK healthcare workforce so partners are chosen on merit and value.", tags: ["Health financing", "Growth strategy", "Public-private partnerships", "Health economics"] },
 ];
 const TARIFF_MONTH = "July 2026";
 const TARIFFS = [
@@ -327,7 +327,7 @@ const MOBILE_UNITS = [
   { name: "Cobalt Mobile Imaging", spec: "Mobile MRI & PET-CT", coverage: "South & Midlands", clients: "Private", status: "New" },
 ];
 const CHANNELS = [
-  { k: "Mobile app", h: "Qura for iOS & Android", i: Smartphone }, { k: "Website", h: "qura.health", i: Globe },
+  { k: "Mobile app", h: "Qura for iOS & Android", i: Smartphone }, { k: "Website", h: "qurahealth.org", i: Globe },
   { k: "LinkedIn", h: "/company/qura", i: Linkedin }, { k: "Instagram", h: "@qura.crm", i: Instagram },
   { k: "TikTok", h: "@qura", i: Music2 }, { k: "X", h: "@qura", i: Twitter },
 ];
@@ -1833,10 +1833,10 @@ function PrivacyContent() {
       <p style={{ marginTop: 0 }}>Qura is committed to protecting your personal data in line with the UK GDPR and the Data Protection Act 2018.</p>
       <p><b>What we collect.</b> Account details you provide (name, email, role), the data you add (shortlists, notes, messages) and the basic usage needed to run the service.</p>
       <p><b>Lawful basis.</b> We process account data to provide the service you signed up for (contract), and professional business-contact information on the basis of legitimate interests, balanced against individuals' rights. Contact details are masked until consent is confirmed.</p>
-      <p><b>Your rights.</b> You can access, correct, export or delete your data, object to processing, and withdraw consent at any time. Use the data controls in Settings, or contact privacy@qura.health.</p>
+      <p><b>Your rights.</b> You can access, correct, export or delete your data, object to processing, and withdraw consent at any time. Use the data controls in Settings, or contact privacy@qurahealth.org.</p>
       <p><b>Retention & security.</b> Data is stored per account and kept only as long as needed. We do not sell your data and we do not show third-party ads.</p>
       <p><b>Personal profiles.</b> Individuals' names and contact details are anonymised or withheld until written consent is given, in line with GDPR.</p>
-      <p className="faint" style={{ fontSize: 12 }}>This is a plain-English summary. For a specific request, contact privacy@qura.health.</p>
+      <p className="faint" style={{ fontSize: 12 }}>This is a plain-English summary. For a specific request, contact privacy@qurahealth.org.</p>
     </div>
   );
 }
@@ -2008,9 +2008,9 @@ function CookieContent() {
   return (
     <div style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--text)" }}>
       <p style={{ marginTop: 0 }}>Qura uses essential cookies and browser storage to run the service, for example keeping you signed in and remembering your consent choice. With your consent, we may use a little analytics to improve the product.</p>
-      <p><b>Your choice.</b> On your first visit you can choose Accept all or Essential only. You can change this at any time by clearing your browser storage or contacting privacy@qura.health.</p>
+      <p><b>Your choice.</b> On your first visit you can choose Accept all or Essential only. You can change this at any time by clearing your browser storage or contacting privacy@qurahealth.org.</p>
       <p><b>Third parties.</b> Payment (Stripe) and hosting (Vercel) may set cookies when their features are used, under their own notices.</p>
-      <p className="faint" style={{ fontSize: 12 }}>The full cookie policy is available on request at privacy@qura.health.</p>
+      <p className="faint" style={{ fontSize: 12 }}>The full cookie policy is available on request at privacy@qurahealth.org.</p>
     </div>
   );
 }
@@ -2681,7 +2681,7 @@ function Login({ onNext, onHome, onSignup }) {
         <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>Sign in as</label>
         <div className="login-field" style={{ padding: "0 10px 0 13px" }}><Users size={16} className="faint" /><select value={role} onChange={(e) => setRole(e.target.value)} style={{ border: "none", background: "transparent", outline: "none", width: "100%", padding: "12px 4px", fontSize: 14, color: "var(--text)", fontFamily: "inherit", cursor: "pointer", appearance: "none", WebkitAppearance: "none" }}>{ROLES.map(([k, l]) => (<option key={k} value={k}>{l}</option>))}</select><ChevronDown size={16} className="faint" /></div>
         <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>Work email</label>
-        <div className="login-field"><Mail size={16} className="faint" /><input defaultValue="ola@qura.health" /></div>
+        <div className="login-field"><Mail size={16} className="faint" /><input defaultValue="ola@qurahealth.org" /></div>
         <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "16px 0 0" }}>Password</label>
         <div className="login-field"><ShieldCheck size={16} className="faint" /><input type="password" defaultValue="demodemo" /></div>
         <div className="row" style={{ justifyContent: "space-between", marginTop: 14, fontSize: 12.5 }}><label className="row" style={{ gap: 7, color: "var(--muted)", cursor: "pointer" }}><input type="checkbox" defaultChecked style={{ accentColor: "var(--teal)", width: 15, height: 15 }} /> Remember me</label><span style={{ color: "var(--teal)", fontWeight: 600, cursor: "pointer" }}>Forgot password?</span></div>
@@ -3134,7 +3134,7 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
         <h2 className="disp" style={{ fontSize: 26, fontWeight: 700, margin: "0 0 6px" }}>{up ? "Create your account" : ("Sign in to " + APP_NAME)}</h2>
         <p className="muted" style={{ marginTop: 0, fontSize: 14 }}>{up ? (roleLabel ? ("Creating your " + roleLabel + " account") : "Join Qura in a few seconds.") : "Welcome back. Let us find your next opportunity."}</p>
         <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>Work email</label>
-        <div className="login-field"><Mail size={16} className="faint" /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@qura.health" /></div>
+        <div className="login-field"><Mail size={16} className="faint" /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@qurahealth.org" /></div>
         <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "16px 0 0" }}>Password</label>
         <div className="login-field"><ShieldCheck size={16} className="faint" /><input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022" onKeyDown={(e) => e.key === "Enter" && submit()} /></div>
         {!up && <div className="row" style={{ justifyContent: "flex-end", marginTop: 12, fontSize: 12.5 }}><span style={{ color: "var(--teal)", fontWeight: 600, cursor: "pointer" }} onClick={soon}>Forgot password?</span></div>}
