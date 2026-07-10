@@ -1,146 +1,206 @@
-# Forte Compass
+# Qura — deployable web app
 
-An OKR and performance platform for Imade Forte Holdings and its subsidiaries.
-It holds every team to the change it creates, not the hours it logs. Objectives are
-authored, coached toward outcomes, submitted, approved and scored, right across the group.
+The Qura prototype as a standard Vite + React project. It layers up cleanly, and each layer is optional and turned on with environment variables — no code changes:
 
-This build covers Stages 1 to 5:
+1. **Demo (default, zero setup):** data in the browser's `localStorage`.
+2. **Accounts + shared data (Supabase):** real email/password sign-in, data synced per account across devices.
+3. **Billing (Stripe):** paid plans go through Stripe Checkout and the paid plan is written back to the account.
+4. **AI (Anthropic):** the proposal features, via a serverless proxy that keeps your key server-side.
 
-- **Stage 1** The branded gateway and the outcome ladder.
-- **Stage 2** A deployable, multi-tenant stack with sign-in and role routing.
-- **Stage 3** OKR authoring with the coach-hard outcome engine and the approval workflow.
-- **Stage 4** The scorecard. Objectives are auto-scored against the house rubric, and a lead,
-  HR or the MD can adjust any dimension with every change logged.
-- **Stage 5** The Organisations view, AI-suggested next OKRs, and stall detection with a
-  WhatsApp nudge.
+If a layer isn't configured, the app falls back safely and still runs.
 
-## Check-ins and trends
+---
 
-Once an objective is approved, its owner logs progress under the Check-ins tab: a new value, a
-confidence level, and an optional note, on a weekly cadence for operations and monthly for
-leadership. Each key result then carries a history rather than a single figure, shown as a
-progress bar toward target and a small trend line, with the latest value and confidence alongside.
-The dashboard flags any approved key result still awaiting its first check-in. Progress and the
-stall flags read from the most recent check-in, so the picture stays current as the cycle runs.
+## 1. Run locally
 
-## Organogram
+Node.js 18+ (nodejs.org).
 
-The Organogram tab draws the whole group as a tree: Imade Forte Holdings at the top, then the
-Corporate head office and each subsidiary, and under each one its people arranged by reporting
-line, all the way down to every staff member. Each organisation shows who its head reports to.
-Nodes are interactive: tapping a person opens their profile, tapping an organisation opens its
-panel. Reporting lines are seeded sensibly and can be changed any time in the Roster tab. The
-organogram is available to the Chairman, the MD, HR and a tenant admin.
+```bash
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # production build
+```
 
-## The Chairman's cockpit
+---
 
-Signing in as the Chairman opens a dedicated, read-only view at the level of the holding company.
-It leads with the health of the whole group and a card for the Corporate head office and each
-subsidiary; tapping any card zooms into that organisation's staff, objectives and risks. Below
-that sit the standing of every staff member with a one-click drill into any person's objectives
-and scorecards, the risks and stalled results across the whole group, and who is climbing and who
-is slipping against the previous cycle. The Chairman sees everything and changes nothing: there
-are no authoring, approval or adjustment controls in this view.
+## 2. Deploy free with Vercel
 
-## Organisations
+Push to a GitHub repo, then import it in Vercel and click Deploy (it auto-detects Vite). Or `npm i -g vercel && vercel`. You get `your-repo.vercel.app` in about a minute.
 
-Imade Forte Holdings Limited is the parent. Its four operating subsidiaries each have their own
-tab with their own staff and OKRs: Genesys Health Information Limited, Girard Property Limited,
-Yostrat Business Services, and Realms Healthcare Services Consulting Limited. Head-office
-functions (the Chairman, the MD, the EA, HR and Finance) sit at a Corporate level, and a Holding
-company overview rolls everything up. Selecting an organisation shows the people under it with
-their scores, the objectives that belong to it, its outcome ratio and weighted average, its
-priority, and any key results that need attention. A subsidiary lead sees only their own
-organisation; the MD, HR and the Chairman see all of them.
+```bash
+git init && git add . && git commit -m "Qura app"
+git branch -M main
+git remote add origin https://github.com/YOU/YOUR-REPO.git
+git push -u origin main
+```
 
-## Suggestions and nudges
+---
 
-From My OKRs, "Suggest next OKRs" proposes three outcome-shaped objectives tailored to the
-person's organisation, and "Use this" opens the author already filled in. Across the app, a key
-result is flagged as needing attention when confidence is low or progress is well behind the
-target. In an organisation view, a lead, HR or the MD can turn any flagged key result into a
-ready-to-send WhatsApp nudge with one click. With the AI key set the suggestions come from the
-model; without it, a built-in engine does the same job offline.
+## 3. Real accounts + shared data (Supabase)
 
-## Two ways to run it
+1. Create a free project at supabase.com.
+2. In the **SQL Editor**, run the contents of `supabase/schema.sql`.
+3. In **Project Settings > API**, copy the **Project URL** and **anon public key**.
+4. Set env vars (locally in `.env.local`, and in Vercel):
+   ```
+   VITE_SUPABASE_URL=...
+   VITE_SUPABASE_ANON_KEY=...
+   ```
+5. Redeploy. The app now shows a real sign in / sign up screen and stores each account's data in Supabase. (Leaving these blank keeps demo mode.)
 
-**Demo mode (default, no setup).** Deploy the folder as-is and it works immediately. It runs
-on seeded May 2026 cohort data held in the browser, with a "pick who you are" sign-in so you can
-walk every role. Nothing leaves the device. This is the right mode for review and for showing
-people around.
+---
 
-**Live mode (when you are ready).** Add a Supabase project and an AI key in Vercel and the same
-app switches to real accounts, real tenancy with row-level security, and the AI outcome engine.
-No code changes. Steps are below.
+## 4. Billing (Stripe)
 
-## Put it online (about 15 minutes, no coding)
+This makes the paid plans actually charge and updates the account's plan automatically.
 
-1. Create a free account at **github.com** and a free account at **vercel.com**.
-2. On GitHub, click **New repository**, name it `forte-compass`, and create it.
-3. On the repository page choose **uploading an existing file**, then drag in *everything* inside
-   this folder (including the `src`, `api`, `public` and `supabase` folders). Commit.
-4. In Vercel click **Add New, Project**, pick the `forte-compass` repository, and click **Deploy**.
-   Vercel detects Vite automatically. When it finishes you get a live link. That link is the
-   working app in demo mode.
+1. Create a Stripe account (stripe.com). Start in **test mode**.
+2. Create two **Products** (Starter, Growth), each with a **monthly** and a **yearly** recurring **Price**. Copy the four price IDs (they look like `price_...`).
+3. In **Developers > API keys**, copy your **Secret key**.
+4. Add server-side env vars in Vercel:
+   ```
+   STRIPE_SECRET_KEY=sk_test_...
+   STRIPE_PRICE_STARTER_MONTHLY=price_...
+   STRIPE_PRICE_STARTER_ANNUAL=price_...
+   STRIPE_PRICE_GROWTH_MONTHLY=price_...
+   STRIPE_PRICE_GROWTH_ANNUAL=price_...
+   SUPABASE_URL=...                    # same project URL as above
+   SUPABASE_SERVICE_ROLE_KEY=...       # Supabase > Settings > API > service_role (secret!)
+   ```
+5. Add the client flag so the app routes paid plans to Checkout:
+   ```
+   VITE_BILLING_ENABLED=true
+   ```
+6. Set up the webhook: in Stripe **Developers > Webhooks**, add an endpoint at
+   `https://YOUR-DOMAIN/api/stripe-webhook`, subscribe to
+   `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`,
+   then copy the **Signing secret** into:
+   ```
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   ```
+7. Redeploy. Now choosing Starter or Growth opens Stripe Checkout; on payment, the webhook writes the plan to the account and the app reflects it. The 7-day free trial and Enterprise ("contact sales") do not go through Checkout.
 
-## Turn on live mode
+Use Stripe's test card `4242 4242 4242 4242`, any future expiry and CVC, while in test mode. Switch to live keys when ready.
 
-In Vercel, open the project, then **Settings, Environment Variables**, and add:
+Security note: `/api/checkout` currently trusts the userId/email sent from the browser. For production, verify the Supabase access token server-side in that function before creating the session.
 
-| Name | Where it comes from |
-| --- | --- |
-| `VITE_SUPABASE_URL` | Supabase, Project Settings, API |
-| `VITE_SUPABASE_ANON_KEY` | Supabase, Project Settings, API |
-| `ANTHROPIC_API_KEY` | Your Anthropic console. Kept server-side, never sent to the browser. |
-| `ANTHROPIC_MODEL` | Optional. Defaults to `claude-sonnet-5`. |
+---
 
-Then, in Supabase, open the **SQL editor** and run the contents of `supabase/schema.sql` once.
-It creates the organisations, profiles and data tables and the tenant row-level security, and
-seeds the Imade Forte and demo tenants. Redeploy in Vercel and the app is live.
+## 5. AI features (Anthropic)
 
-New Supabase projects require email confirmation by default, so "Create account" sends a
-confirmation link and you sign in after confirming. To skip that while testing, turn off
-"Confirm email" under Authentication, Providers, Email in Supabase. On first sign-in the app
-asks each person to set their role and organisation once, then remembers it.
+Add `ANTHROPIC_API_KEY` (server-side env var, no `VITE_` prefix) in Vercel and redeploy. Powers `/api/anthropic`. Without it, the AI parts fall back gracefully.
 
-## What is in this build
+---
 
-- `src/App.jsx` The whole application in one file: gateway, sign-in, role router, dashboard,
-  the authoring engine and the approval workflow.
-- `api/anthropic.js` The server-side AI proxy. Holds the key, so the browser never sees it. When
-  no key is set the app quietly uses its built-in offline engine instead.
-- `supabase/schema.sql` The database and tenant row-level security for live mode.
-- `public/imade-forte-logo.png` The Imade Forte lockup used in the header and footer.
-  `imade-forte-logo-hires.png` is kept for the review-pack exports in a later stage.
-- `.env.example` The list of environment variables, for reference.
+## 6. Custom domain
 
-## The outcome engine
+Buy a domain (~£8–£15/year; check current price), add it in Vercel **Settings > Domains**, follow the DNS steps. HTTPS is automatic.
 
-When you author a key result, the engine reads it and labels it input, activity, output or
-outcome. Anything that is not an outcome is coached: you are shown one or two outcome-shaped
-rewrites, and the objective cannot be saved until every weaker key result is either rewritten or
-kept with a short reason on the record. Baseline, measure and target are required throughout.
-With the AI key set, the classification and rewrites come from the model; without it, a built-in
-rule-based engine does the same job offline.
+---
 
-## Scoring and the scorecard
+## 7. Before real NHS or patient data
 
-Once an objective is submitted or approved it is scored against the house rubric: SMART quality
-30 percent, strategic alignment 30 percent, ambition 20 percent, ownership 20 percent, banded
-green at 7 and above, amber from 4, red below. The score is computed automatically to start.
-A subsidiary lead (for their own people), HR or the MD can then adjust any dimension. Every
-adjustment is written to the objective's history with the dimension, the before and after values,
-who made it, their role, the time, and a reason. A person sees only their own scorecard; peers
-never see each other's. Adjusted scores flow straight to the group board.
+Qura is NHS-facing, so production handling of real trust or patient data brings in UK GDPR, information governance, and NHS standards such as **DTAC**, **DCB0129/DCB0160** and **DSPT**. Fine for demos and dummy-data pilots, but plan for it early with information-governance input before real data goes in.
 
-## Roster and admin
+---
 
-HR, the MD and a tenant admin get a Roster tab to manage people: add someone, edit their name,
-role, organisation and check-in cadence, set who they report to, or remove them. The two profiles
-still missing a surname are highlighted and counted at the top, so they are quick to complete, and
-any change flows straight through to the organisations, the board and the cockpit.
+## Account roles & owner admin
 
-## Notes for the roster
+Each account now picks a role the first time it signs in (Operator, Healthcare Agency, Hospital/Provider or Clinician). That role is saved to the account, the app opens straight into it, and normal users cannot switch views. Owners keep the "switch view" flipper plus an Admin screen.
 
-Two people are still seeded without surnames (Adebayo and Chinonso), and one HR seat is a
-placeholder. These are flagged in the app and are easy to correct before the roster goes live.
+- **Make yourself the owner:** in Vercel add the env var `VITE_OWNER_EMAILS` set to your email (comma-separated for more than one), then redeploy. Until you set it, every account is treated as an owner.
+- **Use the Admin screen:** it needs the server-side keys `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (Supabase > Settings > API > service_role). You may already have these from the Stripe step. The Admin screen lists everyone who has signed up and lets you set or change each person's role. It appears in the account menu (top-right avatar) for owners only.
+
+## Environment variables at a glance
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | client | real accounts + data |
+| `VITE_BILLING_ENABLED` | client | route paid plans to Stripe |
+| `VITE_OWNER_EMAILS` | client + server | who is an owner (birds-eye + admin) |
+| `SUPABASE_SERVICE_ROLE_KEY` | server | lets the admin screen list & set roles |
+| `ANTHROPIC_API_KEY` | server | AI proposals |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | server | billing |
+| `STRIPE_PRICE_*_MONTHLY/ANNUAL` | server | plan prices |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | server | webhook writes the plan |
+
+## Project structure
+
+```
+qura-web/
+├── api/
+│   ├── anthropic.js        # AI proxy (holds Anthropic key)
+│   ├── admin.js            # owner-only: list users, set roles
+│   ├── checkout.js         # creates a Stripe Checkout session
+│   └── stripe-webhook.js   # Stripe -> writes plan back to the account
+├── supabase/schema.sql     # run once in Supabase
+├── src/
+│   ├── App.jsx             # the full Qura app
+│   ├── Auth.jsx            # real sign in / sign up
+│   ├── supabase.js         # Supabase client
+│   ├── billing.js          # Stripe Checkout helper
+│   ├── storage.js          # per-account storage (localStorage fallback)
+│   └── main.jsx            # entry + auth gate
+├── index.html
+├── .env.example
+├── package.json
+└── vite.config.js
+```
+
+## Scheduled Public Sector Intelligence refresh (Vercel Cron)
+
+The ICB board-paper and council/governing-body intelligence page can update itself.
+
+- The scheduled function lives at `api/refresh-intel.js`.
+- `vercel.json` runs it daily at 06:00 UTC (`0 6 * * *`). Vercel picks this up automatically on deploy.
+- On each run it fetches each public source, uses your `ANTHROPIC_API_KEY` to distil only the Qura-relevant points (workforce, diagnostics, insourcing, procurement, SEND, complex care), and writes the results to Supabase shared rows (`psintel_icb`, `psintel_bodies`, `psintel_updated`). The app reads these on load and shows a "Last refreshed" time, falling back to the built-in baseline for any source it cannot read.
+
+### Environment variables it uses (all already in the project)
+- `ANTHROPIC_API_KEY` (summaries)
+- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (writing shared rows)
+- `CRON_SECRET` (optional but recommended). Set any random string. Vercel sends it automatically to the cron; it also lets you trigger a run manually at `/api/refresh-intel?key=YOUR_SECRET`.
+
+### Run it once immediately
+After deploying, visit `https://YOUR-APP.vercel.app/api/refresh-intel?key=YOUR_CRON_SECRET` (or without `?key=` if you did not set `CRON_SECRET`). You should see a small JSON `{ ok: true, ... }` response, and the intelligence page will then show the refreshed data.
+
+### Pointing at exact board papers
+`SOURCES_ICB` and `SOURCES_BODIES` in `api/refresh-intel.js` hold each source name and URL. Replace a URL with the exact board-papers/meetings page for sharper extraction; anything left unreadable simply uses its baseline points.
+
+## Industry news refresh (Vercel Cron)
+
+- Function: `api/refresh-news.js`. `vercel.json` runs it daily at 05:00 UTC.
+- It pulls public healthcare news per region (UK, Nigeria, Middle East, International) from Google News RSS and writes them to Supabase shared rows (`qura_news_uk`, `qura_news_ng`, `qura_news_me`, `qura_news_intl`, `qura_news_updated`). The Industry news page reads these, falling back to a built-in baseline per region.
+- Uses `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (already set) and the optional `CRON_SECRET`. Trigger once manually at `/api/refresh-news?key=YOUR_CRON_SECRET`.
+- Licensed sources (e.g. HSJ) are not pulled directly; they can be added when licensed.
+
+## To connect later (email sending)
+
+The mailshots (Decision makers) and the automatic Friday delivery of the Weekly activity
+report send real emails, which needs an email provider (e.g. Resend or SendGrid) plus a
+verified qura.health domain. The screens, Qura Credits (5 messages/day on standard, more on
+premium; 10 follow-invites/day) and limits all work now; only the outbound email delivery
+waits on that provider. Once added, wire an `api/send-mail.js` and set the provider API key
+as a Vercel env var.
+
+## Email sending (Resend)
+
+- Function: `api/send-mail.js`. The Weekly report "Email me" button now sends the report to the signed-in user's email.
+- To switch it on: create an account at resend.com, verify your sending domain (e.g. qura.health), create an API key, then in Vercel set env vars `RESEND_API_KEY` (your key) and optionally `MAIL_FROM` (e.g. `Qura <noreply@qura.health>`). Redeploy.
+- Until the key is set, the button reports "Email is not configured yet". The same function can later power mailshots, introductions and interest notifications once real recipient data and consent are in place.
+
+## Payments (Stripe) — going live
+
+The Pricing page now launches real Stripe Checkout for paid plans when `VITE_BILLING_ENABLED=true`. Free/trial and Enterprise (contact sales) plans do not charge.
+
+**Env vars (Vercel):**
+- `STRIPE_SECRET_KEY` — your live secret key.
+- `STRIPE_WEBHOOK_SECRET` — from the webhook you create (below).
+- `VITE_BILLING_ENABLED=true`.
+- Price IDs. Generic (apply to every persona): `STRIPE_PRICE_STARTER_MONTHLY`, `STRIPE_PRICE_STARTER_ANNUAL`, `STRIPE_PRICE_GROWTH_MONTHLY`, `STRIPE_PRICE_GROWTH_ANNUAL`.
+- Optional per-persona overrides (only if you want different prices per audience): `STRIPE_PRICE_AGENCY_GROWTH_ANNUAL`, `STRIPE_PRICE_BUYER_GROWTH_ANNUAL`, `STRIPE_PRICE_CLINICIAN_GROWTH_ANNUAL`, and the same pattern for STARTER / MONTHLY. The app first looks for the persona-specific price, then falls back to the generic one.
+
+**Steps:**
+1. In Stripe (live mode), create a Product per plan (e.g. Starter, Growth) with a monthly and an annual recurring Price. Copy each Price ID (starts with `price_`).
+2. In Vercel, add the env vars above with those Price IDs. Set `VITE_BILLING_ENABLED=true`.
+3. In Stripe, add a webhook endpoint pointing to `https://your-domain/api/stripe-webhook`, subscribe to checkout and subscription events, and copy its signing secret into `STRIPE_WEBHOOK_SECRET`.
+4. Redeploy. Test one real subscription end to end before announcing.
