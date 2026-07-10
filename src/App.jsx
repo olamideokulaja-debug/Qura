@@ -2433,7 +2433,7 @@ function Landing({ onEnter, onDemo }) {
           <div className="reveal"><span className="chip chip-cyan" style={{ padding: "7px 15px" }}><Sparkles size={14} /> Healthcare Growth CRM · 24/7 live, every market worldwide</span></div>
           <h1 className="disp heroh reveal" style={{ fontWeight: 700, margin: "26px auto 0", maxWidth: 880 }}>Stop rushing to the cheapest bidder. <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Start choosing the best.</span></h1>
           <div className="reveal" style={{ display: "flex", justifyContent: "center", margin: "14px 0 4px" }}><PulseLine /></div>
-          <p className="muted reveal" style={{ fontSize: 19, maxWidth: 620, margin: "14px auto 0", lineHeight: 1.6 }}>{APP_NAME} is the 24/7 live healthcare marketplace and growth CRM across the NHS, private and international markets. It specialises in fragile professions and maps the market for you in real time.</p>
+          <p className="muted reveal" style={{ fontSize: 19, maxWidth: 620, margin: "14px auto 0", lineHeight: 1.6 }}>{APP_NAME} is the 24/7 live healthcare marketplace and growth CRM across the NHS, private and international markets. It turns the hours teams lose to manual client-mapping, decision-maker research and stale CRM data into one live platform, so you win work in the time others spend searching.</p>
           
           <div className="row faint reveal" style={{ gap: 8, justifyContent: "center", marginTop: 18, fontSize: 13.5 }}><ShieldCheck size={15} /> For private clinics, GP practices, care providers, NHS trusts, workforce suppliers and international health systems</div>
         </div>
@@ -2446,7 +2446,7 @@ function Landing({ onEnter, onDemo }) {
             <div>
               <div className="eyebrow" style={{ color: "#5FE6DC" }}>Live worldwide, 24/7</div>
               <h2 className="disp" style={{ color: "#fff", fontSize: 30, fontWeight: 700, margin: "12px 0 10px", lineHeight: 1.15 }}>See the market moving in real time</h2>
-              <p style={{ color: "#9FB0D0", fontSize: 15.5, lineHeight: 1.6, margin: "0 0 18px", maxWidth: 460 }}>Roles, insourcing, candidates and intelligence, updating around the clock across every market. Choose your lens. Names are hidden until you sign in, so this is only a glimpse of what members act on first.</p>
+              <p style={{ color: "#9FB0D0", fontSize: 15.5, lineHeight: 1.6, margin: "0 0 18px", maxWidth: 460 }}>Roles, insourcing, candidates and intelligence, updating around the clock across every market, so you work from live data instead of last quarter's spreadsheet. Choose your lens. Names are hidden until you sign in, so this is only a glimpse of what members act on first.</p>
               <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>{LENSES.map((x) => (<button key={x.k} onClick={() => setLens(x.k)} style={{ cursor: "pointer", padding: "8px 15px", borderRadius: 999, fontSize: 13, fontWeight: 600, transition: "all .15s ease", background: lens === x.k ? "#00C2B8" : "rgba(255,255,255,.06)", color: lens === x.k ? "#04211F" : "#C4D0E6", border: "1px solid " + (lens === x.k ? "#00C2B8" : "rgba(255,255,255,.14)") }}>{x.l}</button>))}</div>
             </div>
             <div style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 16, backdropFilter: "blur(10px)" }}>
@@ -2586,7 +2586,7 @@ function Landing({ onEnter, onDemo }) {
       </div>
 
       <div className="wrap sec solutions" style={{ padding: "78px 24px" }}>
-        <Reveal><div style={{ textAlign: "center", maxWidth: 600, margin: "0 auto 44px" }}><h2 className="disp" style={{ fontSize: 36, fontWeight: 700 }}>Why teams choose {APP_NAME}</h2><p className="muted" style={{ fontSize: 17, marginTop: 12 }}>The reach of seasoned experts and the speed of modern AI, on one platform.</p></div></Reveal>
+        <Reveal><div style={{ textAlign: "center", maxWidth: 600, margin: "0 auto 44px" }}><h2 className="disp" style={{ fontSize: 36, fontWeight: 700 }}>Why teams choose {APP_NAME}</h2><p className="muted" style={{ fontSize: 17, marginTop: 12 }}>Everything you would spend hours pulling from Google, LinkedIn and board papers, mapped for you on one live platform. The teams that adopt {APP_NAME} stop searching and start winning; the ones that do not risk falling behind.</p></div></Reveal>
         <div className="grid g2">{why.map((w, idx) => (<Reveal key={w.t} delay={idx * 70}><div className="card lift row" style={{ padding: 24, gap: 18, alignItems: "flex-start", height: "100%" }}><div style={{ width: 48, height: 48, borderRadius: 13, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><w.i size={22} color="#1E54E6" /></div><div><h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>{w.t}</h3><p className="muted" style={{ fontSize: 15, margin: 0, lineHeight: 1.6 }}>{w.b}</p></div></div></Reveal>))}</div>
       </div>
 
