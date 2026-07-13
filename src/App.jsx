@@ -127,6 +127,7 @@ a{transition:color .15s ease}
 @media(prefers-reduced-motion:reduce){*{animation-duration:.001s!important;transition-duration:.06s!important}}
 .cura p{text-align:justify;text-justify:inter-word;-webkit-hyphens:auto;hyphens:auto}
 .cura [style*="text-align: center"] p,.cura [style*="text-align:center"] p{text-align:center;-webkit-hyphens:manual;hyphens:manual}
+.lb{flex:1 0 auto}
 .lb .sec{display:none!important}
 .lb[data-view="home"] .sec.home,.lb[data-view="market"] .sec.market,.lb[data-view="fragile"] .sec.fragile,.lb[data-view="solutions"] .sec.solutions,.lb[data-view="founders"] .sec.founders,.lb[data-view="pricing"] .sec.pricing{display:block!important}
 .navlink{color:var(--muted);font-size:14.5px;font-weight:500;text-decoration:none;transition:color .15s}
@@ -2583,7 +2584,7 @@ function Landing({ onEnter, onDemo }) {
   ];
   const trusted = ["NHS trusts", "Integrated Care Boards", "Community Diagnostic Centres", "Private hospitals & clinics", "GP practices", "Care providers", "Workforce suppliers"];
   return (
-    <div style={{ background: "#fff" }}>
+    <div style={{ background: "#fff", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(255,255,255,.82)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--line)" }}>
         <div className="row" style={{ justifyContent: "space-between", height: 72, padding: "0 20px" }}>
           <span onClick={() => setView("home")} style={{ cursor: "pointer" }}><Wordmark /></span>
