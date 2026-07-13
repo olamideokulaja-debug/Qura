@@ -1858,9 +1858,10 @@ function CookieConsent() {
 
 const PRIORITY = ["New Zealand", "Australia", "Canada", "South Africa", "Philippines", "India"];
 const PROTECTED_LIST = ["Nigeria", "Ghana", "Kenya", "Nepal", "Pakistan", "Bangladesh", "Zimbabwe", "Zambia", "Uganda", "Tanzania", "Ethiopia", "Sierra Leone", "Malawi"];
-const REG_BODY = { "Nurse / Midwife": "NMC", "Allied Health Professional": "HCPC", "Doctor": "GMC" };
+const REG_BODY = { "Nurse / Midwife": "NMC", "Allied Health Professional": "HCPC", "Doctor": "GMC", "Pharmacy & Healthcare Science": "GPhC / HCPC" };
 const NURSE_TYPES = ["Registered General Nurse (RGN, Adult)", "Registered Mental Health Nurse (RMN)", "Community Nurse", "District Nurse", "Specialist Nurse", "ICU / Critical Care Nurse", "Paediatric Nurse (RSCN)", "Neonatal Nurse", "Learning Disability Nurse (RNLD)", "Theatre / Scrub Nurse", "A&E / Emergency Nurse", "Oncology Nurse", "Midwife (RM)"];
-const AHP_TYPES = ["Sonographer", "Audiologist", "Echocardiographer", "Diagnostic Radiographer", "Therapeutic Radiographer", "Biomedical Scientist", "Speech & Language Therapist", "Physiotherapist", "Occupational Therapist", "Dietitian", "Orthoptist", "Prosthetist / Orthotist", "Operating Department Practitioner (ODP)", "Paramedic", "Podiatrist", "Clinical Perfusionist", "Nuclear Medicine Technologist"];
+const AHP_TYPES = ["Sonographer", "Audiologist", "Echocardiographer", "Diagnostic Radiographer", "Therapeutic Radiographer", "Biomedical Scientist", "Speech & Language Therapist", "Physiotherapist", "Occupational Therapist", "Dietitian", "Orthoptist", "Prosthetist / Orthotist", "Operating Department Practitioner (ODP)", "Paramedic", "Podiatrist", "Clinical Perfusionist", "Nuclear Medicine Technologist", "Practitioner Psychologist (Clinical)", "Arts Therapist", "Music Therapist", "Drama Therapist"];
+const SCIENCE_TYPES = ["Pharmacist", "Pharmacy Technician", "Clinical Scientist", "Biomedical Scientist", "Healthcare Science Practitioner", "Genomic Scientist", "Clinical Audiologist"];
 const DOCTOR_SPECIALTIES = ["General Practice (GP)", "Anaesthetics", "Intensive Care Medicine", "Emergency Medicine", "Acute Internal Medicine", "General Internal Medicine", "Cardiology", "Clinical Genetics", "Clinical Oncology", "Clinical Pharmacology & Therapeutics", "Dermatology", "Endocrinology & Diabetes", "Gastroenterology", "Genitourinary Medicine", "Geriatric Medicine", "Haematology", "Immunology", "Infectious Diseases", "Medical Oncology", "Metabolic Medicine", "Nephrology (Renal Medicine)", "Neurology", "Nuclear Medicine", "Occupational Medicine", "Ophthalmology", "Palliative Medicine", "Rehabilitation Medicine", "Respiratory Medicine", "Rheumatology", "Sport & Exercise Medicine", "Allergy", "Audiovestibular Medicine", "Obstetrics & Gynaecology", "Paediatrics", "Paediatric Cardiology", "General Adult Psychiatry", "Old Age Psychiatry", "Child & Adolescent Psychiatry", "Forensic Psychiatry", "Psychiatry of Learning Disability", "Medical Psychotherapy", "Public Health Medicine", "Clinical Radiology", "Interventional Radiology", "Histopathology", "Neuropathology", "Chemical Pathology", "Medical Microbiology", "Medical Virology", "General Surgery", "Cardiothoracic Surgery", "Neurosurgery", "Oral & Maxillofacial Surgery", "Otolaryngology (ENT)", "Paediatric Surgery", "Plastic Surgery", "Trauma & Orthopaedic Surgery", "Urology", "Vascular Surgery"];
 const RESIDENCE_LIST = ["United Kingdom", "Ireland", "Australia", "New Zealand", "Canada", "South Africa", "United States", "India", "Philippines", "Caribbean", "UAE", "Saudi Arabia", "Nigeria", "Ghana", "Kenya", "Nepal", "Pakistan", "Bangladesh", "Egypt", "Other"];
 
@@ -1883,7 +1884,7 @@ function ClinicianRegistration({ onToast }) {
       setCvBusy(false);
     }
   };
-  const profs = f.cat === "Nurse / Midwife" ? NURSE_TYPES : f.cat === "Allied Health Professional" ? AHP_TYPES : f.cat === "Doctor" ? DOCTOR_SPECIALTIES : [];
+  const profs = f.cat === "Nurse / Midwife" ? NURSE_TYPES : f.cat === "Allied Health Professional" ? AHP_TYPES : f.cat === "Doctor" ? DOCTOR_SPECIALTIES : f.cat === "Pharmacy & Healthcare Science" ? SCIENCE_TYPES : [];
   const body = REG_BODY[f.cat] || "professional";
   const isUK = f.country === "United Kingdom";
   const isIntl = f.country && f.country !== "United Kingdom";
@@ -1922,7 +1923,7 @@ function ClinicianRegistration({ onToast }) {
         <div className="card" style={{ padding: 22 }}>
           <SectionHead title="1. Profession" />
           <label style={lab}>Category</label>
-          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>{["Nurse / Midwife", "Allied Health Professional", "Doctor"].map((c) => (<button key={c} onClick={() => { upd("cat", c); upd("prof", ""); }} className="chip" style={{ cursor: "pointer", padding: "9px 14px", background: f.cat === c ? "var(--navy)" : "#EEF1F7", color: f.cat === c ? "#fff" : "#5A6783" }}>{c}</button>))}</div>
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>{["Nurse / Midwife", "Allied Health Professional", "Doctor", "Pharmacy & Healthcare Science"].map((c) => (<button key={c} onClick={() => { upd("cat", c); upd("prof", ""); }} className="chip" style={{ cursor: "pointer", padding: "9px 14px", background: f.cat === c ? "var(--navy)" : "#EEF1F7", color: f.cat === c ? "#fff" : "#5A6783" }}>{c}</button>))}</div>
           {f.cat ? <><label style={lab}>{f.cat === "Doctor" ? "Specialty (general or niche)" : "Profession"}</label>
           <select value={f.prof} onChange={(e) => upd("prof", e.target.value)} style={inp}><option value="">Select...</option>{profs.map((p) => <option key={p} value={p}>{p}</option>)}</select>
           <label style={lab}>{body} registration number</label>
@@ -2592,7 +2593,7 @@ function Landing({ onEnter, onDemo }) {
 
       <div className="wrap sec home" style={{ padding: "4px 24px 34px", textAlign: "center" }}>
         <div className="faint" style={{ fontSize: 13, fontWeight: 600, letterSpacing: ".08em", marginBottom: 12 }}>BUILT FOR HEALTHCARE, ACROSS EVERY SETTING</div>
-        <div className="row" style={{ gap: 14, justifyContent: "center", flexWrap: "wrap" }}>{trusted.map((t) => (<span key={t} className="disp" style={{ fontWeight: 600, fontSize: 16, color: "#8A97AE", padding: "8px 16px", border: "1px solid var(--line)", borderRadius: 10 }}>{t}</span>))}</div>
+        <div className="muted" style={{ fontSize: 15, maxWidth: 640, margin: "0 auto" }}>One live platform spanning the NHS, private and international healthcare markets.</div>
       </div>
 
       <div id="pricing" className="sec pricing" style={{ background: "var(--navy)" }}>
@@ -2808,7 +2809,7 @@ const NAVS = {
     { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "news", l: "Industry news", i: Rss },
     { k: "hdash", l: "Dashboard", i: LayoutDashboard }, { k: "weekly", l: "Weekly report", i: FileText }, { k: "findAgencies", l: "Find workforce suppliers", i: Briefcase }, { k: "meetings", l: "Meetings", i: Calendar },
     { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "staffing", l: "Site staffing", i: Building2 }, { k: "mobileunits", l: "Mobile units", i: Truck },
-    { k: "casestudies", l: "Case studies", i: Award }, { k: "events", l: "Round-tables", i: Ticket }, { k: "whyqura", l: "Why Qura wins", i: Trophy }, { k: "pricing", l: "Pricing", i: CreditCard },
+    { k: "casestudies", l: "Case studies", i: Award }, { k: "events", l: "Round-tables", i: Ticket }, { k: "whyqura", l: "Why Qura", i: Trophy }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
   clinician: [
     { k: "profile", l: "My profile", i: UserCheck }, { k: "feed", l: "Live feed", i: Rss }, { k: "myopps", l: "Opportunities for me", i: Target },
