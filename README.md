@@ -1,185 +1,232 @@
-# Realms Field — Stages 1 and 2
+# Qura — deployable web app
 
-The public Realms website for REALMS Healthcare Services Consulting Limited, plus staff sign-in and the role-aware workspace. A Vite + React + Supabase project, built as a single-file `src/App.jsx`, ready to deploy to Vercel.
+The Qura prototype as a standard Vite + React project. It layers up cleanly, and each layer is optional and turned on with environment variables — no code changes:
 
-## What is in this build
-- **Tabbed public site.** The top bar has a tab for each page (Home, Process, Services, About, Contact) so each page stands alone with limited scrolling.
-- **Staff sign-in (Stage 2).** Sign in or create an account, then choose your role from five cards: Team Leader, Field Monitor, RHSC HQ, HEFAMAA Reviewer, Facility Proprietor.
-- **Per-user identity.** Each signed-in person is greeted by name and role. You can map specific emails to a name and title in the `IDENTITY` object in `src/App.jsx`.
-- **Role-aware dashboard.** Each role sees its own set of tools, tagged with the stage in which they unlock.
-- Brand-locked to Lora and RHSC purple on white, using your real logo from `public/`.
+1. **Demo (default, zero setup):** data in the browser's `localStorage`.
+2. **Accounts + shared data (Supabase):** real email/password sign-in, data synced per account across devices.
+3. **Billing (Stripe):** paid plans go through Stripe Checkout and the paid plan is written back to the account.
+4. **AI (Anthropic):** the proposal features, via a serverless proxy that keeps your key server-side.
 
-## Demo mode vs real accounts
-The app runs in **demo mode** until you add Supabase keys. In demo mode, any email signs in (no password needed) and the role is saved in the browser, so you can preview the whole flow immediately. Once you add the two keys below, it switches automatically to **real Supabase accounts**.
+If a layer isn't configured, the app falls back safely and still runs.
 
-## Two things to complete before publishing
-1. **Coverage figures.** In `src/App.jsx`, find `EDIT: replace each value with a verified figure` and replace each dash on the Home tab.
-2. **Contact details.** In `src/App.jsx`, find `EDIT: add real contact details` on the Contact tab.
+---
 
-## Set up Supabase (for real accounts)
+## 1. Run locally
+
+Node.js 18+ (nodejs.org).
+
+```bash
+npm install
+npm run dev        # http://localhost:5173
+npm run build      # production build
+```
+
+---
+
+## 2. Deploy free with Vercel
+
+Push to a GitHub repo, then import it in Vercel and click Deploy (it auto-detects Vite). Or `npm i -g vercel && vercel`. You get `your-repo.vercel.app` in about a minute.
+
+```bash
+git init && git add . && git commit -m "Qura app"
+git branch -M main
+git remote add origin https://github.com/YOU/YOUR-REPO.git
+git push -u origin main
+```
+
+---
+
+## 3. Real accounts + shared data (Supabase)
+
 1. Create a free project at supabase.com.
-2. In the project, open **Project Settings → API** and copy the Project URL and the anon public key.
-3. In Vercel, open your project's **Settings → Environment Variables** and add:
-   - `VITE_SUPABASE_URL` = your Project URL
-   - `VITE_SUPABASE_ANON_KEY` = your anon public key
-4. In Supabase, open the **SQL Editor** and run this once to create the store for roles:
+2. In the **SQL Editor**, run the contents of `supabase/schema.sql`.
+3. In **Project Settings > API**, copy the **Project URL** and **anon public key**.
+4. Set env vars (locally in `.env.local`, and in Vercel):
+   ```
+   VITE_SUPABASE_URL=...
+   VITE_SUPABASE_ANON_KEY=...
+   ```
+5. Redeploy. The app now shows a real sign in / sign up screen and stores each account's data in Supabase. (Leaving these blank keeps demo mode.)
 
-```sql
-create table if not exists kv (
-  user_id uuid references auth.users(id) on delete cascade,
-  k text not null,
-  v jsonb,
-  updated_at timestamptz default now(),
-  primary key (user_id, k)
-);
-alter table kv enable row level security;
-create policy "own rows" on kv
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+---
+
+## 4. Billing (Stripe)
+
+This makes the paid plans actually charge and updates the account's plan automatically.
+
+1. Create a Stripe account (stripe.com). Start in **test mode**.
+2. Create two **Products** (Starter, Growth), each with a **monthly** and a **yearly** recurring **Price**. Copy the four price IDs (they look like `price_...`).
+3. In **Developers > API keys**, copy your **Secret key**.
+4. Add server-side env vars in Vercel:
+   ```
+   STRIPE_SECRET_KEY=sk_test_...
+   STRIPE_PRICE_STARTER_MONTHLY=price_...
+   STRIPE_PRICE_STARTER_ANNUAL=price_...
+   STRIPE_PRICE_GROWTH_MONTHLY=price_...
+   STRIPE_PRICE_GROWTH_ANNUAL=price_...
+   SUPABASE_URL=...                    # same project URL as above
+   SUPABASE_SERVICE_ROLE_KEY=...       # Supabase > Settings > API > service_role (secret!)
+   ```
+5. Add the client flag so the app routes paid plans to Checkout:
+   ```
+   VITE_BILLING_ENABLED=true
+   ```
+6. Set up the webhook: in Stripe **Developers > Webhooks**, add an endpoint at
+   `https://YOUR-DOMAIN/api/stripe-webhook`, subscribe to
+   `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`,
+   then copy the **Signing secret** into:
+   ```
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   ```
+7. Redeploy. Now choosing Starter or Growth opens Stripe Checkout; on payment, the webhook writes the plan to the account and the app reflects it. The 7-day free trial and Enterprise ("contact sales") do not go through Checkout.
+
+Use Stripe's test card `4242 4242 4242 4242`, any future expiry and CVC, while in test mode. Switch to live keys when ready.
+
+Security note: `/api/checkout` currently trusts the userId/email sent from the browser. For production, verify the Supabase access token server-side in that function before creating the session.
+
+---
+
+## 5. AI features (Anthropic)
+
+Add `ANTHROPIC_API_KEY` (server-side env var, no `VITE_` prefix) in Vercel and redeploy. Powers `/api/anthropic`. Without it, the AI parts fall back gracefully.
+
+---
+
+## 6. Custom domain
+
+Buy a domain (~£8–£15/year; check current price), add it in Vercel **Settings > Domains**, follow the DNS steps. HTTPS is automatic.
+
+---
+
+## 7. Before real NHS or patient data
+
+Qura is NHS-facing, so production handling of real trust or patient data brings in UK GDPR, information governance, and NHS standards such as **DTAC**, **DCB0129/DCB0160** and **DSPT**. Fine for demos and dummy-data pilots, but plan for it early with information-governance input before real data goes in.
+
+---
+
+## Account roles & owner admin
+
+Each account now picks a role the first time it signs in (Operator, Healthcare Agency, Hospital/Provider or Clinician). That role is saved to the account, the app opens straight into it, and normal users cannot switch views. Owners keep the "switch view" flipper plus an Admin screen.
+
+- **Make yourself the owner:** in Vercel add the env var `VITE_OWNER_EMAILS` set to your email (comma-separated for more than one), then redeploy. Until you set it, every account is treated as an owner.
+- **Use the Admin screen:** it needs the server-side keys `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (Supabase > Settings > API > service_role). You may already have these from the Stripe step. The Admin screen lists everyone who has signed up and lets you set or change each person's role. It appears in the account menu (top-right avatar) for owners only.
+
+## Environment variables at a glance
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | client | real accounts + data |
+| `VITE_BILLING_ENABLED` | client | route paid plans to Stripe |
+| `VITE_OWNER_EMAILS` | client + server | who is an owner (birds-eye + admin) |
+| `SUPABASE_SERVICE_ROLE_KEY` | server | lets the admin screen list & set roles |
+| `ANTHROPIC_API_KEY` | server | AI proposals |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | server | billing |
+| `STRIPE_PRICE_*_MONTHLY/ANNUAL` | server | plan prices |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | server | webhook writes the plan |
+
+## Project structure
+
+```
+qura-web/
+├── api/
+│   ├── anthropic.js        # AI proxy (holds Anthropic key)
+│   ├── admin.js            # owner-only: list users, set roles
+│   ├── checkout.js         # creates a Stripe Checkout session
+│   └── stripe-webhook.js   # Stripe -> writes plan back to the account
+├── supabase/schema.sql     # run once in Supabase
+├── src/
+│   ├── App.jsx             # the full Qura app
+│   ├── Auth.jsx            # real sign in / sign up
+│   ├── supabase.js         # Supabase client
+│   ├── billing.js          # Stripe Checkout helper
+│   ├── storage.js          # per-account storage (localStorage fallback)
+│   └── main.jsx            # entry + auth gate
+├── index.html
+├── .env.example
+├── package.json
+└── vite.config.js
 ```
 
-5. Optional: in **Authentication → Providers → Email**, turn email confirmation on or off to suit your rollout.
-6. Redeploy on Vercel so the new environment variables take effect.
+## Scheduled Public Sector Intelligence refresh (Vercel Cron)
 
-## Run it on your computer (optional)
-1. Install Node.js 18 or newer from nodejs.org.
-2. Open a terminal in this folder.
-3. Type `npm install`, then `npm run dev`, and open the address it prints.
+The ICB board-paper and council/governing-body intelligence page can update itself.
 
-## Put it online with Vercel
-1. Create free accounts at github.com and vercel.com.
-2. On GitHub, create a new repository named `realms-field`.
-3. Upload every file and folder from this project **including the `public` folder**, but not `node_modules`, `dist` or `.vercel`.
-4. On Vercel, **Add New… → Project**, import the repository, leave the detected Vite settings, and **Deploy**.
-5. Add the two environment variables above when you are ready for real accounts, then redeploy.
+- The scheduled function lives at `api/refresh-intel.js`.
+- `vercel.json` runs it daily at 06:00 UTC (`0 6 * * *`). Vercel picks this up automatically on deploy.
+- On each run it fetches each public source, uses your `ANTHROPIC_API_KEY` to distil only the Qura-relevant points (workforce, diagnostics, insourcing, procurement, SEND, complex care), and writes the results to Supabase shared rows (`psintel_icb`, `psintel_bodies`, `psintel_updated`). The app reads these on load and shows a "Last refreshed" time, falling back to the built-in baseline for any source it cannot read.
 
-## Next stage
-Stage 3 (Map) adds facility-list ingestion, area clustering and route planning onto the Field Monitor and Team Leader dashboards.
+### Environment variables it uses (all already in the project)
+- `ANTHROPIC_API_KEY` (summaries)
+- `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (writing shared rows)
+- `CRON_SECRET` (optional but recommended). Set any random string. Vercel sends it automatically to the cron; it also lets you trigger a run manually at `/api/refresh-intel?key=YOUR_SECRET`.
 
-## Troubleshooting a blank page
-A blank page almost always means a bad Supabase value. This build now falls back to demo mode instead of blanking, so if the site loads but shows the small "Demo mode" note on the sign-in screen, your keys did not take. Check in Vercel:
-- `VITE_SUPABASE_URL` begins with `https://` and ends in `.supabase.co`, with no quotes or spaces.
-- `VITE_SUPABASE_ANON_KEY` is the long anon public key, pasted whole with no line breaks.
-- Both are set for the Production environment, then redeploy so the new values are built in.
-To see the exact issue, open the site, press F12, and read the Console tab. A line starting with "Realms:" will name the problem.
+### Run it once immediately
+After deploying, visit `https://YOUR-APP.vercel.app/api/refresh-intel?key=YOUR_CRON_SECRET` (or without `?key=` if you did not set `CRON_SECRET`). You should see a small JSON `{ ok: true, ... }` response, and the intelligence page will then show the refreshed data.
 
-## Stage 3 (Map) setup
-Stage 3 adds Facilities, a Map & Route view and Team Leader assignment. In demo mode these save in the browser. For real accounts, run this once in the Supabase SQL Editor (paste from `create` to the last `);`, without the code fences):
+### Pointing at exact board papers
+`SOURCES_ICB` and `SOURCES_BODIES` in `api/refresh-intel.js` hold each source name and URL. Replace a URL with the exact board-papers/meetings page for sharper extraction; anything left unreadable simply uses its baseline points.
 
-```sql
-create table if not exists facilities (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  category text,
-  area text,
-  address text,
-  lat double precision,
-  lng double precision,
-  last_visit date,
-  created_by uuid references auth.users(id),
-  created_at timestamptz default now()
-);
-alter table facilities enable row level security;
-create policy "auth read facilities" on facilities for select using (auth.uid() is not null);
-create policy "auth write facilities" on facilities for insert with check (auth.uid() is not null);
-create policy "auth update facilities" on facilities for update using (auth.uid() is not null);
-create policy "auth delete facilities" on facilities for delete using (auth.uid() is not null);
+## Industry news refresh (Vercel Cron)
 
-create table if not exists assignments (
-  id uuid primary key default gen_random_uuid(),
-  visit_date date,
-  area text,
-  facility_ids jsonb,
-  note text,
-  created_by uuid references auth.users(id),
-  created_at timestamptz default now()
-);
-alter table assignments enable row level security;
-create policy "auth all assignments" on assignments for all using (auth.uid() is not null) with check (auth.uid() is not null);
-```
+- Function: `api/refresh-news.js`. `vercel.json` runs it daily at 05:00 UTC.
+- It pulls public healthcare news per region (UK, Nigeria, Middle East, International) from Google News RSS and writes them to Supabase shared rows (`qura_news_uk`, `qura_news_ng`, `qura_news_me`, `qura_news_intl`, `qura_news_updated`). The Industry news page reads these, falling back to a built-in baseline per region.
+- Uses `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (already set) and the optional `CRON_SECRET`. Trigger once manually at `/api/refresh-news?key=YOUR_CRON_SECRET`.
+- Licensed sources (e.g. HSJ) are not pulled directly; they can be added when licensed.
 
-### Importing facilities by CSV
-Use a header row with any of these columns (only `name` is required): `name, category, area` (or `lga`), `address, lat, lng, last_visit`. If a row has `lat` and `lng`, it appears on the map straight away. Rows without coordinates can be placed later with the Locate button, which looks the address up on OpenStreetMap.
+## To connect later (email sending)
 
-### Maps and directions
-The map uses OpenStreetMap, so it needs no API key. Build route orders the stops for the shortest hop-to-hop path, and Open in Google Maps hands the ordered stops to the Google Maps app for turn-by-turn on the day. If you later want in-app Google directions, that is a small addition and will need a Google Maps key.
+The mailshots (Decision makers) and the automatic Friday delivery of the Weekly activity
+report send real emails, which needs an email provider (e.g. Resend or SendGrid) plus a
+verified qura.health domain. The screens, Qura Credits (5 messages/day on standard, more on
+premium; 10 follow-invites/day) and limits all work now; only the outbound email delivery
+waits on that provider. Once added, wire an `api/send-mail.js` and set the provider API key
+as a Vercel env var.
 
-## Stage 4 (Engage) setup
-Stage 4 adds the arrival check-in, saved as a visit. In demo mode visits save in the browser. For real accounts, run this once in the Supabase SQL Editor:
+## Email sending (Resend)
 
-```sql
-create table if not exists visits (
-  id uuid primary key default gen_random_uuid(),
-  facility_id text,
-  facility_name text,
-  area text,
-  status text default 'engaged',
-  arrival_time timestamptz,
-  lat double precision,
-  lng double precision,
-  team jsonb,
-  person_in_charge jsonb,
-  greeting_confirmed boolean default false,
-  created_by uuid references auth.users(id),
-  created_at timestamptz default now()
-);
-alter table visits enable row level security;
-create policy "auth all visits" on visits for all using (auth.uid() is not null) with check (auth.uid() is not null);
-```
+- Function: `api/send-mail.js`. The Weekly report "Email me" button now sends the report to the signed-in user's email.
+- To switch it on: create an account at resend.com, verify your sending domain (e.g. qura.health), create an API key, then in Vercel set env vars `RESEND_API_KEY` (your key) and optionally `MAIL_FROM` (e.g. `Qura <noreply@qura.health>`). Redeploy.
+- Until the key is set, the button reports "Email is not configured yet". The same function can later power mailshots, introductions and interest notifications once real recipient data and consent are in place.
 
-The Engage tab appears for Field Monitor and Team Leader. It walks four steps: choose the facility, confirm arrival and capture location, present the monitoring letter and team ID cards with the introduction script, then record the person in charge and confirm the greeting. Location capture uses the browser and needs the site on https, which Vercel provides. The assessment checklist that follows arrives in Stage 5.
+## Payments (Stripe) — going live
 
-## Stage 5 (Monitor) setup
-Stage 5 adds the six-category HEFAMAA checklist onto a visit, with red/amber/green scoring and evidence capture. In demo mode this saves in the browser. For real accounts, add three columns to the existing visits table (run once in the Supabase SQL Editor):
+The Pricing page now launches real Stripe Checkout for paid plans when `VITE_BILLING_ENABLED=true`. Free/trial and Enterprise (contact sales) plans do not charge.
 
-```sql
-alter table visits add column if not exists monitoring jsonb;
-alter table visits add column if not exists score int;
-alter table visits add column if not exists overall_rating text;
-```
+**Env vars (Vercel):**
+- `STRIPE_SECRET_KEY` — your live secret key.
+- `STRIPE_WEBHOOK_SECRET` — from the webhook you create (below).
+- `VITE_BILLING_ENABLED=true`.
+- Price IDs. Generic (apply to every persona): `STRIPE_PRICE_STARTER_MONTHLY`, `STRIPE_PRICE_STARTER_ANNUAL`, `STRIPE_PRICE_GROWTH_MONTHLY`, `STRIPE_PRICE_GROWTH_ANNUAL`.
+- Optional per-persona overrides (only if you want different prices per audience): `STRIPE_PRICE_AGENCY_GROWTH_ANNUAL`, `STRIPE_PRICE_BUYER_GROWTH_ANNUAL`, `STRIPE_PRICE_CLINICIAN_GROWTH_ANNUAL`, and the same pattern for STARTER / MONTHLY. The app first looks for the persona-specific price, then falls back to the generic one.
 
-### How it works
-Open Monitor, choose a checked-in visit, and rate each item Green, Amber or Red. The category and overall compliance scores update live. Per item you can add a photo, a document scan, or a voice note, and each piece of evidence is stamped with the time and, if allowed, the location. Photos and scans are shrunk in the browser before saving to keep them small. Your work autosaves to the device as you go, so a lost connection will not lose it: an Online or Offline badge shows the state, and if a save cannot reach Supabase it is kept locally and marked Pending sync, with a Sync now button to retry.
+**Steps:**
+1. In Stripe (live mode), create a Product per plan (e.g. Starter, Growth) with a monthly and an annual recurring Price. Copy each Price ID (starts with `price_`).
+2. In Vercel, add the env vars above with those Price IDs. Set `VITE_BILLING_ENABLED=true`.
+3. In Stripe, add a webhook endpoint pointing to `https://your-domain/api/stripe-webhook`, subscribe to checkout and subscription events, and copy its signing secret into `STRIPE_WEBHOOK_SECRET`.
+4. Redeploy. Test one real subscription end to end before announcing.
 
-Two notes. Camera, microphone and location need the site on https, which Vercel provides. Evidence is stored inline for now, which is fine for routine volumes; if you later capture a great deal of media per visit, moving evidence to Supabase Storage is the clean next step.
+## Demo & member sessions (Book a Demo + How to use Qura)
 
-## Stage 6 (Debrief) setup
-Stage 6 closes out a visit: strengths and gaps, corrective actions, a remediation timeline, the proprietor e-signature, and the monitoring report and corrective letter. In demo mode this saves in the browser. For real accounts, add one column to the visits table (run once in the Supabase SQL Editor):
+- The public "Book a demo" screen is now video-first. Paste your demo embed URL into
+  `DEMO_VIDEO_URL` at the top of the DemoBooking section in `src/App.jsx` to go live; until then a
+  branded placeholder shows.
+- Signed-in members get a "How to use Qura" page with: rewatch demo, 1:1 strategy session
+  (Founder £299 / Senior £149) with slot picker and waiting list, and team workshops (£99 up to 5 /
+  £199 unlimited). Bookings are recorded on the member's dashboard.
+- Paid sessions use Stripe **one-off** payments. Create these as **one-time** prices in Stripe and add
+  the price IDs to Vercel:
+  - `STRIPE_PRICE_SESSION_FOUNDER`
+  - `STRIPE_PRICE_SESSION_SENIOR`
+  - `STRIPE_PRICE_WORKSHOP_W5`
+  - `STRIPE_PRICE_WORKSHOP_WUNLIMITED`
+  The checkout function auto-detects session/workshop as one-off (payment mode) vs subscriptions.
+- Calendar invites, confirmation emails, video links and reminders send once the email/notification
+  backend (Resend, already set up) and a calendar/video provider are connected.
 
-```sql
-alter table visits add column if not exists debrief jsonb;
-```
+## Countdown launch mode
 
-### How it works
-Open Debrief and choose an assessed visit. The strengths (green items) and gaps (amber and red items) are pulled straight from the Monitor ratings. Enter a required action and timeline for each gap, set a remediation deadline and re-inspection window, and record the person in charge with their acknowledgement and signature, drawn on the device. Save debrief stores everything and moves the visit to debriefed, with the same offline and Sync now safety as Monitor. Monitoring report and Corrective letter open a formatted document in a new tab; use the browser's Print or Save as PDF. Signing and drawing need the site on https, which Vercel provides. Reports are drafts for human review before they are issued.
-
-## Stage 7 (Reports & notifications) and Stage 8 (Analytics)
-These two stages read the data already stored, so there are no new tables to create.
-
-### Reports (Stage 7)
-The Reports tab (RHSC HQ, Team Leader, HEFAMAA Reviewer) lists every visit with filters for area and status. For each visit you can open the Monitoring report or Corrective letter, or open Notify. A Re-inspections due panel lists debriefed visits by their remediation deadline, flagging overdue and near-due ones. Export CSV downloads the filtered list.
-
-Notifications work without a backend: Email report and HQ alert open your mail app with the summary prefilled, and SMS proprietor opens your phone's messaging app to the proprietor's number. To send SMS and email automatically instead, connect a provider (for example Termii or Africa's Talking for SMS, and a transactional email service) behind a small serverless function; the buttons can then post to it. That is an optional integration and needs provider keys.
-
-### Analytics (Stage 8)
-The Analytics tab (RHSC HQ, Team Leader, HEFAMAA Reviewer) shows headline figures (facilities, areas covered, visits, assessed, average score, green rate), a visits-by-area bar chart, a compliance-outcomes breakdown, and a geographic map where every facility is coloured by its most recent visit outcome, green, amber, red, or grey for not yet assessed. Everything is computed live from your facilities and visits.
-
-## Optional: automated notifications and evidence storage
-These are optional upgrades. The app runs fully without them; they improve real-account deployments.
-
-### Automated SMS and email (serverless function)
-A function at `api/notify.js` sends SMS via Termii and email via Resend. Set these environment variables in Vercel (add only the ones you want; missing ones make the app fall back to opening your device's mail or SMS app):
-- SMS: `TERMII_API_KEY`, and optionally `TERMII_SENDER_ID` (defaults to RHSC).
-- Email: `RESEND_API_KEY`, and `NOTIFY_FROM` (a sender address verified with Resend).
-
-Redeploy after adding them. In Reports, open Notify on a visit: Send SMS uses the proprietor's phone; enter an address and Send email to email the summary. The open-app links remain as a manual fallback. You can swap Termii or Resend for another provider by editing the two fetch calls in `api/notify.js`.
-
-### Evidence in Supabase Storage
-By default, photos, scans and voice notes are stored inline with the visit, which is fine for routine volumes. To store heavier media as files instead, create a Storage bucket named `evidence` in Supabase and make it public (Storage, New bucket, name it evidence, tick Public). The app then uploads each piece of evidence and stores its URL; if the bucket is missing or upload fails, it quietly falls back to inline storage, so nothing breaks. For tighter access you can keep the bucket private and switch the app to signed URLs later.
-
-## This build adds
-- Installable app (PWA): on a phone, open the site and choose "Add to Home Screen". It then launches full-screen and caches the shell for offline use.
-- Proprietor view: the Facility Proprietor role now has a "My Facility" tab with read-only outcomes, corrective actions and re-inspection timelines. (In production, scope this to the proprietor's own facility.)
-- WhatsApp notifications: add `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` (e.g. `whatsapp:+14155238886`) in Vercel to enable automated WhatsApp from the Reports Notify panel. Without them, the "open WhatsApp" link still works.
-- Exports: Reports now export CSV, Excel and a PDF summary.
-- Google Sheet import: on Facilities, "Google Sheet" imports from a view-shared sheet link. "HEFAMAA sync" is ready to wire once you share the Agency's API endpoint.
-- Field evidence rules: photo required on red items, a voice note per rated category, and GPS mandatory at check-in.
+- Set `LAUNCH_DATE` near the top of the Landing section in `src/App.jsx` (e.g. "2026-09-22T09:00:00").
+- The Home tab shows a live countdown, a daily-rotating feature spotlight, and an early-access email
+  capture. Captured emails are stored under `qura_waitlist`; for a real campaign, export them or wire
+  the capture to your email tool.
+- The countdown hides itself automatically once the launch date passes, revealing the normal hero.
