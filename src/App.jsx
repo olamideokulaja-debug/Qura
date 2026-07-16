@@ -2565,7 +2565,7 @@ function CountdownBanner() {
   );
 }
 
-function ScreenGallery() {
+function ScreenGallery({ onBack }) {
   const SCREENS = [
     { s: "dashboard", l: "Dashboard", d: "Your pipeline, matches and momentum at a glance the moment you sign in." },
     { s: "livefeed", l: "Live feed", d: "Roles, insourcing projects and tenders across every market, updating around the clock." },
@@ -2579,16 +2579,23 @@ function ScreenGallery() {
     { s: "accommodation", l: "Accommodation", d: "Verified relocation and housing partners, country by country, worldwide." },
   ];
   const [i, setI] = useState(0);
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (paused) return;
+    const t = setTimeout(() => setI((n) => (n + 1) % SCREENS.length), 4200);
+    return () => clearTimeout(t);
+  }, [i, paused]);
   const cur = SCREENS[i];
   return (
-    <div style={{ marginTop: 64 }}>
-      <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 26px" }}><div className="eyebrow">Inside the platform</div><h2 className="disp" style={{ fontSize: 32, fontWeight: 700, margin: "8px 0 10px" }}>Every page, built to save you hours</h2><p className="muted" style={{ fontSize: 15.5, lineHeight: 1.6, marginTop: 0 }}>Real screens from {APP_NAME}. Click through to see what replaces the searching.</p></div></Reveal>
+    <div>
+      <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 26px" }}><div className="eyebrow">Inside the platform</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "8px 0 10px" }}>Every page, built to save you hours</h2><p className="muted" style={{ fontSize: 16, lineHeight: 1.6, marginTop: 0 }}>Real screens from {APP_NAME}, playing automatically. Hover to pause, or pick a page.</p></div></Reveal>
       <div className="row" style={{ gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>{SCREENS.map((sc, n) => (<button key={sc.s} onClick={() => setI(n)} className={"shot-thumb" + (n === i ? " on" : "")}>{sc.l}</button>))}</div>
       <Reveal>
-        <div className="shot-wrap"><img key={cur.s} src={"/screens/" + cur.s + ".jpg"} alt={cur.l + " screen in " + APP_NAME} loading="lazy" /></div>
-        <div className="row" style={{ justifyContent: "space-between", gap: 14, marginTop: 14, flexWrap: "wrap" }}>
+        <div className="shot-wrap" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}><img key={cur.s} src={"/screens/" + cur.s + ".jpg"} alt={cur.l + " screen in " + APP_NAME} loading="lazy" />{SCREENS.map((sc) => (<link key={sc.s} rel="prefetch" href={"/screens/" + sc.s + ".jpg"} />))}</div>
+        <div className="row" style={{ gap: 6, marginTop: 12 }}>{SCREENS.map((sc, n) => (<span key={sc.s} onClick={() => setI(n)} style={{ cursor: "pointer", height: 4, flex: 1, borderRadius: 99, background: n === i ? "var(--teal)" : "var(--line)", transition: "background .25s" }} />))}</div>
+        <div className="row" style={{ justifyContent: "space-between", gap: 14, marginTop: 12, flexWrap: "wrap" }}>
           <div><div style={{ fontWeight: 700, fontSize: 16 }}>{cur.l}</div><div className="muted" style={{ fontSize: 13.5, marginTop: 2 }}>{cur.d}</div></div>
-          <div className="row" style={{ gap: 8 }}><button className="btn btn-light" onClick={() => setI((i - 1 + SCREENS.length) % SCREENS.length)}>Previous</button><button className="btn btn-primary" onClick={() => setI((i + 1) % SCREENS.length)}>Next screen <ArrowRight size={15} /></button></div>
+          {onBack ? <button className="btn btn-light" onClick={onBack}>{"\u2190"} Back to how it works</button> : null}
         </div>
       </Reveal>
     </div>
@@ -2604,7 +2611,7 @@ function SnapFrame({ title, children }) {
   );
 }
 
-function HowItWorks() {
+function HowItWorks({ section = "walk", go }) {
   const [lens, setLens] = useState("supplier");
   const [step, setStep] = useState(0);
   const row = (icon, main, sub, pill) => (
@@ -2658,6 +2665,7 @@ function HowItWorks() {
   return (
     <div className="sec how" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
       <div className="wrap" style={{ padding: "68px 24px" }}>
+        {section === "walk" ? (<>
         <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 30px" }}><div className="eyebrow">How it works</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "8px 0 10px" }}>See {APP_NAME} through your lens</h2><p className="muted" style={{ fontSize: 16, lineHeight: 1.6, marginTop: 0 }}>Pick who you are, then step through what would take hours by hand and takes seconds here.</p></div></Reveal>
         <div className="row" style={{ gap: 9, justifyContent: "center", flexWrap: "wrap", marginBottom: 26 }}>{Object.keys(LENSES).map((k) => { const I = LENSES[k].icon; return (<button key={k} onClick={() => { setLens(k); setStep(0); }} className="btn lift" style={{ padding: "10px 18px", background: lens === k ? "var(--navy)" : "#fff", color: lens === k ? "#fff" : "var(--navy)", border: "1px solid " + (lens === k ? "var(--navy)" : "var(--line)"), fontWeight: 600 }}><I size={15} /> {LENSES[k].label}</button>); })}</div>
         <div className="grid g2" style={{ gap: 26, alignItems: "center" }}>
@@ -2672,7 +2680,8 @@ function HowItWorks() {
           </div>
           <SnapFrame key={lens + step} title={"qurahealth.org \u00b7 " + S.snap}>{S.body}</SnapFrame>
         </div>
-        <ScreenGallery />
+        <div className="row" style={{ justifyContent: "center", marginTop: 34 }}><button onClick={() => { if (go) go("gallery"); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} className="btn btn-light">See inside the platform <ArrowRight size={15} /></button></div>
+        </>) : <ScreenGallery onBack={() => { if (go) go("walk"); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} />}
       </div>
     </div>
   );
@@ -2680,6 +2689,8 @@ function HowItWorks() {
 
 function Landing({ onEnter, onDemo }) {
   const [view, setView] = useState("home");
+  const [howSec, setHowSec] = useState("walk");
+  const [howMenu, setHowMenu] = useState(false);
   const [policy, setPolicy] = useState(null);
   const [lens, setLens] = useState("global");
   const [tick, setTick] = useState(0);
@@ -2721,7 +2732,21 @@ function Landing({ onEnter, onDemo }) {
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(255,255,255,.82)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--line)" }}>
         <div className="row" style={{ justifyContent: "space-between", height: 72, padding: "0 20px" }}>
           <span onClick={() => setView("home")} style={{ cursor: "pointer" }}><Wordmark /></span>
-          <div className="row hsm" style={{ gap: 18 }}>{[["Home", "home"], ["Marketplace", "market"], ["How it works", "how"], ["Fragile professions", "fragile"], ["Solutions", "solutions"], ["Our story", "story"], ["Pricing", "pricing"]].map(([l, k]) => (<button key={k} onClick={() => { setView(k); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} className="navlink" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: view === k ? 700 : 500, color: view === k ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{l}</button>))}</div>
+          <div className="row hsm" style={{ gap: 18 }}>{[["Home", "home"], ["Marketplace", "market"], ["How it works", "how"], ["Fragile professions", "fragile"], ["Solutions", "solutions"], ["Our story", "story"], ["Pricing", "pricing"]].map(([l, k]) => k === "how" ? (
+            <div key={k} style={{ position: "relative" }} onMouseLeave={() => setHowMenu(false)}>
+              <button onClick={() => setHowMenu((o) => !o)} className="navlink row" style={{ gap: 5, background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: view === k ? 700 : 500, color: view === k ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{l} <ChevronDown size={13} style={{ transform: howMenu ? "rotate(180deg)" : "none", transition: "transform .18s" }} /></button>
+              {howMenu ? (
+                <div className="card" style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, padding: 6, width: 232, zIndex: 40, boxShadow: "0 16px 40px rgba(10,23,48,.18)" }}>
+                  {[["How it works", "walk", "Step through Qura by lens"], ["Inside the platform", "gallery", "Real screens, page by page"]].map(([ml, ms, md]) => (
+                    <button key={ms} onClick={() => { setView("how"); setHowSec(ms); setHowMenu(false); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} style={{ width: "100%", textAlign: "left", padding: "9px 11px", borderRadius: 9, border: "none", cursor: "pointer", background: view === "how" && howSec === ms ? "var(--cyan-soft)" : "transparent" }}>
+                      <span style={{ display: "block", fontWeight: 600, fontSize: 13.5, color: "var(--text)" }}>{ml}</span>
+                      <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>{md}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : (<button key={k} onClick={() => { setView(k); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} className="navlink" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: view === k ? 700 : 500, color: view === k ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{l}</button>))}</div>
           <div className="row" style={{ gap: 12 }}><button className="btn btn-light hsm" style={{ background: "var(--bg)" }} onClick={onDemo}>Book a demo</button><button className="btn btn-primary" onClick={onEnter}>Get started / Sign in</button></div>
         </div>
       </div>
@@ -2895,7 +2920,7 @@ function Landing({ onEnter, onDemo }) {
         <div className="muted" style={{ fontSize: 15, maxWidth: 640, margin: "0 auto" }}>One live platform spanning the NHS, private and international healthcare markets.</div>
       </div>
 
-      <HowItWorks />
+      <HowItWorks section={howSec} go={setHowSec} />
 
       <div className="sec story" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap" style={{ padding: "72px 24px" }}>
