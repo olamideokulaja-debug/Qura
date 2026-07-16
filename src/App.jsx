@@ -129,9 +129,15 @@ a{transition:color .15s ease}
 .cura [style*="text-align: center"] p,.cura [style*="text-align:center"] p{text-align:center;-webkit-hyphens:manual;hyphens:manual}
 .lb{flex:1 0 auto}
 .shot-wrap{border-radius:16px;overflow:hidden;border:1px solid var(--line);box-shadow:0 22px 60px rgba(10,23,48,.22);background:#0A1730;position:relative}
-.shot-wrap{display:flex;justify-content:center}
-.shot-wrap img{display:block;width:auto;max-width:100%;height:auto;max-height:calc(100vh - 268px);animation:snapIn .4s ease both}
-.shot-thumb{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 13px;cursor:pointer;font-size:12.5px;font-weight:600;color:#5A6783;transition:all .16s ease;white-space:nowrap}
+.shot-wrap{position:relative;width:100%;aspect-ratio:1200/752;max-height:calc(100vh - 224px);max-width:calc((100vh - 224px) * 1.595);margin:0 auto}
+.shot-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .55s ease;border-radius:16px}
+.shot-wrap img.on{opacity:1}
+.shot-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:9px;color:rgba(255,255,255,.75);font-size:13px;font-weight:600}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.shot-tabs{display:flex;gap:6px;justify-content:center;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.shot-tabs::-webkit-scrollbar{display:none}
+.shot-thumb{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 11px;cursor:pointer;font-size:12px;font-weight:600;color:#5A6783;transition:all .16s ease;white-space:nowrap;flex:0 0 auto}
 .shot-thumb:hover{border-color:var(--blue);color:var(--navy)}
 .shot-thumb.on{background:var(--navy);color:#fff;border-color:var(--navy)}
 .snap{background:#0A1730;border-radius:16px;overflow:hidden;box-shadow:0 22px 60px rgba(10,23,48,.34);border:1px solid rgba(255,255,255,.09)}
@@ -2580,6 +2586,13 @@ function ScreenGallery({ onBack }) {
     { s: "accommodation", l: "Accommodation", d: "Verified relocation and housing partners, country by country, worldwide." },
   ];
   const [i, setI] = useState(0);
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    let live = true;
+    Promise.all(SCREENS.map((sc) => new Promise((res) => { const im = new Image(); im.onload = res; im.onerror = res; im.src = "/screens/" + sc.s + ".jpg"; })))
+      .then(() => { if (live) setReady(true); });
+    return () => { live = false; };
+  }, []);
   useEffect(() => {
     const t = setInterval(() => setI((n) => (n + 1) % SCREENS.length), 4000);
     return () => clearInterval(t);
@@ -2591,9 +2604,12 @@ function ScreenGallery({ onBack }) {
         <div className="row" style={{ gap: 12, alignItems: "baseline", flexWrap: "wrap" }}><span className="eyebrow" style={{ color: "#06776F" }}>Inside the platform</span><h2 className="disp" style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Every page, built to save you hours</h2></div>
         <span className="faint" style={{ fontSize: 12 }}>Real screens from {APP_NAME}, playing automatically</span>
       </div>
-      <div className="row" style={{ gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>{SCREENS.map((sc, n) => (<button key={sc.s} onClick={() => setI(n)} className={"shot-thumb" + (n === i ? " on" : "")}>{sc.l}</button>))}</div>
+      <div className="shot-tabs" style={{ marginBottom: 12 }}>{SCREENS.map((sc, n) => (<button key={sc.s} onClick={() => setI(n)} className={"shot-thumb" + (n === i ? " on" : "")}>{sc.l}</button>))}</div>
       <Reveal>
-        <div className="shot-wrap"><img key={cur.s} src={"/screens/" + cur.s + ".jpg"} alt={cur.l + " screen in " + APP_NAME} loading="lazy" />{SCREENS.map((sc) => (<link key={sc.s} rel="prefetch" href={"/screens/" + sc.s + ".jpg"} />))}</div>
+        <div className="shot-wrap">
+          {SCREENS.map((sc, n) => (<img key={sc.s} className={n === i ? "on" : ""} src={"/screens/" + sc.s + ".jpg"} alt={sc.l + " screen in " + APP_NAME} decoding="async" fetchPriority={n === 0 ? "high" : "low"} />))}
+          {!ready ? <div className="shot-loading"><Loader2 size={18} className="spin" /> Loading screens...</div> : null}
+        </div>
         <div className="row" style={{ gap: 6, marginTop: 12 }}>{SCREENS.map((sc, n) => (<span key={sc.s} onClick={() => setI(n)} style={{ cursor: "pointer", height: 4, flex: 1, borderRadius: 99, background: n === i ? "var(--teal)" : "var(--line)", transition: "background .25s" }} />))}</div>
         <div className="row" style={{ justifyContent: "space-between", gap: 14, marginTop: 12, flexWrap: "wrap" }}>
           <div><div style={{ fontWeight: 700, fontSize: 16 }}>{cur.l}</div><div className="muted" style={{ fontSize: 13.5, marginTop: 2 }}>{cur.d}</div></div>
@@ -2693,6 +2709,15 @@ function Landing({ onEnter, onDemo }) {
   const [view, setView] = useState("home");
   const [howSec, setHowSec] = useState("walk");
   const [howMenu, setHowMenu] = useState(false);
+  const howRef = useRef(null);
+  useEffect(() => {
+    if (!howMenu) return;
+    const onDoc = (e) => { if (howRef.current && !howRef.current.contains(e.target)) setHowMenu(false); };
+    const onKey = (e) => { if (e.key === "Escape") setHowMenu(false); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
+  }, [howMenu]);
   const [policy, setPolicy] = useState(null);
   const [lens, setLens] = useState("global");
   const [tick, setTick] = useState(0);
@@ -2735,10 +2760,10 @@ function Landing({ onEnter, onDemo }) {
         <div className="row" style={{ justifyContent: "space-between", height: 72, padding: "0 20px" }}>
           <span onClick={() => setView("home")} style={{ cursor: "pointer" }}><Wordmark /></span>
           <div className="row hsm" style={{ gap: 18 }}>{[["Home", "home"], ["Marketplace", "market"], ["How it works", "how"], ["Fragile professions", "fragile"], ["Solutions", "solutions"], ["Our story", "story"], ["Pricing", "pricing"]].map(([l, k]) => k === "how" ? (
-            <div key={k} style={{ position: "relative" }} onMouseLeave={() => setHowMenu(false)}>
+            <div key={k} ref={howRef} style={{ position: "relative" }}>
               <button onClick={() => setHowMenu((o) => !o)} className="navlink row" style={{ gap: 5, background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: view === k ? 700 : 500, color: view === k ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{l} <ChevronDown size={13} style={{ transform: howMenu ? "rotate(180deg)" : "none", transition: "transform .18s" }} /></button>
               {howMenu ? (
-                <div className="card" style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, padding: 6, width: 232, zIndex: 40, boxShadow: "0 16px 40px rgba(10,23,48,.18)" }}>
+                <div className="card" style={{ position: "absolute", top: "calc(100% + 2px)", left: 0, padding: 6, width: 232, zIndex: 40, boxShadow: "0 16px 40px rgba(10,23,48,.18)" }}>
                   {[["How it works", "walk", "Step through Qura by lens"], ["Inside the platform", "gallery", "Real screens, page by page"]].map(([ml, ms, md]) => (
                     <button key={ms} onClick={() => { setView("how"); setHowSec(ms); setHowMenu(false); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} style={{ width: "100%", textAlign: "left", padding: "9px 11px", borderRadius: 9, border: "none", cursor: "pointer", background: view === "how" && howSec === ms ? "var(--cyan-soft)" : "transparent" }}>
                       <span style={{ display: "block", fontWeight: 600, fontSize: 13.5, color: "var(--text)" }}>{ml}</span>
