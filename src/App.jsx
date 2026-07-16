@@ -128,6 +128,11 @@ a{transition:color .15s ease}
 .cura p{text-align:justify;text-justify:inter-word;-webkit-hyphens:auto;hyphens:auto}
 .cura [style*="text-align: center"] p,.cura [style*="text-align:center"] p{text-align:center;-webkit-hyphens:manual;hyphens:manual}
 .lb{flex:1 0 auto}
+.shot-wrap{border-radius:16px;overflow:hidden;border:1px solid var(--line);box-shadow:0 22px 60px rgba(10,23,48,.22);background:#0A1730;position:relative}
+.shot-wrap img{display:block;width:100%;height:auto;animation:snapIn .4s ease both}
+.shot-thumb{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 13px;cursor:pointer;font-size:12.5px;font-weight:600;color:#5A6783;transition:all .16s ease;white-space:nowrap}
+.shot-thumb:hover{border-color:var(--blue);color:var(--navy)}
+.shot-thumb.on{background:var(--navy);color:#fff;border-color:var(--navy)}
 .snap{background:#0A1730;border-radius:16px;overflow:hidden;box-shadow:0 22px 60px rgba(10,23,48,.34);border:1px solid rgba(255,255,255,.09)}
 .snap-bar{display:flex;gap:6px;align-items:center;padding:10px 12px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08)}
 .snap-dot{width:9px;height:9px;border-radius:99px}
@@ -2560,6 +2565,36 @@ function CountdownBanner() {
   );
 }
 
+function ScreenGallery() {
+  const SCREENS = [
+    { s: "dashboard", l: "Dashboard", d: "Your pipeline, matches and momentum at a glance the moment you sign in." },
+    { s: "livefeed", l: "Live feed", d: "Roles, insourcing projects and tenders across every market, updating around the clock." },
+    { s: "marketmap", l: "Market map", d: "The market mapped for you automatically, instead of hours of manual research." },
+    { s: "publicintel", l: "Public sector intel", d: "ICB and trust board papers read and summarised for you, every day." },
+    { s: "aiassistant", l: "AI assistant", d: "Outreach and answers drafted in your own tone of voice, in seconds." },
+    { s: "cliniciannetwork", l: "Clinician network", d: "Pre-vetted clinicians, filtered by country, sector and experience." },
+    { s: "talentpipeline", l: "Talent pipeline", d: "Advertise available candidates anonymously, and let hospitals come to you." },
+    { s: "weeklyreport", l: "Weekly report", d: "A board-ready activity report, written for you and emailed each week." },
+    { s: "analytics", l: "Analytics", d: "What is working, what is not, and where the next win is coming from." },
+    { s: "accommodation", l: "Accommodation", d: "Verified relocation and housing partners, country by country, worldwide." },
+  ];
+  const [i, setI] = useState(0);
+  const cur = SCREENS[i];
+  return (
+    <div style={{ marginTop: 64 }}>
+      <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 26px" }}><div className="eyebrow">Inside the platform</div><h2 className="disp" style={{ fontSize: 32, fontWeight: 700, margin: "8px 0 10px" }}>Every page, built to save you hours</h2><p className="muted" style={{ fontSize: 15.5, lineHeight: 1.6, marginTop: 0 }}>Real screens from {APP_NAME}. Click through to see what replaces the searching.</p></div></Reveal>
+      <div className="row" style={{ gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>{SCREENS.map((sc, n) => (<button key={sc.s} onClick={() => setI(n)} className={"shot-thumb" + (n === i ? " on" : "")}>{sc.l}</button>))}</div>
+      <Reveal>
+        <div className="shot-wrap"><img key={cur.s} src={"/screens/" + cur.s + ".jpg"} alt={cur.l + " screen in " + APP_NAME} loading="lazy" /></div>
+        <div className="row" style={{ justifyContent: "space-between", gap: 14, marginTop: 14, flexWrap: "wrap" }}>
+          <div><div style={{ fontWeight: 700, fontSize: 16 }}>{cur.l}</div><div className="muted" style={{ fontSize: 13.5, marginTop: 2 }}>{cur.d}</div></div>
+          <div className="row" style={{ gap: 8 }}><button className="btn btn-light" onClick={() => setI((i - 1 + SCREENS.length) % SCREENS.length)}>Previous</button><button className="btn btn-primary" onClick={() => setI((i + 1) % SCREENS.length)}>Next screen <ArrowRight size={15} /></button></div>
+        </div>
+      </Reveal>
+    </div>
+  );
+}
+
 function SnapFrame({ title, children }) {
   return (
     <div className="snap">
@@ -2637,6 +2672,7 @@ function HowItWorks() {
           </div>
           <SnapFrame key={lens + step} title={"qurahealth.org \u00b7 " + S.snap}>{S.body}</SnapFrame>
         </div>
+        <ScreenGallery />
       </div>
     </div>
   );
