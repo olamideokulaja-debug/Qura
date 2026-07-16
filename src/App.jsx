@@ -128,8 +128,23 @@ a{transition:color .15s ease}
 .cura p{text-align:justify;text-justify:inter-word;-webkit-hyphens:auto;hyphens:auto}
 .cura [style*="text-align: center"] p,.cura [style*="text-align:center"] p{text-align:center;-webkit-hyphens:manual;hyphens:manual}
 .lb{flex:1 0 auto}
+.snap{background:#0A1730;border-radius:16px;overflow:hidden;box-shadow:0 22px 60px rgba(10,23,48,.34);border:1px solid rgba(255,255,255,.09)}
+.snap-bar{display:flex;gap:6px;align-items:center;padding:10px 12px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.08)}
+.snap-dot{width:9px;height:9px;border-radius:99px}
+.snap-body{padding:16px;min-height:290px}
+.snap-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);margin-bottom:8px;animation:snapIn .42s ease both}
+.snap-pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:99px;background:rgba(0,194,184,.18);color:#7EEDE4;border:1px solid rgba(0,194,184,.34);white-space:nowrap}
+.snap-input{display:flex;align-items:center;gap:8px;padding:10px 13px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:#C9D6EC;font-size:12.5px;margin-bottom:12px}
+.snap-note{font-size:11px;color:rgba(255,255,255,.5);margin-top:10px}
+@keyframes snapIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.snap-row:nth-child(2){animation-delay:.07s}.snap-row:nth-child(3){animation-delay:.14s}.snap-row:nth-child(4){animation-delay:.21s}
+.step-btn{width:100%;text-align:left;display:flex;gap:13px;align-items:flex-start;padding:14px 15px;border-radius:13px;border:1px solid var(--line);background:#fff;cursor:pointer;transition:all .18s ease}
+.step-btn:hover{border-color:var(--blue);transform:translateX(3px)}
+.step-btn.on{border-color:var(--cyan);background:var(--cyan-soft)}
+.step-num{width:26px;height:26px;border-radius:99px;display:grid;place-items:center;font-size:12px;font-weight:800;flex-shrink:0;background:#EEF1F7;color:#5A6783}
+.step-btn.on .step-num{background:var(--teal);color:#fff}
 .lb .sec{display:none!important}
-.lb[data-view="home"] .sec.home,.lb[data-view="market"] .sec.market,.lb[data-view="fragile"] .sec.fragile,.lb[data-view="solutions"] .sec.solutions,.lb[data-view="founders"] .sec.founders,.lb[data-view="pricing"] .sec.pricing{display:block!important}
+.lb[data-view="home"] .sec.home,.lb[data-view="market"] .sec.market,.lb[data-view="fragile"] .sec.fragile,.lb[data-view="solutions"] .sec.solutions,.lb[data-view="founders"] .sec.founders,.lb[data-view="story"] .sec.story,.lb[data-view="how"] .sec.how,.lb[data-view="pricing"] .sec.pricing{display:block!important}
 .navlink{color:var(--muted);font-size:14.5px;font-weight:500;text-decoration:none;transition:color .15s}
 .navlink:hover{color:var(--navy)}
 `;
@@ -2545,6 +2560,88 @@ function CountdownBanner() {
   );
 }
 
+function SnapFrame({ title, children }) {
+  return (
+    <div className="snap">
+      <div className="snap-bar"><span className="snap-dot" style={{ background: "#FF5F57" }} /><span className="snap-dot" style={{ background: "#FEBC2E" }} /><span className="snap-dot" style={{ background: "#28C840" }} /><span style={{ marginLeft: 8, fontSize: 11, color: "rgba(255,255,255,.5)" }}>{title}</span></div>
+      <div className="snap-body">{children}</div>
+    </div>
+  );
+}
+
+function HowItWorks() {
+  const [lens, setLens] = useState("supplier");
+  const [step, setStep] = useState(0);
+  const row = (icon, main, sub, pill) => (
+    <div className="snap-row"><div style={{ width: 30, height: 30, borderRadius: 8, background: "rgba(45,107,255,.22)", display: "grid", placeItems: "center", flexShrink: 0 }}>{icon}</div><div style={{ minWidth: 0, flex: 1 }}><div style={{ color: "#fff", fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{main}</div><div style={{ color: "rgba(255,255,255,.52)", fontSize: 11 }}>{sub}</div></div>{pill ? <span className="snap-pill">{pill}</span> : null}</div>
+  );
+  const LENSES = {
+    supplier: {
+      label: "Workforce suppliers", icon: Briefcase,
+      steps: [
+        { t: "See live demand, the moment it appears", d: "Roles, insourcing projects and tenders across the NHS, private and international markets, updating around the clock.", snap: "Live opportunities", body: (<><div className="snap-input"><Search size={13} /> Sonographer, insourcing, South East</div>{row(<Radar size={15} color="#7FA9FF" />, "Community Diagnostic Centre, insourcing", "NHS trust \u00b7 closes in 6 days", "94% fit")}{row(<Stethoscope size={15} color="#7FA9FF" />, "Sonographer, 12-month contract", "Private provider \u00b7 London", "New")}{row(<FileText size={15} color="#7FA9FF" />, "Imaging tender, regional", "ICB \u00b7 3 trusts", "Tender")}<div className="snap-note">Mapped for you automatically. No manual searching.</div></>) },
+        { t: "Reach the decision-maker, not the switchboard", d: "Verified, consented contacts across the organisations that matter, with details masked until consent.", snap: "Decision-makers", body: (<>{row(<Users size={15} color="#7FA9FF" />, "Director of Operations", "NHS trust \u00b7 verified", "Consented")}{row(<Users size={15} color="#7FA9FF" />, "Head of Imaging", "Diagnostic centre \u00b7 verified", "Consented")}{row(<Users size={15} color="#7FA9FF" />, "Workforce Lead", "ICB \u00b7 verified", "Consented")}<div className="snap-note">Compliant reach, credit-controlled so every message is considered.</div></>) },
+        { t: "Let AI do the drafting", d: "Outreach written in your voice, informed by the opportunity and the organisation, ready to send in seconds.", snap: "AI outreach", body: (<><div style={{ padding: 13, borderRadius: 11, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.08)" }}><div style={{ color: "rgba(255,255,255,.5)", fontSize: 11, marginBottom: 7 }}>Drafting...</div><div style={{ color: "#DCE6F7", fontSize: 12, lineHeight: 1.65 }}>Following the CDC expansion announced this month, we have sonographers available from 14 July who have delivered insourcing across three trusts in your region.</div></div><div className="row" style={{ gap: 7, marginTop: 11 }}><span className="snap-pill">Your tone of voice</span><span className="snap-pill">Ready to send</span></div><div className="snap-note">Hours of writing, done in seconds.</div></>) },
+        { t: "Win the work", d: "Meetings booked, pipeline tracked, and a board-ready report generated for you every week.", snap: "Pipeline", body: (<>{row(<CalendarClock size={15} color="#7FA9FF" />, "Intro call confirmed", "Director of Operations \u00b7 Thu 10:00", "Booked")}{row(<TrendingUp size={15} color="#7FA9FF" />, "Pipeline value", "\u00a324.6M \u00b7 up 28% this month", "Live")}{row(<BarChart3 size={15} color="#7FA9FF" />, "Weekly board report", "Generated automatically", "Sent")}<div className="snap-note">Win work in the time others spend searching.</div></>) },
+      ],
+    },
+    hospital: {
+      label: "Hospitals & providers", icon: Building2,
+      steps: [
+        { t: "Search pre-vetted clinicians", d: "Every clinician on Qura is qualified, checked and employable straight away, filtered by country, sector and experience.", snap: "Candidate search", body: (<><div className="snap-input"><Search size={13} /> Radiographer, MRI, 5+ years</div>{row(<Stethoscope size={15} color="#7FA9FF" />, "Radiographer (MRI) \u00b7 10 yrs", "NHS & private \u00b7 available now", "Vetted")}{row(<Stethoscope size={15} color="#7FA9FF" />, "Sonographer (MSK) \u00b7 6 yrs", "Both \u00b7 from 1 Sep", "Vetted")}{row(<Stethoscope size={15} color="#7FA9FF" />, "Echocardiographer \u00b7 11 yrs", "Both \u00b7 immediate", "Vetted")}<div className="snap-note">Qura has done the vetting, so you do not have to.</div></>) },
+        { t: "Browse available talent", d: "Anonymised pipelines advertised by workforce suppliers, so you can engage the moment you see a match.", snap: "Available talent", body: (<>{row(<Users size={15} color="#7FA9FF" />, "ICU Nurse \u00b7 7 yrs", "Available from 1 Oct", "Introduce")}{row(<Users size={15} color="#7FA9FF" />, "Biomedical Scientist \u00b7 9 yrs", "Available from 21 Jul", "Introduce")}<div className="snap-note">Names stay private until the supplier approves the introduction.</div></>) },
+        { t: "Find trusted partners", d: "Verified workforce suppliers with ratings and track record, so you can request an introduction in a click.", snap: "Suppliers", body: (<>{row(<Award size={15} color="#7FA9FF" />, "Insourcing partner", "4.9 \u00b7 18 reviews \u00b7 imaging", "Verified")}{row(<Award size={15} color="#7FA9FF" />, "International recruitment", "4.8 \u00b7 compliant pipelines", "Verified")}<div className="snap-note">Find trusted partners in minutes.</div></>) },
+      ],
+    },
+    medsupplier: {
+      label: "Medical suppliers", icon: Package,
+      steps: [
+        { t: "Know the moment a service opens", d: "New diagnostic centres, service expansions and capital projects, surfaced from public sector intelligence the day they appear.", snap: "Live signals", body: (<><div className="snap-input"><Radar size={13} /> Imaging capacity, England, last 30 days</div>{row(<Building2 size={15} color="#7FA9FF" />, "New Community Diagnostic Centre", "ICB \u00b7 board paper approved", "New")}{row(<Truck size={15} color="#7FA9FF" />, "Mobile MRI capacity expansion", "NHS trust \u00b7 procurement opening", "Signal")}{row(<TrendingUp size={15} color="#7FA9FF" />, "Endoscopy backlog programme", "Regional \u00b7 3 trusts", "Live")}<div className="snap-note">Board papers and procurement records, read for you daily.</div></>) },
+        { t: "Reach the buyer behind the budget", d: "The named, verified decision-makers responsible for the service, not a general enquiries inbox.", snap: "Buyers", body: (<>{row(<Users size={15} color="#7FA9FF" />, "Director of Strategy", "ICB \u00b7 verified", "Consented")}{row(<Users size={15} color="#7FA9FF" />, "Head of Procurement", "NHS trust \u00b7 verified", "Consented")}{row(<Users size={15} color="#7FA9FF" />, "Clinical Director, Imaging", "Diagnostic centre", "Consented")}<div className="snap-note">Reach the right buyer at exactly the right moment.</div></>) },
+        { t: "Respond while it still matters", d: "Draft, send and book, before the tender is written and the decision is already made.", snap: "Response", body: (<>{row(<Send size={15} color="#7FA9FF" />, "Capability summary sent", "Head of Procurement \u00b7 today", "Sent")}{row(<CalendarClock size={15} color="#7FA9FF" />, "Discovery call booked", "Tue 11:00 \u00b7 video", "Booked")}{row(<FileText size={15} color="#7FA9FF" />, "Tender opens in 21 days", "You are already in the room", "Ahead")}<div className="snap-note">Most suppliers find out when the tender publishes. You already knew.</div></>) },
+      ],
+    },
+    gpcare: {
+      label: "GP & care", icon: Heart,
+      steps: [
+        { t: "Fill sessions and shifts faster", d: "Available GPs, nurses and carers near you, with compliance and availability visible up front.", snap: "Find cover", body: (<><div className="snap-input"><Search size={13} /> Salaried GP, 4 sessions, this month</div>{row(<Stethoscope size={15} color="#7FA9FF" />, "Salaried GP \u00b7 8 yrs", "Available Mon, Tue, Thu", "Vetted")}{row(<Heart size={15} color="#7FA9FF" />, "Senior carer \u00b7 6 yrs", "Immediate \u00b7 complex care", "Vetted")}{row(<Users size={15} color="#7FA9FF" />, "Practice nurse \u00b7 11 yrs", "From 1 Aug", "Vetted")}<div className="snap-note">Every profile pre-vetted, so you can book with confidence.</div></>) },
+        { t: "Stay ahead of your ICB", d: "Local commissioning intelligence, funding and service changes that affect your practice or service, summarised daily.", snap: "ICB intelligence", body: (<>{row(<Network size={15} color="#7FA9FF" />, "Enhanced services update", "Your ICB \u00b7 published today", "New")}{row(<FileText size={15} color="#7FA9FF" />, "Funding allocation change", "Primary care network", "Summary")}<div className="snap-note">The papers, read and summarised for you.</div></>) },
+        { t: "Grow beyond your list", d: "Insourcing, community projects and partnership opportunities open to primary and social care providers.", snap: "Opportunities", body: (<>{row(<Radar size={15} color="#7FA9FF" />, "Community diagnostics partner", "ICB \u00b7 expressions of interest", "Open")}{row(<Award size={15} color="#7FA9FF" />, "Complex care package", "Local authority \u00b7 tender", "Open")}<div className="snap-note">The work that never reaches a job board.</div></>) },
+      ],
+    },
+    clinician: {
+      label: "Clinicians", icon: Stethoscope,
+      steps: [
+        { t: "Get verified once", d: "Complete your profile with registration, experience and CV. Incomplete profiles cannot join, which is what makes the network trusted.", snap: "Get verified", body: (<>{row(<ShieldCheck size={15} color="#7FA9FF" />, "Registration verified", "GMC / NMC / HCPC", "Checked")}{row(<FileText size={15} color="#7FA9FF" />, "CV uploaded", "Stored securely", "Done")}{row(<BadgeCheck size={15} color="#7FA9FF" />, "Profile complete", "You are now verified on Qura", "Verified")}<div className="snap-note">One vetted profile, trusted everywhere.</div></>) },
+        { t: "Be seen everywhere", d: "Hospital decision-makers and workforce suppliers around the world check Qura daily. Your profile is in front of them.", snap: "Your visibility", body: (<>{row(<Globe size={15} color="#7FA9FF" />, "Profile views this week", "Hospitals in 4 countries", "+38%")}{row(<Target size={15} color="#7FA9FF" />, "Matched roles", "12 new matches for you", "Live")}<div className="snap-note">Get verified once. Be seen everywhere.</div></>) },
+        { t: "Engage live projects", d: "See a project that matches your experience? Express interest directly, rather than waiting to be found.", snap: "Live projects", body: (<>{row(<Radar size={15} color="#7FA9FF" />, "Insourcing project, imaging", "Interest sent", "Applied")}{row(<CalendarClock size={15} color="#7FA9FF" />, "Interview booked", "Thu 14:00 \u00b7 video", "Confirmed")}<div className="snap-note">Discover opportunities around the world.</div></>) },
+      ],
+    },
+  };
+  const L = LENSES[lens];
+  const S = L.steps[Math.min(step, L.steps.length - 1)];
+  return (
+    <div className="sec how" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
+      <div className="wrap" style={{ padding: "68px 24px" }}>
+        <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 30px" }}><div className="eyebrow">How it works</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "8px 0 10px" }}>See {APP_NAME} through your lens</h2><p className="muted" style={{ fontSize: 16, lineHeight: 1.6, marginTop: 0 }}>Pick who you are, then step through what would take hours by hand and takes seconds here.</p></div></Reveal>
+        <div className="row" style={{ gap: 9, justifyContent: "center", flexWrap: "wrap", marginBottom: 26 }}>{Object.keys(LENSES).map((k) => { const I = LENSES[k].icon; return (<button key={k} onClick={() => { setLens(k); setStep(0); }} className="btn lift" style={{ padding: "10px 18px", background: lens === k ? "var(--navy)" : "#fff", color: lens === k ? "#fff" : "var(--navy)", border: "1px solid " + (lens === k ? "var(--navy)" : "var(--line)"), fontWeight: 600 }}><I size={15} /> {LENSES[k].label}</button>); })}</div>
+        <div className="grid g2" style={{ gap: 26, alignItems: "center" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {L.steps.map((st, i) => (
+              <button key={st.t} onClick={() => setStep(i)} className={"step-btn" + (i === step ? " on" : "")}>
+                <span className="step-num">{i + 1}</span>
+                <span style={{ minWidth: 0 }}><span style={{ display: "block", fontWeight: 700, fontSize: 15 }}>{st.t}</span><span className="muted" style={{ display: "block", fontSize: 13, marginTop: 3, lineHeight: 1.55 }}>{st.d}</span></span>
+              </button>
+            ))}
+            <div className="row" style={{ gap: 8, marginTop: 4 }}>{L.steps.map((_, i) => (<span key={i} onClick={() => setStep(i)} style={{ cursor: "pointer", height: 4, flex: 1, borderRadius: 99, background: i === step ? "var(--teal)" : "var(--line)", transition: "background .2s" }} />))}</div>
+          </div>
+          <SnapFrame key={lens + step} title={"qurahealth.org \u00b7 " + S.snap}>{S.body}</SnapFrame>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Landing({ onEnter, onDemo }) {
   const [view, setView] = useState("home");
   const [policy, setPolicy] = useState(null);
@@ -2588,7 +2685,7 @@ function Landing({ onEnter, onDemo }) {
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(255,255,255,.82)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--line)" }}>
         <div className="row" style={{ justifyContent: "space-between", height: 72, padding: "0 20px" }}>
           <span onClick={() => setView("home")} style={{ cursor: "pointer" }}><Wordmark /></span>
-          <div className="row hsm" style={{ gap: 18 }}>{[["Home", "home"], ["Marketplace", "market"], ["Fragile professions", "fragile"], ["Solutions", "solutions"], ["Pricing", "pricing"]].map(([l, k]) => (<button key={k} onClick={() => { setView(k); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} className="navlink" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: view === k ? 700 : 500, color: view === k ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{l}</button>))}</div>
+          <div className="row hsm" style={{ gap: 18 }}>{[["Home", "home"], ["Marketplace", "market"], ["How it works", "how"], ["Fragile professions", "fragile"], ["Solutions", "solutions"], ["Our story", "story"], ["Pricing", "pricing"]].map(([l, k]) => (<button key={k} onClick={() => { setView(k); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} className="navlink" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: view === k ? 700 : 500, color: view === k ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{l}</button>))}</div>
           <div className="row" style={{ gap: 12 }}><button className="btn btn-light hsm" style={{ background: "var(--bg)" }} onClick={onDemo}>Book a demo</button><button className="btn btn-primary" onClick={onEnter}>Get started / Sign in</button></div>
         </div>
       </div>
@@ -2760,6 +2857,44 @@ function Landing({ onEnter, onDemo }) {
       <div className="wrap sec home" style={{ padding: "4px 24px 34px", textAlign: "center" }}>
         <div className="faint" style={{ fontSize: 13, fontWeight: 600, letterSpacing: ".08em", marginBottom: 12 }}>BUILT FOR HEALTHCARE, ACROSS EVERY SETTING</div>
         <div className="muted" style={{ fontSize: 15, maxWidth: 640, margin: "0 auto" }}>One live platform spanning the NHS, private and international healthcare markets.</div>
+      </div>
+
+      <HowItWorks />
+
+      <div className="sec story" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
+        <div className="wrap" style={{ padding: "72px 24px" }}>
+          <Reveal><div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 44px" }}><div className="eyebrow">Behind the brand</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "8px 0 10px" }}>Our story</h2><p className="muted" style={{ fontSize: 16, lineHeight: 1.65, marginTop: 0 }}>{APP_NAME} was not created in a boardroom. It was created after decades of working inside healthcare.</p></div></Reveal>
+          <div className="grid g2" style={{ gap: 22, alignItems: "start" }}>
+            <Reveal>
+              <div className="card" style={{ padding: 30 }}>
+                <div className="ph-accent" />
+                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7, marginTop: 0 }}>Between us we have spent more than 32 years across healthcare business development, workforce strategy, healthcare economics and large-scale health system transformation. We have seen first-hand how much time is wasted because the right people simply cannot find each other.</p>
+                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>One of us had just stepped away from a senior leadership role after more than a decade helping healthcare organisations and agencies win high-value partnerships across the UK. Despite the success, one question kept coming back: what if that knowledge could improve the entire sector instead of just one organisation?</p>
+                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>The other was leading major healthcare transformation projects across Africa, working alongside governments and health systems to improve access to care while helping deliver one of the continent's most ambitious cancer programmes.</p>
+                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>Although we came from different parts of the world, we discovered something surprising. The challenges were almost identical. Hospitals struggled to identify the right partners. Workforce suppliers found it difficult to reach the right decision-makers. Clinicians faced fragmented career pathways. Valuable opportunities were missed because the healthcare ecosystem remained disconnected.</p>
+                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>Late one evening, during an informal conversation, one idea became impossible to ignore. Healthcare did not need another recruitment platform. It needed an ecosystem.</p>
+                <p style={{ fontSize: 15.5, lineHeight: 1.7, fontWeight: 600 }}>That conversation became {APP_NAME}.</p>
+                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>Today, {APP_NAME} is being built to connect healthcare organisations, suppliers, workforce partners and clinicians through one intelligent platform that removes friction, improves transparency and helps the right people find each other faster.</p>
+                <div style={{ marginTop: 22, padding: "18px 20px", borderRadius: 14, background: "var(--cyan-soft)" }}><div className="faint" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>Our belief</div><div className="disp gradient-text" style={{ fontSize: 21, fontWeight: 700, lineHeight: 1.35 }}>Healthcare moves faster when the right people connect.</div></div>
+              </div>
+            </Reveal>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {[{ i: Award, t: "Built by experience", d: "Every feature is designed around real healthcare challenges, not assumptions." },
+                { i: ShieldCheck, t: "Trust before transactions", d: "Long-term partnerships are built on transparency, credibility and reputation." },
+                { i: Sparkles, t: "Technology with purpose", d: "Artificial intelligence should remove administration, not replace relationships." },
+                { i: Globe, t: "Global thinking", d: "Healthcare challenges do not stop at borders, and neither should the solutions." },
+                { i: Star, t: "Quality over quantity", d: "Better connections create better outcomes for organisations, clinicians and ultimately patients." },
+                { i: TrendingUp, t: "Always improving", d: "Healthcare never stands still. Neither will " + APP_NAME + "." }].map((v, i) => (
+                <Reveal key={v.t} delay={i * 50}>
+                  <div className="card lift" style={{ padding: "16px 18px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+                    <div style={{ width: 42, height: 42, borderRadius: 11, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><v.i size={19} color="#1E54E6" /></div>
+                    <div><div style={{ fontWeight: 700, fontSize: 15 }}>{v.t}</div><div className="muted" style={{ fontSize: 13, marginTop: 3, lineHeight: 1.55 }}>{v.d}</div></div>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div id="pricing" className="sec pricing" style={{ background: "var(--navy)" }}>
