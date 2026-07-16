@@ -129,7 +129,8 @@ a{transition:color .15s ease}
 .cura [style*="text-align: center"] p,.cura [style*="text-align:center"] p{text-align:center;-webkit-hyphens:manual;hyphens:manual}
 .lb{flex:1 0 auto}
 .shot-wrap{border-radius:16px;overflow:hidden;border:1px solid var(--line);box-shadow:0 22px 60px rgba(10,23,48,.22);background:#0A1730;position:relative}
-.shot-wrap img{display:block;width:100%;height:auto;animation:snapIn .4s ease both}
+.shot-wrap{display:flex;justify-content:center}
+.shot-wrap img{display:block;width:auto;max-width:100%;height:auto;max-height:calc(100vh - 268px);animation:snapIn .4s ease both}
 .shot-thumb{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 13px;cursor:pointer;font-size:12.5px;font-weight:600;color:#5A6783;transition:all .16s ease;white-space:nowrap}
 .shot-thumb:hover{border-color:var(--blue);color:var(--navy)}
 .shot-thumb.on{background:var(--navy);color:#fff;border-color:var(--navy)}
@@ -2579,19 +2580,20 @@ function ScreenGallery({ onBack }) {
     { s: "accommodation", l: "Accommodation", d: "Verified relocation and housing partners, country by country, worldwide." },
   ];
   const [i, setI] = useState(0);
-  const [paused, setPaused] = useState(false);
   useEffect(() => {
-    if (paused) return;
-    const t = setTimeout(() => setI((n) => (n + 1) % SCREENS.length), 4200);
-    return () => clearTimeout(t);
-  }, [i, paused]);
+    const t = setInterval(() => setI((n) => (n + 1) % SCREENS.length), 4000);
+    return () => clearInterval(t);
+  }, []);
   const cur = SCREENS[i];
   return (
     <div>
-      <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 26px" }}><div className="eyebrow">Inside the platform</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "8px 0 10px" }}>Every page, built to save you hours</h2><p className="muted" style={{ fontSize: 16, lineHeight: 1.6, marginTop: 0 }}>Real screens from {APP_NAME}, playing automatically. Hover to pause, or pick a page.</p></div></Reveal>
+      <div className="row" style={{ justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
+        <div className="row" style={{ gap: 12, alignItems: "baseline", flexWrap: "wrap" }}><span className="eyebrow" style={{ color: "#06776F" }}>Inside the platform</span><h2 className="disp" style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>Every page, built to save you hours</h2></div>
+        <span className="faint" style={{ fontSize: 12 }}>Real screens from {APP_NAME}, playing automatically</span>
+      </div>
       <div className="row" style={{ gap: 8, justifyContent: "center", flexWrap: "wrap", marginBottom: 20 }}>{SCREENS.map((sc, n) => (<button key={sc.s} onClick={() => setI(n)} className={"shot-thumb" + (n === i ? " on" : "")}>{sc.l}</button>))}</div>
       <Reveal>
-        <div className="shot-wrap" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}><img key={cur.s} src={"/screens/" + cur.s + ".jpg"} alt={cur.l + " screen in " + APP_NAME} loading="lazy" />{SCREENS.map((sc) => (<link key={sc.s} rel="prefetch" href={"/screens/" + sc.s + ".jpg"} />))}</div>
+        <div className="shot-wrap"><img key={cur.s} src={"/screens/" + cur.s + ".jpg"} alt={cur.l + " screen in " + APP_NAME} loading="lazy" />{SCREENS.map((sc) => (<link key={sc.s} rel="prefetch" href={"/screens/" + sc.s + ".jpg"} />))}</div>
         <div className="row" style={{ gap: 6, marginTop: 12 }}>{SCREENS.map((sc, n) => (<span key={sc.s} onClick={() => setI(n)} style={{ cursor: "pointer", height: 4, flex: 1, borderRadius: 99, background: n === i ? "var(--teal)" : "var(--line)", transition: "background .25s" }} />))}</div>
         <div className="row" style={{ justifyContent: "space-between", gap: 14, marginTop: 12, flexWrap: "wrap" }}>
           <div><div style={{ fontWeight: 700, fontSize: 16 }}>{cur.l}</div><div className="muted" style={{ fontSize: 13.5, marginTop: 2 }}>{cur.d}</div></div>
@@ -2664,7 +2666,7 @@ function HowItWorks({ section = "walk", go }) {
   const S = L.steps[Math.min(step, L.steps.length - 1)];
   return (
     <div className="sec how" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
-      <div className="wrap" style={{ padding: "68px 24px" }}>
+      <div className="wrap" style={{ padding: section === "gallery" ? "22px 24px 40px" : "68px 24px" }}>
         {section === "walk" ? (<>
         <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 30px" }}><div className="eyebrow">How it works</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "8px 0 10px" }}>See {APP_NAME} through your lens</h2><p className="muted" style={{ fontSize: 16, lineHeight: 1.6, marginTop: 0 }}>Pick who you are, then step through what would take hours by hand and takes seconds here.</p></div></Reveal>
         <div className="row" style={{ gap: 9, justifyContent: "center", flexWrap: "wrap", marginBottom: 26 }}>{Object.keys(LENSES).map((k) => { const I = LENSES[k].icon; return (<button key={k} onClick={() => { setLens(k); setStep(0); }} className="btn lift" style={{ padding: "10px 18px", background: lens === k ? "var(--navy)" : "#fff", color: lens === k ? "#fff" : "var(--navy)", border: "1px solid " + (lens === k ? "var(--navy)" : "var(--line)"), fontWeight: 600 }}><I size={15} /> {LENSES[k].label}</button>); })}</div>
