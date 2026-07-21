@@ -1861,7 +1861,8 @@ function MarketMap({ go }) {
 function PrivacyContent() {
   return (
     <div style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--text)" }}>
-      <p style={{ marginTop: 0 }}>Qura is committed to protecting your personal data in line with the UK GDPR and the Data Protection Act 2018.</p>
+      <p style={{ marginTop: 0 }}><b>Data controller.</b> Qura Ltd (company no. 17310951), registered office 167-169 Great Portland Street, 5th Floor, London W1W 5PF, is the controller of your personal data. Contact us at privacy@qurahealth.org.</p>
+      <p>Qura is committed to protecting your personal data in line with the UK GDPR and the Data Protection Act 2018.</p>
       <p><b>What we collect.</b> Account details you provide (name, email, role), the data you add (shortlists, notes, messages) and the basic usage needed to run the service.</p>
       <p><b>Lawful basis.</b> We process account data to provide the service you signed up for (contract), and professional business-contact information on the basis of legitimate interests, balanced against individuals' rights. Contact details are masked until consent is confirmed.</p>
       <p><b>Your rights.</b> You can access, correct, export or delete your data, object to processing, and withdraw consent at any time. Use the data controls in Settings, or contact privacy@qurahealth.org.</p>
@@ -2042,6 +2043,7 @@ function CookieContent() {
       <p style={{ marginTop: 0 }}>Qura uses essential cookies and browser storage to run the service, for example keeping you signed in and remembering your consent choice. With your consent, we may use a little analytics to improve the product.</p>
       <p><b>Your choice.</b> On your first visit you can choose Accept all or Essential only. You can change this at any time by clearing your browser storage or contacting privacy@qurahealth.org.</p>
       <p><b>Third parties.</b> Payment (Stripe) and hosting (Vercel) may set cookies when their features are used, under their own notices.</p>
+      <p><b>Who we are.</b> Qura Ltd (company no. 17310951), 167-169 Great Portland Street, 5th Floor, London W1W 5PF.</p>
       <p className="faint" style={{ fontSize: 12 }}>The full cookie policy is available on request at privacy@qurahealth.org.</p>
     </div>
   );
@@ -2997,7 +2999,7 @@ function Landing({ onEnter, onDemo }) {
       </div>
 
       </div>
-      <div className="wrap row" style={{ padding: "32px 24px", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}><Wordmark /><div className="row" style={{ gap: 18, flexWrap: "wrap", alignItems: "center" }}><button onClick={() => setPolicy("privacy")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Privacy</button><button onClick={() => setPolicy("cookies")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Cookies</button><span className="faint" style={{ fontSize: 13 }}>© {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM</span></div></div>
+      <div className="wrap row" style={{ padding: "32px 24px", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}><Wordmark /><div className="row" style={{ gap: 18, flexWrap: "wrap", alignItems: "center" }}><button onClick={() => setPolicy("privacy")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Privacy</button><button onClick={() => setPolicy("cookies")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Cookies</button><span className="faint" style={{ fontSize: 13, textAlign: "right", lineHeight: 1.5 }}>© {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM<br />Qura Ltd, company no. 17310951 · 167-169 Great Portland Street, 5th Floor, London W1W 5PF</span></div></div>
       {policy ? <div onClick={() => setPolicy(null)} style={{ position: "fixed", inset: 0, background: "rgba(6,14,30,.55)", zIndex: 95, display: "grid", placeItems: "center", padding: 20 }}><div onClick={(e) => e.stopPropagation()} className="card" style={{ maxWidth: 620, width: "100%", padding: 28, maxHeight: "84vh", overflowY: "auto" }}><div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}><h3 className="disp" style={{ fontSize: 21, fontWeight: 700, margin: 0 }}>{policy === "privacy" ? "Privacy & data protection" : "Cookie notice"}</h3><button className="btn btn-light" style={{ padding: "6px 10px" }} onClick={() => setPolicy(null)}>Close</button></div>{policy === "privacy" ? <PrivacyContent /> : <CookieContent />}</div></div> : null}
     </div>
   );
