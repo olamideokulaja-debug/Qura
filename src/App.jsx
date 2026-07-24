@@ -186,7 +186,9 @@ const Avatar = ({ src, initials, size = 36 }) => src
 /* ===================== data (real register, deduped + masked) ===================== */
 const REGISTER = { total: 370, deduped: 208, orgs: 148 };
 const SPECIALTIES = ["Audiology", "Sonography", "Radiography & Radiology", "Echocardiography", "Respiratory", "Speech & Language Therapy", "Pathology", "Biomedical Science", "Ophthalmology", "Gastroenterology", "Oncology", "Dermatology"];
-const REAL_CONTACTS = [{"name": "Gareth Whyte", "org": "Addenbrooke’s / CDC Wisbech context", "role": "Decision maker", "spec": "Audiology"}, {"name": "Tina Snellgrove", "org": "BHR CDC", "role": "PA", "spec": "Sonography"}, {"name": "Gorkem Deyazak", "org": "Barts Health", "role": "Clinical Lead – Royal London", "spec": "Radiography & Radiology"}, {"name": "Freda Amponsa-Dadzie", "org": "Bedfordshire Hospitals NHS Foundation Trust", "role": "Operational Manager, Imaging", "spec": "Echocardiography"}, {"name": "Sian Redgewell", "org": "Cambridge NHS", "role": "Imaging Directorate Support Manager", "spec": "Respiratory"}, {"name": "Beth Roberts", "org": "Cromwell Hospital - BUPA", "role": "Magnit Client Services", "spec": "Speech & Language Therapy"}, {"name": "Ian Allcock", "org": "Doncaster and Bassetlaw NHS Trust", "role": "Decision maker", "spec": "Pathology"}, {"name": "Hannah Farr", "org": "Gloucerstershire Hospitals NHS Foundation Trust", "role": "Decision maker", "spec": "Biomedical Science"}, {"name": "Donna Flynn", "org": "Alliance Medical Diagnostic Imaging Ltd", "role": "Decision maker", "spec": "Ophthalmology"}, {"name": "Richard Duddy", "org": "BUPA Cromwell Hospital - Plastic Surgery Associates UK", "role": "Decision maker", "spec": "Gastroenterology"}, {"name": "Kathryn Knight", "org": "Barts Health", "role": "Decision maker", "spec": "Oncology"}, {"name": "Jess Moreton", "org": "Betsi Cadwaladr University Health Board", "role": "Decision maker", "spec": "Dermatology"}, {"name": "Lynsey Searle", "org": "Cambridge University Hospitals NHS Foundation Trust", "role": "Decision maker", "spec": "Audiology"}, {"name": "Jane Cole", "org": "Croydon Health Services NHS Trust", "role": "Decision maker", "spec": "Sonography"}, {"name": "Kelvin spoke with Richard Summerfield the Head of Procurement who gave him a full run down of what he wants from an MSP", "org": "Doncaster and Bassettlaw Teaching Hospitals", "role": "Decision maker", "spec": "Radiography & Radiology"}, {"name": "Claire Thornton", "org": "Gloucestershire Hospitals NHS Foundation Trust", "role": "Decision maker", "spec": "Echocardiography"}, {"name": "Alex Curley", "org": "Aneurin Bevan University Health Board", "role": "Decision maker", "spec": "Respiratory"}, {"name": "Tanysha Garcia", "org": "Barchester Healthcare", "role": "Decision maker", "spec": "Speech & Language Therapy"}, {"name": "Bradley Day", "org": "Barts Health NHS Trust", "role": "Decision maker", "spec": "Pathology"}, {"name": "Hannah Williamson", "org": "Birmingham NHS Foundation Trust", "role": "Decision maker", "spec": "Biomedical Science"}, {"name": "Robert Mackenzie", "org": "Cambridge University Hospitals NHS Foundation Trust", "role": "Decision maker", "spec": "Ophthalmology"}, {"name": "Jasmine Penny", "org": "Croydon Health Services NHS Trust", "role": "Head of Temporary Staffing", "spec": "Gastroenterology"}, {"name": "Cara Barlow", "org": "East Kent Hospitals University NHS Foundation Trust", "role": "Decision maker", "spec": "Oncology"}, {"name": "Emma Beard", "org": "Great Ormond Street Hospital For Children NHS Foundation Trust", "role": "Contract Manager", "spec": "Dermatology"}, {"name": "Hannah Evans", "org": "Aneurin Bevan University Health Board", "role": "Decision maker", "spec": "Audiology"}, {"name": "Jodie Heywood- Procurement Business Partner", "org": "Barking Havering and Redbridge NHS Trust", "role": "Decision maker", "spec": "Sonography"}, {"name": "Hardev Virdee", "org": "Barts Health NHS Trust", "role": "Decision maker", "spec": "Radiography & Radiology"}, {"name": "Jane Byrnes", "org": "Bolton NHS", "role": "Workforce Deployment Manager", "spec": "Echocardiography"}, {"name": "Sally Stokes", "org": "Cambridge University Hospitals NHS Foundation Trust", "role": "Decision maker", "spec": "Respiratory"}, {"name": "Kevin Curnow", "org": "Croydon Health Services NHS Trust", "role": "Decision maker", "spec": "Speech & Language Therapy"}, {"name": "Emma Ince", "org": "East Kent Hospitals University NHS Foundation Trust / NHS England East of England", "role": "Decision maker", "spec": "Pathology"}, {"name": "Jay Gunawardene", "org": "Great Ormond Street Hospital for Children NHS Foundation Trust", "role": "Decision maker", "spec": "Biomedical Science"}, {"name": "James Calvert", "org": "Aneurin Bevan University Health Board", "role": "Decision maker", "spec": "Ophthalmology"}, {"name": "Snehal Warade", "org": "Barking, Havering and Redbridge University Hospitals NHS Trust", "role": "Decision maker", "spec": "Gastroenterology"}, {"name": "John Simon", "org": "Barts Health NHS Trust", "role": "Decision maker", "spec": "Oncology"}, {"name": "Tina Stoyles", "org": "Bristol Royal Infirmary / University Hospitals Bristol and Weston NHS FT", "role": "Radiology Section Head (Ultrasound)", "spec": "Dermatology"}, {"name": "Robin Tyler", "org": "Chelsea and Westminster Foundation Trust", "role": "Decision maker", "spec": "Audiology"}, {"name": "Naura De Melo", "org": "Croydon Health Services NHS Trust", "role": "Decision maker", "spec": "Sonography"}, {"name": "Scott De Freitas", "org": "Elysium Healthcare", "role": "Decision maker", "spec": "Radiography & Radiology"}, {"name": "Bill Martin", "org": "Guy's and St Thomas' NHS Foundation Trust", "role": "Decision maker", "spec": "Echocardiography"}, {"name": "Katy Jones", "org": "Aneurin Bevan University Health Board", "role": "Decision maker", "spec": "Respiratory"}, {"name": "Chris Thickett", "org": "Barnsley Hospital NHS Foundation Trust", "role": "Decision maker", "spec": "Speech & Language Therapy"}, {"name": "Liam Slattery", "org": "Barts Health NHS Trust", "role": "Decision maker", "spec": "Pathology"}, {"name": "Christy francis", "org": "CHCP - City Health Care Paretnership", "role": "Decision maker", "spec": "Biomedical Science"}, {"name": "Steve Heppinstall -CFO", "org": "Chesterfield Royal Hospital NHS Trust", "role": "Decision maker", "spec": "Ophthalmology"}, {"name": "Tania Marcus", "org": "Croydon Health Services NHS Trust", "role": "Decision maker", "spec": "Gastroenterology"}, {"name": "Helen Segger", "org": "Frimley Health NHS Foundation Trust", "role": "Decision maker", "spec": "Oncology"}, {"name": "Louise Turpin", "org": "Guy's and St Thomas' NHS Foundation Trust", "role": "Decision maker", "spec": "Dermatology"}, {"name": "Rhiannon Penny", "org": "Aneurin Bevan University Health Board", "role": "Decision maker", "spec": "Audiology"}, {"name": "Christopher Thickett", "org": "Barnsley Hospital NHS Foundation Trust- kelvin Handling", "role": "Decision maker", "spec": "Sonography"}, {"name": "Virginia Asakaviciene", "org": "Barts Health NHS Trust", "role": "BP Supply Chain Manager", "spec": "Radiography & Radiology"}, {"name": "Nigel Wiliams", "org": "CIG Cymru NHS Wales", "role": "Decision maker", "spec": "Echocardiography"}, {"name": "Robert Botwright", "org": "Circle Health Group", "role": "Decision maker", "spec": "Respiratory"}, {"name": "Lisa Jones", "org": "Dartford & Gravesham NHS", "role": "Decision maker", "spec": "Speech & Language Therapy"}, {"name": "Les Keith", "org": "Gateshead Health", "role": "Decision maker", "spec": "Pathology"}, {"name": "Pia Fcips", "org": "Guy's and St Thomas' NHS Foundation Trust", "role": "Decision maker", "spec": "Biomedical Science"}, {"name": "Monika Mesuria", "org": "BHR CDC", "role": "Programme Manager", "spec": "Ophthalmology"}, {"name": "Chantel Orotayo", "org": "Barts Health", "role": "Decision maker", "spec": "Gastroenterology"}, {"name": "Penny Smee", "org": "Bath Hospital", "role": "Decision maker", "spec": "Oncology"}, {"name": "Rachel Crooke", "org": "Cambridge NHS", "role": "Imaging DOM", "spec": "Dermatology"}, {"name": "Amit Patel", "org": "Community Pharmacy South West London / Community Pharmacy London / SWL Primary Care Board", "role": "Decision maker", "spec": "Audiology"}, {"name": "Adam Beckman", "org": "Derriford Hospital/Plymouth", "role": "Decision maker", "spec": "Sonography"}, {"name": "Claire Watkins", "org": "GenesisCare", "role": "Decision maker", "spec": "Radiography & Radiology"}, {"name": "Robert Stevens", "org": "Guy's and St Thomas' NHS Foundation Trust", "role": "Decision maker", "spec": "Echocardiography"}];
+// Decision-maker register (named individuals) is served from /api/contacts to
+// signed-in users only. It must never ship in the public browser bundle.
+
 const REAL_OPPS = [{"org": "Imperial College Healthcare NHS Trust", "role": "Audiology staffing", "spec": "Audiology", "val": "£420K", "market": "NHS UK", "loc": "UK", "close": "4 days", "pr": "high", "score": 70, "status": "New", "source": "NHS pipeline"}, {"org": "Barts Health NHS Trust", "role": "Sonography staffing", "spec": "Sonography", "val": "£190K", "market": "NHS UK", "loc": "UK", "close": "8 days", "pr": "med", "score": 77, "status": "In progress", "source": "NHS pipeline"}, {"org": "Guy's and St Thomas' NHS Foundation Trust", "role": "Radiography & Radiology staffing", "spec": "Radiography & Radiology", "val": "£95K", "market": "NHS UK", "loc": "UK", "close": "12 days", "pr": "low", "score": 84, "status": "Qualified", "source": "NHS pipeline"}, {"org": "King's College Hospital NHS Foundation Trust", "role": "Echocardiography staffing", "spec": "Echocardiography", "val": "£260K", "market": "NHS UK", "loc": "UK", "close": "16 days", "pr": "high", "score": 91, "status": "Proposal", "source": "NHS pipeline"}, {"org": "Croydon Health Services NHS Trust", "role": "Respiratory staffing", "spec": "Respiratory", "val": "£310K", "market": "NHS UK", "loc": "UK", "close": "4 days", "pr": "med", "score": 70, "status": "New", "source": "NHS pipeline"}, {"org": "Cambridge University Hospitals NHS FT", "role": "Speech & Language Therapy staffing", "spec": "Speech & Language Therapy", "val": "£140K", "market": "NHS UK", "loc": "UK", "close": "8 days", "pr": "low", "score": 77, "status": "In progress", "source": "NHS pipeline"}, {"org": "Aneurin Bevan University Health Board", "role": "Pathology staffing", "spec": "Pathology", "val": "£225K", "market": "NHS UK", "loc": "UK", "close": "12 days", "pr": "high", "score": 84, "status": "Qualified", "source": "NHS pipeline"}, {"org": "University Hospitals of Derby and Burton NHS FT", "role": "Biomedical Science staffing", "spec": "Biomedical Science", "val": "£180K", "market": "NHS UK", "loc": "UK", "close": "16 days", "pr": "med", "score": 91, "status": "Proposal", "source": "NHS pipeline"}, {"org": "Hull University Teaching Hospitals NHS Trust", "role": "Ophthalmology staffing", "spec": "Ophthalmology", "val": "£90K", "market": "NHS UK", "loc": "UK", "close": "4 days", "pr": "low", "score": 70, "status": "New", "source": "NHS pipeline"}, {"org": "East Kent Hospitals University NHS FT", "role": "Gastroenterology staffing", "spec": "Gastroenterology", "val": "£275K", "market": "NHS UK", "loc": "UK", "close": "8 days", "pr": "high", "score": 77, "status": "In progress", "source": "NHS pipeline"}, {"org": "Kingston Hospital NHS Foundation Trust", "role": "Oncology staffing", "spec": "Oncology", "val": "£160K", "market": "NHS UK", "loc": "UK", "close": "12 days", "pr": "med", "score": 84, "status": "Qualified", "source": "NHS pipeline"}, {"org": "InHealth", "role": "Dermatology staffing", "spec": "Dermatology", "val": "£345K", "market": "NHS UK", "loc": "UK", "close": "16 days", "pr": "low", "score": 91, "status": "Proposal", "source": "NHS pipeline"}];
 const CLIENTS = [{"org": "Imperial College Healthcare NHS Trust", "status": "Active client", "spec": "Audiology"}, {"org": "Barts Health NHS Trust", "status": "Target", "spec": "Sonography"}, {"org": "Guy's and St Thomas' NHS Foundation Trust", "status": "In progress", "spec": "Radiography & Radiology"}, {"org": "King's College Hospital NHS Foundation Trust", "status": "Active client", "spec": "Echocardiography"}, {"org": "Croydon Health Services NHS Trust", "status": "Target", "spec": "Respiratory"}, {"org": "Cambridge University Hospitals NHS FT", "status": "New", "spec": "Speech & Language Therapy"}, {"org": "Aneurin Bevan University Health Board", "status": "Active client", "spec": "Pathology"}, {"org": "University Hospitals of Derby and Burton NHS FT", "status": "Target", "spec": "Biomedical Science"}, {"org": "Hull University Teaching Hospitals NHS Trust", "status": "In progress", "spec": "Ophthalmology"}, {"org": "East Kent Hospitals University NHS FT", "status": "Active client", "spec": "Gastroenterology"}, {"org": "Kingston Hospital NHS Foundation Trust", "status": "Target", "spec": "Oncology"}, {"org": "InHealth", "status": "New", "spec": "Dermatology"}, {"org": "Hywel Dda University Health Board", "status": "Active client", "spec": "Audiology"}, {"org": "Leeds Teaching Hospitals NHS Trust", "status": "Target", "spec": "Sonography"}, {"org": "North West London Procurement Services", "status": "In progress", "spec": "Radiography & Radiology"}, {"org": "OneWelbeck", "status": "Active client", "spec": "Echocardiography"}];
 const INTL_OPPS = [
@@ -196,7 +198,33 @@ const INTL_OPPS = [
   { org: "Aga Khan University Hospital", role: "Oncology nursing", val: "$410K", market: "Africa", loc: "Nairobi, KE", close: "21 days", pr: "low", score: 72, status: "New", source: "Leadership change" },
 ];
 const OPPS = [...REAL_OPPS, ...INTL_OPPS];
-const DMS = REAL_CONTACTS;
+function useContacts() {
+  const [contacts, setContacts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [denied, setDenied] = useState(false);
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        let token = "";
+        if (supabase) {
+          const { data } = await supabase.auth.getSession();
+          token = (data && data.session && data.session.access_token) || "";
+        }
+        const r = await fetch("/api/contacts", { headers: token ? { Authorization: "Bearer " + token } : {} });
+        const j = await r.json();
+        if (!live) return;
+        if (r.ok && Array.isArray(j.contacts)) setContacts(j.contacts);
+        else { setContacts([]); setDenied(r.status === 401); }
+      } catch (e) {
+        if (live) { setContacts([]); setDenied(false); }
+      }
+      if (live) setLoading(false);
+    })();
+    return () => { live = false; };
+  }, []);
+  return { contacts, loading, denied };
+}
 const CLINICIANS = [
   { name: "Dr. Sarah Ahmed", spec: "Sonographer (NOUS)", exp: "12 yrs", yrs: 12, loc: "London, UK", country: "United Kingdom", flag: "🇬🇧", sector: "NHS", rate: "£62/hr", avail: "From 14 Jul", match: 98, rating: 5.0, reviews: 14, last: "King's College Hospital" },
   { name: "Tunde Bakare", spec: "Audiologist (Paeds)", exp: "8 yrs", yrs: 8, loc: "London, UK", country: "United Kingdom", flag: "🇬🇧", sector: "Private", rate: "£48/hr", avail: "Immediate", match: 95, rating: 4.9, reviews: 11, last: "Imperial College Healthcare" },
@@ -561,6 +589,7 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
   );
 };
 const DecisionMakers = ({ plan = "starter", onToast }) => {
+  const { contacts: DMS, loading: dmsLoading, denied: dmsDenied } = useContacts();
   const [q, setQ] = useState(""); const [sp, setSp] = useState("All");
   const tier = CREDIT_TIERS[plan] || CREDIT_TIERS.starter;
   const today = new Date().toISOString().slice(0, 10);
@@ -2037,6 +2066,20 @@ function LiveProjects({ onToast }) {
   );
 }
 
+function RefundContent() {
+  return (
+    <div style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--text)" }}>
+      <p style={{ marginTop: 0 }}><b>Who we are.</b> Qura Ltd (company no. 17310951), 167-169 Great Portland Street, 5th Floor, London W1W 5PF.</p>
+      <p><b>Cancelling a subscription.</b> Cancel any time in your account settings or by emailing support@qurahealth.org. Cancelling stops the next renewal, and your access continues until the end of the period you have already paid for.</p>
+      <p><b>Your first 14 days.</b> If you are unhappy within 14 days of a new subscription, contact us and we will refund your first payment in full. Consumers also have a statutory 14 day right to cancel; where the service starts immediately, a proportionate deduction may apply for what has been used.</p>
+      <p><b>Renewals.</b> Renewal payments are not automatically refundable, since you can cancel any time before a renewal date. We send a reminder before annual renewals, and will consider unused renewals case by case.</p>
+      <p><b>Sessions and workshops.</b> Cancel or reschedule free of charge up to 48 hours before the start time, for a full refund or a new date. Inside 48 hours the fee is non-refundable, though we will try to reschedule where we can. If we cancel, you get a full refund or a replacement booking.</p>
+      <p><b>How to request one.</b> Email support@qurahealth.org with your account email. We aim to reply within 2 working days, and approved refunds return to your original payment method within 5 to 10 working days.</p>
+      <p><b>Price changes.</b> Existing subscribers are told in advance, and any new price applies from the next renewal, never mid-term.</p>
+    </div>
+  );
+}
+
 function CookieContent() {
   return (
     <div style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--text)" }}>
@@ -2999,8 +3042,8 @@ function Landing({ onEnter, onDemo }) {
       </div>
 
       </div>
-      <div className="wrap row" style={{ padding: "32px 24px", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}><Wordmark /><div className="row" style={{ gap: 18, flexWrap: "wrap", alignItems: "center" }}><button onClick={() => setPolicy("privacy")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Privacy</button><button onClick={() => setPolicy("cookies")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Cookies</button><span className="faint" style={{ fontSize: 13, textAlign: "right", lineHeight: 1.5 }}>© {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM<br />Qura Ltd, company no. 17310951 · 167-169 Great Portland Street, 5th Floor, London W1W 5PF</span></div></div>
-      {policy ? <div onClick={() => setPolicy(null)} style={{ position: "fixed", inset: 0, background: "rgba(6,14,30,.55)", zIndex: 95, display: "grid", placeItems: "center", padding: 20 }}><div onClick={(e) => e.stopPropagation()} className="card" style={{ maxWidth: 620, width: "100%", padding: 28, maxHeight: "84vh", overflowY: "auto" }}><div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}><h3 className="disp" style={{ fontSize: 21, fontWeight: 700, margin: 0 }}>{policy === "privacy" ? "Privacy & data protection" : "Cookie notice"}</h3><button className="btn btn-light" style={{ padding: "6px 10px" }} onClick={() => setPolicy(null)}>Close</button></div>{policy === "privacy" ? <PrivacyContent /> : <CookieContent />}</div></div> : null}
+      <div className="wrap row" style={{ padding: "32px 24px", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}><Wordmark /><div className="row" style={{ gap: 18, flexWrap: "wrap", alignItems: "center" }}><button onClick={() => setPolicy("privacy")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Privacy</button><button onClick={() => setPolicy("cookies")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Cookies</button><button onClick={() => setPolicy("refunds")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Refunds</button><span className="faint" style={{ fontSize: 13, textAlign: "right", lineHeight: 1.5 }}>© {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM<br />Qura Ltd, company no. 17310951 · 167-169 Great Portland Street, 5th Floor, London W1W 5PF</span></div></div>
+      {policy ? <div onClick={() => setPolicy(null)} style={{ position: "fixed", inset: 0, background: "rgba(6,14,30,.55)", zIndex: 95, display: "grid", placeItems: "center", padding: 20 }}><div onClick={(e) => e.stopPropagation()} className="card" style={{ maxWidth: 620, width: "100%", padding: 28, maxHeight: "84vh", overflowY: "auto" }}><div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}><h3 className="disp" style={{ fontSize: 21, fontWeight: 700, margin: 0 }}>{policy === "privacy" ? "Privacy & data protection" : policy === "refunds" ? "Refund & cancellation policy" : "Cookie notice"}</h3><button className="btn btn-light" style={{ padding: "6px 10px" }} onClick={() => setPolicy(null)}>Close</button></div>{policy === "privacy" ? <PrivacyContent /> : policy === "refunds" ? <RefundContent /> : <CookieContent />}</div></div> : null}
     </div>
   );
 }
@@ -3310,7 +3353,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   if (ql) {
     const has = (k) => nav.some((n) => n.k === k);
     if (has("opportunities")) OPPS.forEach((o) => { if (o.org.toLowerCase().includes(ql) || o.role.toLowerCase().includes(ql)) sResults.push({ type: "Opportunity", label: o.org, sub: o.role, k: "opportunities", I: Target }); });
-    if (has("decisionMakers")) DMS.forEach((d) => { if (d.name.toLowerCase().includes(ql) || d.org.toLowerCase().includes(ql)) sResults.push({ type: "Decision maker", label: d.name, sub: d.org, k: "decisionMakers", I: Users }); });
+    if (has("decisionMakers")) searchContacts.forEach((d) => { if (d.name.toLowerCase().includes(ql) || d.org.toLowerCase().includes(ql)) sResults.push({ type: "Decision maker", label: d.name, sub: d.org, k: "decisionMakers", I: Users }); });
     if (has("clinicians")) CLINICIANS.forEach((c) => { if (c.name.toLowerCase().includes(ql) || c.spec.toLowerCase().includes(ql)) sResults.push({ type: "Clinician", label: c.name, sub: c.spec, k: "clinicians", I: Stethoscope }); });
   }
   const results = sResults.slice(0, 7);
@@ -3318,6 +3361,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   useEffect(() => { if (!NAVS[role].some((n) => n.k === active)) setActive(NAVS[role][0].k); }, [role]);
   useEffect(() => { try { window.storage?.set("cura_active_" + role, JSON.stringify(active)); } catch (e) {} }, [active, role]);
   const go = (k) => { setActive(k); setOpen(false); window.scrollTo(0, 0); };
+  const { contacts: searchContacts } = useContacts();
   const [propOpp, setPropOpp] = useState(null);
   const [sent, setSent] = useState([]);
   const [booked, setBooked] = useState([]);
@@ -3544,8 +3588,50 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
   );
 }
 
+function BillingResult({ result, onSignIn, onClose }) {
+  const ok = result === "success";
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(6,14,30,.62)", display: "grid", placeItems: "center", padding: 20, backdropFilter: "blur(3px)" }}>
+      {ok ? <div className="toast" style={{ position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)", zIndex: 210, background: "var(--navy)", color: "#fff", padding: "12px 20px", borderRadius: 999, fontSize: 13.5, fontWeight: 600, boxShadow: "0 12px 34px rgba(10,23,48,.34)" }}>
+        <span className="row" style={{ gap: 8 }}><Check size={15} color="#00C2B8" /> Payment successful</span>
+      </div> : null}
+      <div className="card reveal in" style={{ maxWidth: 520, width: "100%", padding: 38, textAlign: "center", position: "relative", overflow: "hidden" }}>
+        {ok ? <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 4, background: "linear-gradient(90deg,var(--teal),var(--cyan))" }} /> : null}
+        <div style={{ width: 70, height: 70, borderRadius: 999, background: ok ? "var(--cyan-soft)" : "var(--amber-bg)", display: "grid", placeItems: "center", margin: "0 auto 18px" }}>
+          {ok ? <Check size={32} color="#06776F" /> : <AlertCircle size={30} color="#B45309" />}
+        </div>
+        {ok ? (
+          <>
+            <h2 className="disp" style={{ fontSize: 27, fontWeight: 800, margin: "0 0 8px" }}>Welcome to the {APP_NAME} community</h2>
+            <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.65, maxWidth: 400, margin: "0 auto 6px" }}>Your payment went through and your subscription is active. A receipt is on its way to your inbox.</p>
+            <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.65, maxWidth: 400, margin: "0 auto 24px" }}>Sign back in to unlock everything on your plan.</p>
+            <button className="btn btn-primary lift" style={{ padding: "13px 26px", fontSize: 15 }} onClick={onSignIn}>Sign in to {APP_NAME} <ArrowRight size={16} /></button>
+            <div style={{ marginTop: 14 }}><button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--muted)" }}>Back to the website</button></div>
+          </>
+        ) : (
+          <>
+            <h2 className="disp" style={{ fontSize: 25, fontWeight: 700, margin: "0 0 8px" }}>Checkout cancelled</h2>
+            <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.65, maxWidth: 400, margin: "0 auto 24px" }}>No payment was taken. You can pick a plan again whenever you are ready.</p>
+            <button className="btn btn-light" onClick={onClose}>Back to the website</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [stage, setStage] = useState("landing");
+  const [billingResult, setBillingResult] = useState(null);
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get("billing");
+      if (q === "success" || q === "cancelled") {
+        setBillingResult(q);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    } catch (e) {}
+  }, []);
   const [session, setSession] = useState(null);
   const [role, setRole] = useState(null);
   const [trial, setTrial] = useState(null);
@@ -3616,6 +3702,7 @@ export default function App() {
     <div className="cura">
       <style>{STYLES}</style>
       <CookieConsent />
+      {billingResult ? <BillingResult result={billingResult} onSignIn={() => { setBillingResult(null); goSignIn(); }} onClose={() => setBillingResult(null)} /> : null}
       {stage === "landing" && <Landing onEnter={goSignIn} onDemo={() => setStage("demo")} />}
       {stage === "demo" && <DemoBooking onHome={home} onSignIn={goSignIn} />}
       {stage === "roleChoice" && <RoleChoiceScreen onPick={pickRole} onHome={home} />}
