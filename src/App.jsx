@@ -2970,24 +2970,28 @@ function Landing({ onEnter, onDemo }) {
       <div className="sec solutions" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap" style={{ padding: "72px 24px" }}>
           <Reveal><div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 38px" }}><div className="eyebrow">Specialist new business, every solution</div><h2 className="disp" style={{ fontSize: 34, fontWeight: 700, marginTop: 12 }}>10 ways to win new business, <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>perm first</span></h2><p className="muted" style={{ fontSize: 16.5, marginTop: 10, lineHeight: 1.6 }}>Live opportunities across permanent, insourcing, contract, international, tenders, regional projects, PSLs, MSPs and RPOs, with locum cover when it is genuinely needed.</p></div></Reveal>
-          <div style={{ display: "flex", flexDirection: "column", gap: 30 }}>{[{ t: "Placement types", s: "Ways to place talent", items: SOLUTIONS.slice(0, 5) }, { t: "Routes to market", s: "Ways to win and hold contracts", items: SOLUTIONS.slice(5) }].map((grp) => (
+          <div style={{ display: "flex", flexDirection: "column", gap: 34 }}>{[{ t: "Placement types", s: "Ways to place talent", accent: "#0E8C7E", items: SOLUTIONS.slice(0, 5) }, { t: "Routes to market", s: "Ways to win and hold contracts", accent: "#2D6BFF", items: SOLUTIONS.slice(5) }].map((grp) => (
             <div key={grp.t}>
-              <div className="row" style={{ alignItems: "baseline", gap: 12, marginBottom: 14 }}><span className="eyebrow" style={{ color: "#06776F" }}>{grp.t}</span><span className="faint" style={{ fontSize: 12.5 }}>{grp.s}</span><div style={{ flex: 1, height: 1, background: "var(--line)" }} /></div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{grp.items.map((s, i) => (
-                <Reveal key={s.l} delay={i * 45}>
-                  <div className="card lift" style={{ padding: "15px 18px", display: "flex", gap: 16, alignItems: "flex-start", borderColor: s.lead ? "var(--cyan)" : "var(--line)" }}>
-                    <div style={{ width: 46, height: 46, borderRadius: 12, background: s.lead ? "var(--cyan-soft)" : "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><s.i size={21} color={s.lead ? "#06776F" : "#1E54E6"} /></div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}><span style={{ fontWeight: 700, fontSize: 16 }}>{s.l}</span>{s.lead ? <span className="chip chip-cyan" style={{ fontSize: 10 }}>Perm-first</span> : null}{s.subtle ? <span className="chip chip-grey" style={{ fontSize: 10 }}>On demand</span> : null}</div>
-                      <div className="muted" style={{ fontSize: 13.5, marginTop: 3, lineHeight: 1.55 }}>{s.d}</div>
+              <div className="row" style={{ alignItems: "baseline", gap: 12, marginBottom: 16 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".12em", textTransform: "uppercase", color: grp.accent }}>{grp.t}</span>
+                <span className="faint" style={{ fontSize: 12.5 }}>{grp.s}</span>
+                <div style={{ flex: 1, height: 1, background: "var(--line)" }} />
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: 14, alignItems: "stretch" }}>{grp.items.map((sol, i) => (
+                <Reveal key={sol.l} delay={i * 45}>
+                  <div className="card lift" style={{ padding: 20, height: "100%", display: "flex", flexDirection: "column", borderColor: sol.lead ? "var(--cyan)" : "var(--line)" }}>
+                    <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                      <div style={{ width: 42, height: 42, borderRadius: 11, background: sol.lead ? "var(--cyan-soft)" : "#EEF3FF", display: "grid", placeItems: "center" }}><sol.i size={20} color={sol.lead ? "#06776F" : "#1E54E6"} /></div>
+                      {sol.lead ? <span className="chip chip-cyan" style={{ fontSize: 10 }}>Perm-first</span> : null}
+                      {sol.subtle ? <span className="chip chip-grey" style={{ fontSize: 10 }}>On demand</span> : null}
                     </div>
+                    <div style={{ fontWeight: 700, fontSize: 15.5, marginBottom: 5 }}>{sol.l}</div>
+                    <div className="muted" style={{ fontSize: 13, lineHeight: 1.55 }}>{sol.d}</div>
                   </div>
                 </Reveal>
               ))}</div>
             </div>
           ))}</div>
-          <Reveal><div style={{ textAlign: "center", margin: "54px 0 22px" }}><div className="eyebrow">Who checks Qura daily</div><h3 className="disp" style={{ fontSize: 26, fontWeight: 700, marginTop: 10 }}>Senior contacts across every corner of healthcare</h3></div></Reveal>
-          <div className="row" style={{ gap: 12, justifyContent: "center", flexWrap: "wrap" }}>{CLIENT_TYPES.map((c) => (<span key={c.l} className="row" style={{ gap: 8, padding: "11px 18px", border: "1px solid var(--line)", borderRadius: 999, fontSize: 13.5, fontWeight: 500, background: "#fff" }}><c.i size={15} color="#1E54E6" /> {c.l}</span>))}</div>
         </div>
       </div>
 
@@ -3058,8 +3062,8 @@ function Landing({ onEnter, onDemo }) {
         </div>
       </div>
 
-      <div className="wrap sec solutions" style={{ padding: "78px 24px" }}>
-        <Reveal><div style={{ textAlign: "center", maxWidth: 600, margin: "0 auto 44px" }}><h2 className="disp" style={{ fontSize: 36, fontWeight: 700 }}>Why teams choose {APP_NAME}</h2><p className="muted" style={{ fontSize: 17, marginTop: 12 }}>Everything you would spend hours pulling from Google, LinkedIn and board papers, mapped for you on one live platform. The teams that adopt {APP_NAME} stop searching and start winning; the ones that do not risk falling behind.</p></div></Reveal>
+      <div className="wrap sec solutions" style={{ padding: "56px 24px" }}>
+        <Reveal><div style={{ textAlign: "center", maxWidth: 600, margin: "0 auto 34px" }}><h2 className="disp" style={{ fontSize: 36, fontWeight: 700 }}>Why teams choose {APP_NAME}</h2><p className="muted" style={{ fontSize: 17, marginTop: 12 }}>Everything you would spend hours pulling from Google, LinkedIn and board papers, mapped for you on one live platform. The teams that adopt {APP_NAME} stop searching and start winning; the ones that do not risk falling behind.</p></div></Reveal>
         <div className="grid g2">{why.map((w, idx) => (<Reveal key={w.t} delay={idx * 70}><div className="card lift row" style={{ padding: 24, gap: 18, alignItems: "flex-start", height: "100%" }}><div style={{ width: 48, height: 48, borderRadius: 13, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><w.i size={22} color="#1E54E6" /></div><div><h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>{w.t}</h3><p className="muted" style={{ fontSize: 15, margin: 0, lineHeight: 1.6 }}>{w.b}</p></div></div></Reveal>))}</div>
       </div>
 
@@ -3108,7 +3112,7 @@ function Landing({ onEnter, onDemo }) {
 
       <div id="pricing" className="sec pricing" style={{ background: "var(--navy)" }}>
         <div className="wrap" style={{ padding: "70px 24px 10px" }}>
-          <Reveal><div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 34px" }}><div className="eyebrow" style={{ color: "#7EEDE4" }}>Pricing</div><h2 className="disp" style={{ fontSize: 34, fontWeight: 700, margin: "8px 0 10px", color: "#fff" }}>Priced for who you are</h2><p style={{ fontSize: 15.5, lineHeight: 1.6, marginTop: 0, color: "rgba(255,255,255,.75)" }}>Clinicians join free. Everyone else pays for the time {APP_NAME} gives back. Prices shown per month, with a saving when billed annually.</p></div></Reveal>
+          <div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 34px" }}><div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "#7EEDE4", marginBottom: 10 }}>Pricing</div><h2 className="disp" style={{ fontSize: 34, fontWeight: 700, margin: "0 0 12px", color: "#FFFFFF" }}>Priced for who you are</h2><p style={{ fontSize: 15.5, lineHeight: 1.6, margin: 0, color: "#B8C7DD" }}>Clinicians join free. Everyone else pays for the time {APP_NAME} gives back. Prices shown per month, with a saving when billed annually.</p></div>
           <div className="grid g3" style={{ gap: 18 }}>
             {[
               { who: "Workforce suppliers", accent: "#00C2B8", plans: [["Starter", "£450", "£375 billed annually"], ["Growth", "£1,200", "£999 billed annually"]], pts: ["Live opportunities across every market", "Verified decision-makers", "AI outreach and proposals", "Pipeline, CRM and weekly reports"] },
@@ -3116,26 +3120,26 @@ function Landing({ onEnter, onDemo }) {
               { who: "Clinicians", accent: "#C4B5FD", plans: [["Free", "£0", "Always free to join and apply"], ["Career+", "£15", "£12 billed annually"]], pts: ["Verified profile, seen worldwide", "Unlimited search and alerts", "Salary and tariff insights", "Relocation support"] },
             ].map((col, i) => (
               <Reveal key={col.who} delay={i * 60}>
-                <div className="card" style={{ padding: 26, height: "100%", background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.14)", color: "#fff" }}>
+                <div style={{ padding: 26, height: "100%", background: "#12233F", border: "1px solid #24405F", borderRadius: 18, color: "#fff", boxShadow: "0 14px 34px rgba(3,10,22,.34)" }}>
                   <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16, color: col.accent }}>{col.who}</div>
                   {col.plans.map((pl) => (
-                    <div key={pl[0]} style={{ padding: "12px 0", borderTop: "1px solid rgba(255,255,255,.12)" }}>
+                    <div key={pl[0]} style={{ padding: "12px 0", borderTop: "1px solid #24405F" }}>
                       <div className="row" style={{ justifyContent: "space-between", alignItems: "baseline" }}>
-                        <span style={{ fontWeight: 600, fontSize: 14.5 }}>{pl[0]}</span>
-                        <span className="disp" style={{ fontWeight: 800, fontSize: 22 }}>{pl[1]}<span style={{ fontSize: 12, fontWeight: 500, opacity: .65 }}>{pl[1] === "£0" ? "" : " /mo"}</span></span>
+                        <span style={{ fontWeight: 600, fontSize: 14.5, color: "#FFFFFF" }}>{pl[0]}</span>
+                        <span className="disp" style={{ fontWeight: 800, fontSize: 22, color: "#FFFFFF" }}>{pl[1]}<span style={{ fontSize: 12, fontWeight: 500, color: "#93A6C2" }}>{pl[1] === "£0" ? "" : " /mo"}</span></span>
                       </div>
-                      <div style={{ fontSize: 11.5, opacity: .6, marginTop: 2 }}>{pl[2]}</div>
+                      <div style={{ fontSize: 11.5, color: "#93A6C2", marginTop: 2 }}>{pl[2]}</div>
                     </div>
                   ))}
                   <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-                    {col.pts.map((x) => (<div key={x} className="row" style={{ gap: 8, fontSize: 13, alignItems: "flex-start" }}><Check size={14} color={col.accent} style={{ flexShrink: 0, marginTop: 2 }} /><span style={{ opacity: .85 }}>{x}</span></div>))}
+                    {col.pts.map((x) => (<div key={x} className="row" style={{ gap: 8, fontSize: 13, alignItems: "flex-start" }}><Check size={14} color={col.accent} style={{ flexShrink: 0, marginTop: 2 }} /><span style={{ color: "#C7D5E8" }}>{x}</span></div>))}
                   </div>
-                  <button onClick={onEnter} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 20, background: "rgba(255,255,255,.12)", color: "#fff", border: "1px solid rgba(255,255,255,.22)" }}>Get started</button>
+                  <button onClick={onEnter} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 20, background: "#00C2B8", color: "#04231F", border: "none", fontWeight: 700 }}>Get started</button>
                 </div>
               </Reveal>
             ))}
           </div>
-          <div style={{ textAlign: "center", marginTop: 20, fontSize: 12.5, color: "rgba(255,255,255,.55)" }}>Enterprise and multi-site pricing available on request. All prices exclude VAT where applicable.</div>
+          <div style={{ textAlign: "center", marginTop: 20, fontSize: 12.5, color: "#8A9CB8" }}>Enterprise and multi-site pricing available on request. All prices exclude VAT where applicable.</div>
         </div>
         <div className="wrap" style={{ padding: "80px 24px", textAlign: "center" }}>
           <Reveal>
