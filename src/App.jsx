@@ -128,6 +128,8 @@ a{transition:color .15s ease}
 .cura p{text-align:justify;text-justify:inter-word;-webkit-hyphens:auto;hyphens:auto}
 .cura [style*="text-align: center"] p,.cura [style*="text-align:center"] p{text-align:center;-webkit-hyphens:manual;hyphens:manual}
 .lb{flex:1 0 auto}
+.lb .sec.home > .wrap,.lb .wrap.sec.home{max-width:1280px;margin-left:auto;margin-right:auto}
+.lb .sec.story .wrap,.lb .sec.fragile.wrap{max-width:1440px;margin-left:auto;margin-right:auto}
 .shot-wrap{border-radius:16px;overflow:hidden;border:1px solid var(--line);box-shadow:0 22px 60px rgba(10,23,48,.22);background:#0A1730;position:relative}
 .shot-wrap{position:relative;width:100%;aspect-ratio:1200/752;max-height:calc(100vh - 224px);max-width:calc((100vh - 224px) * 1.595);margin:0 auto}
 .shot-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .55s ease;border-radius:16px}
@@ -2889,6 +2891,37 @@ function Landing({ onEnter, onDemo }) {
             </div>
           </div>
         </Reveal>
+
+        <Reveal><div style={{ textAlign: "center", maxWidth: 640, margin: "54px auto 30px" }}><div className="eyebrow" style={{ color: "#06776F" }}>The full picture</div><h2 className="disp" style={{ fontSize: 32, fontWeight: 700, margin: "8px 0 10px" }}>Every fragile profession, covered</h2><p className="muted" style={{ fontSize: 15.5, lineHeight: 1.6, marginTop: 0 }}>The roles under the greatest workforce pressure across the NHS and beyond, from severe shortages and burnout to heavy reliance on international recruitment. {APP_NAME} is built around all of them.</p></div></Reveal>
+        <div className="grid g3" style={{ gap: 16, marginBottom: 20 }}>
+          {[
+            { i: Heart, t: "Nursing & midwifery", c: "#E11D48", r: ["Adult nurses (RGN)", "Mental health nurses (RMN)", "Learning disability nurses", "ICU & critical care", "Community & district", "Specialist nurses", "Midwives"] },
+            { i: Stethoscope, t: "Doctors", c: "#1E54E6", r: ["General practitioners", "Oncologists", "Ophthalmologists", "Dermatologists", "Gastroenterologists", "Radiologists", "Specialist consultants"] },
+            { i: Activity, t: "Allied health professionals", c: "#0E8C7E", r: ["Sonographers", "Diagnostic & therapeutic radiographers", "Echocardiographers", "Audiologists", "Paramedics", "Physiotherapists & OTs", "Speech & language therapists", "Podiatrists & dietitians", "Operating department practitioners", "Orthoptists, prosthetists & orthotists", "Arts, music & drama therapists"] },
+            { i: Brain, t: "Healthcare science", c: "#7C5CFF", r: ["Biomedical scientists", "Clinical scientists", "Genomics & audiology science", "Pathology services"] },
+            { i: ShieldCheck, t: "Pharmacy & psychology", c: "#B45309", r: ["Pharmacists (hospital & community)", "Pharmacy technicians", "Clinical psychologists"] },
+            { i: Globe, t: "Why they are fragile", c: "#0A1A30", r: ["Severe, sustained shortages", "High burnout and attrition", "Long training pipelines", "Heavy reliance on international recruitment", "Services stop without them"] },
+          ].map((g, i) => (
+            <Reveal key={g.t} delay={i * 50}>
+              <div className="card lift" style={{ padding: 22, height: "100%" }}>
+                <div className="row" style={{ gap: 12, alignItems: "center" }}>
+                  <div style={{ width: 42, height: 42, borderRadius: 11, background: g.c + "14", display: "grid", placeItems: "center", flexShrink: 0 }}><g.i size={20} color={g.c} /></div>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{g.t}</div>
+                </div>
+                <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 7 }}>
+                  {g.r.map((x) => (<div key={x} className="row" style={{ gap: 8, fontSize: 13.5, alignItems: "flex-start" }}><Check size={14} color={g.c} style={{ flexShrink: 0, marginTop: 3 }} /><span className="muted">{x}</span></div>))}
+                </div>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+        <Reveal><div className="card" style={{ padding: "26px 30px", background: "var(--navy)", color: "#fff", border: "none", marginBottom: 8 }}>
+          <div className="row" style={{ justifyContent: "space-between", gap: 18, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ maxWidth: 620 }}><div className="disp" style={{ fontSize: 20, fontWeight: 700, marginBottom: 6 }}>A CRM built specifically for fragile professions</div><p style={{ fontSize: 14, opacity: .85, lineHeight: 1.6, margin: 0 }}>General recruitment tools treat these roles like any other vacancy. {APP_NAME} is designed around their scarcity, their compliance requirements and the international pathways that supply them.</p></div>
+            <button onClick={onEnter} className="btn" style={{ background: "#00C2B8", color: "#04231F", fontWeight: 800, padding: "13px 22px", whiteSpace: "nowrap" }}>Get started <ArrowRight size={16} /></button>
+          </div>
+        </div></Reveal>
+
       </div>
 
       <div className="sec solutions" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
@@ -3031,6 +3064,36 @@ function Landing({ onEnter, onDemo }) {
       </div>
 
       <div id="pricing" className="sec pricing" style={{ background: "var(--navy)" }}>
+        <div className="wrap" style={{ padding: "70px 24px 10px" }}>
+          <Reveal><div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 34px" }}><div className="eyebrow" style={{ color: "#7EEDE4" }}>Pricing</div><h2 className="disp" style={{ fontSize: 34, fontWeight: 700, margin: "8px 0 10px", color: "#fff" }}>Priced for who you are</h2><p style={{ fontSize: 15.5, lineHeight: 1.6, marginTop: 0, color: "rgba(255,255,255,.75)" }}>Clinicians join free. Everyone else pays for the time {APP_NAME} gives back. Prices shown per month, with a saving when billed annually.</p></div></Reveal>
+          <div className="grid g3" style={{ gap: 18 }}>
+            {[
+              { who: "Workforce suppliers", accent: "#00C2B8", plans: [["Starter", "£450", "£375 billed annually"], ["Growth", "£1,200", "£999 billed annually"]], pts: ["Live opportunities across every market", "Verified decision-makers", "AI outreach and proposals", "Pipeline, CRM and weekly reports"] },
+              { who: "Hospitals & providers", accent: "#7FA9FF", plans: [["Team", "£350", "£290 billed annually"], ["Intelligence", "£900", "£750 billed annually"]], pts: ["Post vacancies and search candidates", "Pre-vetted clinician access", "ICB and council intelligence", "Analytics and insights"] },
+              { who: "Clinicians", accent: "#C4B5FD", plans: [["Free", "£0", "Always free to join and apply"], ["Career+", "£15", "£12 billed annually"]], pts: ["Verified profile, seen worldwide", "Unlimited search and alerts", "Salary and tariff insights", "Relocation support"] },
+            ].map((col, i) => (
+              <Reveal key={col.who} delay={i * 60}>
+                <div className="card" style={{ padding: 26, height: "100%", background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.14)", color: "#fff" }}>
+                  <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 16, color: col.accent }}>{col.who}</div>
+                  {col.plans.map((pl) => (
+                    <div key={pl[0]} style={{ padding: "12px 0", borderTop: "1px solid rgba(255,255,255,.12)" }}>
+                      <div className="row" style={{ justifyContent: "space-between", alignItems: "baseline" }}>
+                        <span style={{ fontWeight: 600, fontSize: 14.5 }}>{pl[0]}</span>
+                        <span className="disp" style={{ fontWeight: 800, fontSize: 22 }}>{pl[1]}<span style={{ fontSize: 12, fontWeight: 500, opacity: .65 }}>{pl[1] === "£0" ? "" : " /mo"}</span></span>
+                      </div>
+                      <div style={{ fontSize: 11.5, opacity: .6, marginTop: 2 }}>{pl[2]}</div>
+                    </div>
+                  ))}
+                  <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+                    {col.pts.map((x) => (<div key={x} className="row" style={{ gap: 8, fontSize: 13, alignItems: "flex-start" }}><Check size={14} color={col.accent} style={{ flexShrink: 0, marginTop: 2 }} /><span style={{ opacity: .85 }}>{x}</span></div>))}
+                  </div>
+                  <button onClick={onEnter} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 20, background: "rgba(255,255,255,.12)", color: "#fff", border: "1px solid rgba(255,255,255,.22)" }}>Get started</button>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <div style={{ textAlign: "center", marginTop: 20, fontSize: 12.5, color: "rgba(255,255,255,.55)" }}>Enterprise and multi-site pricing available on request. All prices exclude VAT where applicable.</div>
+        </div>
         <div className="wrap" style={{ padding: "80px 24px", textAlign: "center" }}>
           <Reveal>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 18 }}><PulseLine w={260} color="#5FE6DC" /></div>
