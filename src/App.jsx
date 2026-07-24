@@ -2758,6 +2758,16 @@ function Landing({ onEnter, onDemo }) {
   const [howMenu, setHowMenu] = useState(false);
   const howRef = useRef(null);
   useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        document.querySelectorAll(".lb .rv").forEach((el) => {
+          if (el.offsetParent !== null) el.classList.add("in");
+        });
+      } catch (e) {}
+    }, 60);
+    return () => clearTimeout(t);
+  }, [view, howSec]);
+  useEffect(() => {
     if (!howMenu) return;
     const onDoc = (e) => { if (howRef.current && !howRef.current.contains(e.target)) setHowMenu(false); };
     const onKey = (e) => { if (e.key === "Escape") setHowMenu(false); };
@@ -2865,6 +2875,39 @@ function Landing({ onEnter, onDemo }) {
               ))}{!shown.length && <div style={{ color: "#8295B6", fontSize: 13, padding: "18px 6px" }}>New listings opening in this market shortly.</div>}</div>
               <button onClick={onEnter} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 14, background: "#00C2B8", color: "#04211F", fontWeight: 700 }}>Sign in to see who is hiring <ArrowRight size={16} /></button>
             </div>
+          </div>
+        </div>
+        <div className="wrap" style={{ padding: "0 24px 64px" }}>
+          <div className="grid g4" style={{ gap: 14, marginBottom: 26 }}>
+            {[
+              ["24/7", "The feed never sleeps, across every market"],
+              ["Seconds", "From a role appearing to a matched clinician"],
+              ["Every lens", "Suppliers, hospitals, clinicians and care"],
+              ["No fees", "Clinicians apply directly, with no agency fee"],
+            ].map((st) => (
+              <div key={st[0]} style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.13)", borderRadius: 14, padding: "18px 18px" }}>
+                <div className="disp" style={{ fontSize: 24, fontWeight: 800, color: "#00C2B8" }}>{st[0]}</div>
+                <div style={{ fontSize: 12.5, color: "rgba(255,255,255,.68)", marginTop: 6, lineHeight: 1.5 }}>{st[1]}</div>
+              </div>
+            ))}
+          </div>
+          <div className="grid g3" style={{ gap: 16 }}>
+            {[
+              { i: Radar, t: "Demand appears", d: "A hospital, diagnostic centre or care provider posts a live requirement, or it is surfaced automatically from public sector intelligence." },
+              { i: Sparkles, t: "Qura matches it", d: "The role is categorised by profession, specialty, country and employer, then matched to verified clinicians and the suppliers who can deliver." },
+              { i: Send, t: "Both sides engage", d: "Suppliers are alerted the moment it goes live. Clinicians can apply directly. Introductions happen on the platform, not in a mailbox." },
+            ].map((c, n) => (
+              <div key={c.t} style={{ background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 16, padding: 22 }}>
+                <div className="row" style={{ gap: 12, alignItems: "center" }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 11, background: "rgba(0,194,184,.16)", display: "grid", placeItems: "center" }}><c.i size={19} color="#7EEDE4" /></div>
+                  <div style={{ fontWeight: 700, fontSize: 15.5, color: "#fff" }}>{c.t}</div>
+                </div>
+                <p style={{ fontSize: 13.5, color: "rgba(255,255,255,.7)", lineHeight: 1.6, marginTop: 12, marginBottom: 0 }}>{c.d}</p>
+              </div>
+            ))}
+          </div>
+          <div className="row" style={{ justifyContent: "center", marginTop: 26 }}>
+            <button onClick={onEnter} className="btn lift" style={{ background: "#00C2B8", color: "#04231F", fontWeight: 800, padding: "13px 26px" }}>Sign in to see the full marketplace <ArrowRight size={16} /></button>
           </div>
         </div>
       </div>
