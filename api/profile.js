@@ -18,17 +18,28 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: "Sign in required" });
 
   if (req.method === "GET") {
-    const p = (await kvGet(user.id, KEY)) || { email: user.email };
+    const raw = (await kvGet(user.id, KEY)) || {};
+    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded"];
+    const p = { email: user.email };
+    for (const f of FIELDS) if (raw[f] !== undefined) p[f] = raw[f];
     return res.status(200).json({ profile: p, status: completeness(p) });
   }
 
   if (req.method === "POST") {
     const incoming = req.body || {};
     const current = (await kvGet(user.id, KEY)) || {};
-    const merged = { ...current, ...incoming, email: user.email, updatedAt: new Date().toISOString() };
-    const ok = await kvSet(user.id, KEY, merged);
+    // Only ever persist these known fields — prevents any runaway growth / nesting.
+    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded"];
+    const clean = {};
+    for (const f of FIELDS) {
+      const v = incoming[f] !== undefined ? incoming[f] : current[f];
+      if (v !== undefined) clean[f] = v;
+    }
+    clean.email = user.email;
+    clean.updatedAt = new Date().toISOString();
+    const ok = await kvSet(user.id, KEY, clean);
     if (!ok && !user._preview) return res.status(500).json({ error: "Could not save profile" });
-    return res.status(200).json({ profile: merged, status: completeness(merged) });
+    return res.status(200).json({ profile: clean, status: completeness(clean) });
   }
 
   return res.status(405).json({ error: "Method not allowed" });
