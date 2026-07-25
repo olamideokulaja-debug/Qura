@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Qura",
+    "slug": "qura",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "qura",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#0A1A30",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.qurahealth.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Qura uses the camera so you can upload documents for verification.",
+        "NSPhotoLibraryUsageDescription": "Qura accesses your photos so you can upload your CV or documents."
+      }
+    },
+    "android": {
+      "package": "org.qurahealth.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0A1A30"
+      },
+      "permissions": [
+        "NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-notifications"
+    ],
+    "extra": {
+      "supabaseUrl": "SET_IN_EAS_SECRETS",
+      "supabaseAnonKey": "SET_IN_EAS_SECRETS",
+      "apiBase": "https://qurahealth.org",
+      "eas": {
+        "projectId": "SET_AT_EAS_BUILD"
+      }
+    }
+  }
+}
