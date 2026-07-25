@@ -29,7 +29,14 @@ export async function kvGet(owner, key) {
   const r = await fetch(u, { headers: { apikey: svc(), Authorization: "Bearer " + svc() } });
   if (!r.ok) return null;
   const rows = await r.json();
-  return rows && rows[0] ? rows[0].value : null;
+  if (!rows || !rows[0]) return null;
+  let v = rows[0].value;
+  // The column may return the value as a JSON string (double-encoded) or as an object.
+  // Normalise to a real object so callers can read fields off it.
+  if (typeof v === "string") {
+    try { v = JSON.parse(v); } catch (e) { /* leave as string if not JSON */ }
+  }
+  return v;
 }
 
 export async function kvSet(owner, key, value) {
