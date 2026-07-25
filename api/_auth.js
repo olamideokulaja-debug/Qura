@@ -67,3 +67,19 @@ export async function kvSet(owner, key, value) {
   });
   return post.ok;
 }
+
+
+// List all rows for a given key across every owner (e.g. all clinician_profile rows).
+// Returns [{ owner, value }]. value is parsed to an object when stored as a JSON string.
+export async function kvListByKey(key) {
+  if (!base() || !svc()) return [];
+  const u = base() + "/rest/v1/kv?key=eq." + encodeURIComponent(key) + "&select=owner,value";
+  const r = await fetch(u, { headers: { apikey: svc(), Authorization: "Bearer " + svc() } });
+  if (!r.ok) return [];
+  const rows = await r.json().catch(() => []);
+  return (Array.isArray(rows) ? rows : []).map((row) => {
+    let v = row.value;
+    if (typeof v === "string") { try { v = JSON.parse(v); } catch (e) {} }
+    return { owner: row.owner, value: v };
+  });
+}

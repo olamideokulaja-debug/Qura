@@ -1,42 +1,76 @@
-import { getUser, kvGet, kvSet } from "./_auth.js";
+import { getUser, kvGet, kvSet, kvListByKey } from "./_auth.js";
 
 // GET  /api/clinicians                 -> verified clinicians a supplier can shortlist
 // GET  /api/clinicians?shortlist=1     -> this supplier's shortlist
 // POST /api/clinicians {clinicianId}   -> add/remove from shortlist (toggle)
-// Curated directory (privacy-safe: no contact details until an introduction is made).
-const DIRECTORY = [
-  { id: "cl_1", handle: "Radiographer, MRI", profession: "Radiographer", spec: "MRI", country: "United Kingdom", region: "London", experience: "6 to 10 years", regBody: "HCPC", verified: true, fit: 96 },
-  { id: "cl_2", handle: "Sonographer, MSK", profession: "Sonographer", spec: "MSK", country: "United Kingdom", region: "Manchester", experience: "3 to 5 years", regBody: "HCPC", verified: true, fit: 91 },
-  { id: "cl_3", handle: "ICU Nurse", profession: "Nurse", spec: "Critical care", country: "United Arab Emirates", region: "Dubai", experience: "6 to 10 years", regBody: "NMC", verified: true, fit: 88 },
-  { id: "cl_4", handle: "Biomedical Scientist", profession: "Biomedical Scientist", spec: "Blood sciences", country: "United Kingdom", region: "Birmingham", experience: "More than 10 years", regBody: "HCPC", verified: true, fit: 84 },
-  { id: "cl_5", handle: "Echocardiographer", profession: "Echocardiographer", spec: "Cardiac", country: "United Kingdom", region: "Leeds", experience: "3 to 5 years", regBody: "HCPC", verified: true, fit: 82 },
+//
+// Pulls REAL verified clinician profiles from the kv store. Privacy-safe: exposes only
+// professional attributes (no name, email, or registration number) until an introduction
+// is made. Falls back to a small sample set only if no real clinicians have verified yet.
+
+const PROFILE_KEY = "clinician_profile";
+const SHORTLIST_KEY = "supplier_shortlist";
+
+const SAMPLE = [
+  { id: "sample_1", handle: "Radiographer, MRI", profession: "Radiographer", spec: "MRI", country: "United Kingdom", region: "—", experience: "6 to 10 years", regBody: "HCPC", verified: true, fit: 96, sample: true },
+  { id: "sample_2", handle: "Sonographer", profession: "Sonographer", spec: "General", country: "United Kingdom", region: "—", experience: "3 to 5 years", regBody: "HCPC", verified: true, fit: 90, sample: true },
 ];
-const KEY = "supplier_shortlist";
+
+function isVerified(p) {
+  const req = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded"];
+  return req.every((k) => { const v = p ? p[k] : undefined; return v !== undefined && v !== null && v !== "" && v !== false; });
+}
+
+// Turn a stored profile into a privacy-safe talent card. Deterministic id from owner.
+function toCard(owner, p) {
+  return {
+    id: "cl_" + owner,                 // stable per clinician, not their raw id in the UI text
+    handle: p.profession + (p.category && p.category !== p.profession ? "" : ""), // role label only
+    profession: p.profession,
+    spec: p.profession,                // spec detail can be added later
+    country: p.country,
+    region: p.country,                 // region not collected yet; show country
+    experience: p.experienceYears,
+    regBody: p.regBody,
+    verified: true,
+  };
+}
+
+async function loadVerifiedTalent() {
+  const rows = await kvListByKey(PROFILE_KEY);
+  const cards = [];
+  for (const { owner, value } of rows) {
+    if (value && isVerified(value)) cards.push(toCard(owner, value));
+  }
+  return cards;
+}
 
 export default async function handler(req, res) {
   const user = await getUser(req);
   if (!user) return res.status(401).json({ error: "Sign in required" });
 
+  const shortlist = (await kvGet(user.id, SHORTLIST_KEY)) || [];
+  const ids = Array.isArray(shortlist) ? shortlist : [];
+
   if (req.method === "GET") {
-    const shortlist = (await kvGet(user.id, KEY)) || [];
-    const ids = Array.isArray(shortlist) ? shortlist : [];
+    let talent = await loadVerifiedTalent();
+    if (talent.length === 0) talent = SAMPLE;   // nothing verified yet -> show sample
+
     if (req.query && req.query.shortlist) {
-      return res.status(200).json({ items: DIRECTORY.filter((c) => ids.includes(c.id)), shortlistIds: ids });
+      return res.status(200).json({ items: talent.filter((c) => ids.includes(c.id)), shortlistIds: ids });
     }
     const { profession, country } = req.query || {};
-    let items = DIRECTORY.slice();
+    let items = talent;
     if (profession && profession !== "All") items = items.filter((c) => c.profession === profession);
     if (country && country !== "All") items = items.filter((c) => c.country === country);
-    return res.status(200).json({ items, shortlistIds: ids });
+    return res.status(200).json({ items, shortlistIds: ids, live: talent !== SAMPLE });
   }
 
   if (req.method === "POST") {
     const { clinicianId } = req.body || {};
     if (!clinicianId) return res.status(400).json({ error: "clinicianId required" });
-    const shortlist = (await kvGet(user.id, KEY)) || [];
-    const ids = Array.isArray(shortlist) ? shortlist : [];
     const next = ids.includes(clinicianId) ? ids.filter((x) => x !== clinicianId) : [clinicianId, ...ids];
-    await kvSet(user.id, KEY, next);
+    await kvSet(user.id, SHORTLIST_KEY, next);
     return res.status(200).json({ shortlistIds: next, shortlisted: next.includes(clinicianId) });
   }
 
