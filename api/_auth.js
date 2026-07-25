@@ -25,7 +25,7 @@ const svc = () => process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPA
 export async function kvGet(owner, key) {
   if (!base() || !svc()) return null;
   const u = base() + "/rest/v1/kv?owner=eq." + encodeURIComponent(owner) +
-    "&key=eq." + encodeURIComponent(key) + "&select=value";
+    "&key=eq." + encodeURIComponent(key) + "&select=value&order=value->>updatedAt.desc.nullslast&limit=1";
   const r = await fetch(u, { headers: { apikey: svc(), Authorization: "Bearer " + svc() } });
   if (!r.ok) return null;
   const rows = await r.json();
@@ -34,14 +34,29 @@ export async function kvGet(owner, key) {
 
 export async function kvSet(owner, key, value) {
   if (!base() || !svc()) return false;
-  const u = base() + "/rest/v1/kv?on_conflict=owner,key";
-  const r = await fetch(u, {
+  // Try to UPDATE an existing row first (does not depend on a unique constraint).
+  const patchUrl = base() + "/rest/v1/kv?owner=eq." + encodeURIComponent(owner) +
+    "&key=eq." + encodeURIComponent(key);
+  const patch = await fetch(patchUrl, {
+    method: "PATCH",
+    headers: {
+      apikey: svc(), Authorization: "Bearer " + svc(),
+      "Content-Type": "application/json", Prefer: "return=representation",
+    },
+    body: JSON.stringify({ value }),
+  });
+  if (patch.ok) {
+    const rows = await patch.json().catch(() => []);
+    if (Array.isArray(rows) && rows.length > 0) return true; // updated an existing row
+  }
+  // No existing row — INSERT one.
+  const post = await fetch(base() + "/rest/v1/kv", {
     method: "POST",
     headers: {
       apikey: svc(), Authorization: "Bearer " + svc(),
-      "Content-Type": "application/json", Prefer: "resolution=merge-duplicates",
+      "Content-Type": "application/json",
     },
     body: JSON.stringify([{ owner, key, value }]),
   });
-  return r.ok;
+  return post.ok;
 }
