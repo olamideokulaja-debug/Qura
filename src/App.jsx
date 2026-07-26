@@ -158,7 +158,7 @@ a{transition:color .15s ease}
 .step-num{width:26px;height:26px;border-radius:99px;display:grid;place-items:center;font-size:12px;font-weight:800;flex-shrink:0;background:#EEF1F7;color:#5A6783}
 .step-btn.on .step-num{background:var(--teal);color:#fff}
 .lb .sec{display:none!important}
-.lb[data-view="home"] .sec.home,.lb[data-view="clinicians"] .sec.clinicians,.lb[data-view="market"] .sec.market,.lb[data-view="fragile"] .sec.fragile,.lb[data-view="solutions"] .sec.solutions,.lb[data-view="founders"] .sec.founders,.lb[data-view="story"] .sec.story,.lb[data-view="how"] .sec.how,.lb[data-view="pricing"] .sec.pricing{display:block!important}
+.lb[data-view="home"] .sec.home,.lb[data-view="clinicians"] .sec.clinicians,.lb[data-view="suppliers-app"] .sec.suppliers-app,.lb[data-view="market"] .sec.market,.lb[data-view="fragile"] .sec.fragile,.lb[data-view="solutions"] .sec.solutions,.lb[data-view="founders"] .sec.founders,.lb[data-view="story"] .sec.story,.lb[data-view="how"] .sec.how,.lb[data-view="pricing"] .sec.pricing{display:block!important}
 .navlink{color:var(--muted);font-size:14.5px;font-weight:500;text-decoration:none;transition:color .15s}
 .navlink:hover{color:var(--navy)}
 `;
@@ -2828,6 +2828,61 @@ function ClinicianSection({ onEnter }) {
   );
 }
 
+
+/* ===== Supplier-facing app-download section (drives mobile app installs) ===== */
+const SUPPLIER_TAGLINES = [
+  "Keep track of your candidate pipeline on the go from your phone. No more relying on access to your office desk, laptop or desktop computer.",
+  "Track your pipeline of workforce collaboration opportunities from across the globe, in real time, on our app.",
+  "24/7 business development tracking from your mobile.",
+  "Being out of office doesn't mean you should be out of touch with your clients. Download the Qura app today.",
+];
+
+// Store badge links — replace with the real store URLs once the app is published.
+const APPSTORE_URL = "#";   // TODO: App Store link when live
+const PLAYSTORE_URL = "#";  // TODO: Google Play link when live
+
+function StoreBadges() {
+  return (
+    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+      <a href={APPSTORE_URL} style={{ textDecoration: "none" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#000", color: "#fff", borderRadius: 12, padding: "10px 18px", minWidth: 180 }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.01-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.9-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.79 1.3 10.34.86 1.25 1.88 2.65 3.22 2.6 1.29-.05 1.78-.83 3.34-.83 1.56 0 1.99.83 3.35.81 1.38-.03 2.26-1.27 3.11-2.53.98-1.45 1.38-2.85 1.4-2.92-.03-.01-2.69-1.03-2.72-4.09zM14.53 4.5c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44z"/></svg>
+          <div style={{ textAlign: "left" }}><div style={{ fontSize: 9, opacity: .85 }}>Download on the</div><div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1 }}>App Store</div></div>
+        </div>
+      </a>
+      <a href={PLAYSTORE_URL} style={{ textDecoration: "none" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#000", color: "#fff", borderRadius: 12, padding: "10px 18px", minWidth: 180 }}>
+          <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#00D9FF" d="M3.6 2.3c-.3.3-.5.8-.5 1.4v16.6c0 .6.2 1.1.5 1.4l.1.1L13 12.1v-.2L3.6 2.3z"/><path fill="#00F076" d="M16.3 15.4l-3.3-3.3v-.2l3.3-3.3.1.1 3.9 2.2c1.1.6 1.1 1.7 0 2.3l-4 2.2z"/><path fill="#FF3A44" d="M16.4 15.3L13 11.9 3.6 21.7c.4.4 1 .4 1.7.1l11.1-6.5z"/><path fill="#FFC800" d="M16.4 8.5L5.3 2.1c-.7-.4-1.3-.3-1.7.1L13 11.9l3.4-3.4z"/></svg>
+          <div style={{ textAlign: "left" }}><div style={{ fontSize: 9, opacity: .85 }}>GET IT ON</div><div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1 }}>Google Play</div></div>
+        </div>
+      </a>
+    </div>
+  );
+}
+
+function SupplierAppSection() {
+  return (
+    <div id="suppliers-app" className="sec suppliers-app" style={{ background: "linear-gradient(160deg,#0A1A30,#13243F)", color: "#fff", padding: "84px 24px" }}>
+      <div className="wrap">
+        <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 26px" }}>
+          <span className="chip chip-cyan" style={{ background: "rgba(0,194,184,.15)", color: "var(--cyan)" }}>For workforce suppliers</span>
+          <h2 className="disp" style={{ fontSize: "clamp(26px,4vw,40px)", fontWeight: 700, margin: "16px 0 10px", lineHeight: 1.1 }}>Your pipeline, in your pocket.</h2>
+          <p style={{ color: "#AEBED6", fontSize: 16, lineHeight: 1.6 }}>Being out of office doesn't mean being out of touch. Run your business development from your phone, wherever you are.</p>
+        </div>
+        <div style={{ display: "grid", gap: 12, maxWidth: 860, margin: "0 auto 30px", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))" }}>
+          {SUPPLIER_TAGLINES.map((t, i) => (
+            <div key={i} style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: "16px 18px", fontSize: 14.5, lineHeight: 1.5 }}>{t}</div>
+          ))}
+        </div>
+        <div style={{ textAlign: "center" }}>
+          <StoreBadges />
+          <div style={{ fontSize: 12, color: "#8697B0", marginTop: 14 }}>Available on iOS and Android.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Landing({ onEnter, onDemo }) {
   const [view, setView] = useState("home");
   const [howSec, setHowSec] = useState("walk");
@@ -2892,7 +2947,7 @@ function Landing({ onEnter, onDemo }) {
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(255,255,255,.82)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--line)" }}>
         <div className="row" style={{ justifyContent: "space-between", height: 72, padding: "0 20px" }}>
           <span onClick={() => setView("home")} style={{ cursor: "pointer" }}><Wordmark /></span>
-          <div className="row hsm" style={{ gap: 18 }}>{[["Home", "home"], ["For clinicians", "clinicians"], ["Marketplace", "market"], ["How it works", "how"], ["Fragile professions", "fragile"], ["Solutions", "solutions"], ["Our story", "story"], ["Pricing", "pricing"]].map(([l, k]) => k === "how" ? (
+          <div className="row hsm" style={{ gap: 18 }}>{[["Home", "home"], ["For clinicians", "clinicians"], ["For suppliers", "suppliers-app"], ["Marketplace", "market"], ["How it works", "how"], ["Fragile professions", "fragile"], ["Solutions", "solutions"], ["Our story", "story"], ["Pricing", "pricing"]].map(([l, k]) => k === "how" ? (
             <div key={k} ref={howRef} style={{ position: "relative" }}>
               <button onClick={() => setHowMenu((o) => !o)} className="navlink row" style={{ gap: 5, background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: view === k ? 700 : 500, color: view === k ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{l} <ChevronDown size={13} style={{ transform: howMenu ? "rotate(180deg)" : "none", transition: "transform .18s" }} /></button>
               {howMenu ? (
@@ -3072,6 +3127,7 @@ function Landing({ onEnter, onDemo }) {
       </div>
 
       <ClinicianSection onEnter={onEnter} />
+      <SupplierAppSection />
       <div id="platform" className="sec solutions" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap" style={{ padding: "78px 24px" }}>
           <Reveal><div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 48px" }}><div className="eyebrow">The personal touch behind the intelligence</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, marginTop: 14 }}>Analytics with <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>experts</span> behind them</h2><p className="muted" style={{ fontSize: 17, marginTop: 12, lineHeight: 1.6 }}>Most platforms hand you a dashboard and wish you luck. {APP_NAME} hands you the judgment of experts who have spent over a decade winning healthcare contracts.</p></div></Reveal>
