@@ -1790,11 +1790,11 @@ function AgencyBot({ plan = "starter" }) {
   };
   return (
     <div>
-      <PageHead title="AI assistant" sub="Your 24/7 bot that replies to enquiries, qualifies leads, answers FAQs and drafts responses in your voice" right={<span className="chip chip-cyan"><Sparkles size={12} /> Premium</span>} />
+      <PageHead title="AI assistant" sub="Your 24/7 AI assistant that replies to enquiries, qualifies leads, answers FAQs and drafts responses in your voice" right={<span className="chip chip-cyan"><Sparkles size={12} /> Premium</span>} />
       {!premium ? <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--cyan-soft)", border: "none" }}><div style={{ fontSize: 13.5 }}>The AI assistant is a Growth feature. You can set it up and preview it on your trial, then keep it on Growth or above.</div></div> : null}
       <div className="grid g2" style={{ gap: 16, alignItems: "start" }}>
         <div className="card" style={{ padding: 20 }}>
-          <SectionHead title="Fine-tune your bot" />
+          <SectionHead title="Fine-tune your AI assistant" />
           <label style={lab}>Agency name</label>
           <input value={cfg.name} onChange={(e) => setCfg({ ...cfg, name: e.target.value })} placeholder="e.g. Amare Health" style={inp} />
           <label style={lab}>Knowledge base</label>
@@ -1804,7 +1804,7 @@ function AgencyBot({ plan = "starter" }) {
           <label style={lab}>Tone</label>
           <div className="row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 4 }}>{["Professional", "Warm", "Direct"].map((t) => (<button key={t} onClick={() => setCfg({ ...cfg, tone: t })} className="chip" style={{ cursor: "pointer", background: cfg.tone === t ? "var(--navy)" : "#fff", color: cfg.tone === t ? "#fff" : "var(--navy)", border: "1px solid var(--line)" }}>{t}</button>))}</div>
           <label className="row" style={{ gap: 8, fontSize: 13, marginTop: 14, cursor: "pointer" }}><input type="checkbox" checked={cfg.guard} onChange={(e) => setCfg({ ...cfg, guard: e.target.checked })} /> Safety guardrails (no rates or promises without a human)</label>
-          <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={save}>{saved ? <><Check size={15} /> Saved</> : "Save bot"}</button>
+          <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={save}>{saved ? <><Check size={15} /> Saved</> : "Save assistant"}</button>
         </div>
         <div className="card" style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 460 }}>
           <div className="row" style={{ gap: 10, padding: "14px 18px", borderBottom: "1px solid var(--line)" }}><div style={{ width: 34, height: 34, borderRadius: 999, background: "var(--cyan-soft)", display: "grid", placeItems: "center" }}><Sparkles size={16} color="#06776F" /></div><div><div style={{ fontWeight: 600, fontSize: 14 }}>{cfg.name || "Your agency"} assistant</div><div className="faint" style={{ fontSize: 11.5 }}>Preview · replies in your voice</div></div></div>
@@ -1812,7 +1812,7 @@ function AgencyBot({ plan = "starter" }) {
           <div className="row" style={{ gap: 10, padding: 14, borderTop: "1px solid var(--line)" }}><input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Type an enquiry a hospital might send..." style={{ flex: 1, border: "1px solid var(--line)", borderRadius: 10, padding: "11px 14px", fontSize: 13.5 }} /><button className="btn btn-primary" onClick={send} disabled={busy}><Send size={15} /> Send</button></div>
         </div>
       </div>
-      <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>Preview uses your live AI. Connecting the bot to reply automatically to real inbound enquiries (email, web form or WhatsApp) is a quick backend step we switch on when you are ready.</div>
+      <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>Preview uses your live AI. Connecting the AI assistant to reply automatically to real inbound enquiries (email, web form or WhatsApp) is a quick backend step we switch on when you are ready.</div>
     </div>
   );
 }
@@ -1825,7 +1825,7 @@ function WhySwitch() {
     { f: "Live opportunities", crm: "You chase and log leads yourself", qura: "A 24/7 feed of live vacancies and needs" },
     { f: "Fragile professions", crm: "Generic pipelines", qura: "Niche vacancies summarised as they appear" },
     { f: "Reach decision-makers", crm: "Cold lists you buy and clean", qura: "Verified decision-makers, credit-controlled" },
-    { f: "AI assistant", crm: "A bolt-on, if any", qura: "Built-in 24/7 bot that replies in your voice" },
+    { f: "AI assistant", crm: "A bolt-on, if any", qura: "Built-in 24/7 AI assistant that replies in your voice" },
     { f: "Time to value", crm: "Months of setup and data entry", qura: "Live in minutes" },
   ];
   const cell = { padding: "13px 16px", fontSize: 13, borderTop: "1px solid var(--line)" };
@@ -2834,10 +2834,10 @@ function ClinicianSection({ onEnter }) {
 
 /* ===== Supplier-facing app-download section (drives mobile app installs) ===== */
 const SUPPLIER_TAGLINES = [
-  "Keep track of your candidate pipeline on the go from your phone. No more relying on access to your office desk, laptop or desktop computer.",
-  "Track your pipeline of workforce collaboration opportunities from across the globe, in real time, on our app.",
-  "24/7 business development tracking from your mobile.",
-  "Being out of office doesn't mean you should be out of touch with your clients. Download the Qura app today.",
+  { h: "Your whole pipeline in your pocket", b: "Track candidates and BD opportunities worldwide, in real time, from your phone. No desk required." },
+  { h: "Never out of touch", b: "Being out of office doesn't mean being out of reach. Stay connected to clients and clinicians 24/7." },
+  { h: "Connect the moment it counts", b: "Reach clinicians instantly, during clinic hours or after. BD isn't limited to 9 to 5." },
+  { h: "Nothing slips through", b: "Emails vanish in clinician inboxes daily. Your AI assistant on Qura replies at any hour, so no opportunity is lost." },
 ];
 
 // Store badge links — replace with the real store URLs once the app is published.
@@ -2872,9 +2872,12 @@ function SupplierAppSection() {
           <h2 className="disp" style={{ fontSize: "clamp(26px,4vw,40px)", fontWeight: 700, margin: "16px 0 10px", lineHeight: 1.1 }}>Your pipeline, in your pocket.</h2>
           <p style={{ color: "#AEBED6", fontSize: 16, lineHeight: 1.6 }}>Being out of office doesn't mean being out of touch. Run your business development from your phone, wherever you are.</p>
         </div>
-        <div style={{ display: "grid", gap: 12, maxWidth: 860, margin: "0 auto 30px", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))" }}>
+        <div style={{ display: "grid", gap: 12, maxWidth: 860, margin: "0 auto 30px", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))" }}>
           {SUPPLIER_TAGLINES.map((t, i) => (
-            <div key={i} style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: "16px 18px", fontSize: 14.5, lineHeight: 1.5 }}>{t}</div>
+            <div key={i} style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: "18px 20px", textAlign: "left" }}>
+              <div style={{ fontWeight: 700, fontSize: 15.5, marginBottom: 6 }}>{t.h}</div>
+              <div style={{ fontSize: 14, lineHeight: 1.5, color: "#C4D0E2" }}>{t.b}</div>
+            </div>
           ))}
         </div>
         <div style={{ textAlign: "center" }}>
@@ -3301,7 +3304,7 @@ function PlatformContent() {
     { i: Radar, t: "Automated market mapping", d: "The market is mapped for you continuously, so your team never maps regions by hand." },
     { i: ShieldCheck, t: "Fragile professions", d: "Specialist coverage of the scarce clinical roles the NHS most struggles to fill." },
     { i: Users, t: "Verified decision-makers", d: "Reach the right people, credit-controlled to keep every message considered." },
-    { i: Sparkles, t: "AI assistant", d: "A 24/7 bot that replies, qualifies and drafts in your voice." },
+    { i: Sparkles, t: "AI assistant", d: "A 24/7 AI assistant that replies, qualifies and drafts in your voice." },
     { i: Globe, t: "Relocation & mobility", d: "Move talent between countries with a managed concierge on a vetted partner network." },
     { i: Network, t: "Public sector intelligence", d: "ICB and council intelligence, summarised for you and refreshed daily." },
     { i: BarChart3, t: "Analytics & weekly reports", d: "Board-ready activity reports, generated automatically." },
