@@ -2776,7 +2776,7 @@ function ClinicianSection({ onEnter }) {
   const [country, setCountry] = useState(CLIN_TABS[0]);
   const c = CLIN_COUNTRIES[country];
   return (
-    <div id="clinicians" className="sec home clinicians" style={{ background: "var(--navy)", color: "#fff", padding: "84px 24px" }}>
+    <div id="clinicians" className="sec clinicians" style={{ background: "var(--navy)", color: "#fff", padding: "84px 24px" }}>
       <div className="wrap">
         <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 10px" }}>
           <span className="chip chip-cyan" style={{ background: "rgba(0,194,184,.15)", color: "var(--cyan)" }}>For clinicians</span>
