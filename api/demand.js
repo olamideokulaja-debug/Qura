@@ -1,4 +1,5 @@
 import { getUser, kvGet, kvSet } from "./_auth.js";
+import { planOf, ENTITLEMENTS } from "./_entitlements.js";
 
 // GET  /api/demand           -> live demand (roles/tenders) suppliers can pursue
 // POST /api/demand {..}      -> a supplier posts a new demand item
@@ -18,10 +19,14 @@ export default async function handler(req, res) {
     const posted = (await kvGet("shared", "demand_posted")) || [];
     const { market, profession } = req.query || {};
     let items = [...(Array.isArray(posted) ? posted : []), ...SEED];
+    // Plan gate: only Growth/Intelligence and above see International markets.
+    const plan = await planOf(user.id);
+    const canInternational = ENTITLEMENTS.internationalMarkets(plan);
+    if (!canInternational) items = items.filter((d) => d.market !== "International");
     if (market && market !== "All") items = items.filter((d) => d.market === market);
     if (profession && profession !== "All") items = items.filter((d) => d.profession === profession);
     res.setHeader("Cache-Control", "private, max-age=30");
-    return res.status(200).json({ items, total: items.length });
+    return res.status(200).json({ items, total: items.length, internationalLocked: !canInternational });
   }
 
   if (req.method === "POST") {

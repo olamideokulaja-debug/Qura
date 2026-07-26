@@ -28,6 +28,25 @@ export default async function handler(req, res) {
   const { clinicianId, handle, profession, country } = req.body || {};
   if (!clinicianId) return res.status(400).json({ error: "clinicianId required" });
 
+  // Subscribers on any paid plan (monthly or yearly) get introductions included, no fee.
+  const plan = await kvGet(user.id, "qura_plan");
+  const hasPaidPlan = !!plan && plan !== "free" && plan !== null;
+
+  if (hasPaidPlan) {
+    const entry = {
+      id: "intro_" + Date.now(), clinicianId, handle: handle || "", profession: profession || "",
+      country: country || "", status: "Confirmed (included in plan)", supplier: user.id, supplierEmail: user.email,
+      fee: 0, plan: plan, at: new Date().toISOString(),
+    };
+    const queue = (await kvGet("shared", "intro_queue")) || [];
+    await kvSet("shared", "intro_queue", [entry, ...(Array.isArray(queue) ? queue : [])]);
+    await notifyFounders(
+      "New introduction (included in plan)",
+      "Supplier: " + user.email + " (plan: " + plan + ")\nClinician: " + (handle || clinicianId) + " (" + profession + ", " + country + ")\nStatus: confirmed, no fee. Review in the admin queue."
+    );
+    return res.status(200).json({ included: true, fee: 0 });
+  }
+
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) return res.status(500).json({ error: "Payments not configured" });
 
