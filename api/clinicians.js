@@ -1,4 +1,5 @@
 import { getUser, kvGet, kvSet, kvListByKey } from "./_auth.js";
+import { ENTITLEMENTS } from "./_entitlements.js";
 
 // GET  /api/clinicians                 -> verified clinicians a supplier can shortlist
 // GET  /api/clinicians?shortlist=1     -> this supplier's shortlist
@@ -43,9 +44,16 @@ async function loadVerifiedTalent() {
     if (value && isVerified(value)) {
       const card = toCard(owner, value);
       try { const sum = await kvGet(owner, "cv_summary"); if (sum && sum.summary) card.summary = sum.summary; } catch (e) {}
+      // Career+ clinicians get priority visibility: flagged and surfaced first.
+      try {
+        const plan = await kvGet(owner, "qura_plan");
+        if (ENTITLEMENTS.careerPlus(plan)) card.priority = true;
+      } catch (e) {}
       cards.push(card);
     }
   }
+  // Priority (Career+) clinicians sort to the top, order otherwise preserved.
+  cards.sort((a, b) => (b.priority ? 1 : 0) - (a.priority ? 1 : 0));
   return cards;
 }
 
