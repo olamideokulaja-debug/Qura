@@ -158,7 +158,7 @@ a{transition:color .15s ease}
 .step-num{width:26px;height:26px;border-radius:99px;display:grid;place-items:center;font-size:12px;font-weight:800;flex-shrink:0;background:#EEF1F7;color:#5A6783}
 .step-btn.on .step-num{background:var(--teal);color:#fff}
 .lb .sec{display:none!important}
-.lb[data-view="home"] .sec.home,.lb[data-view="market"] .sec.market,.lb[data-view="fragile"] .sec.fragile,.lb[data-view="solutions"] .sec.solutions,.lb[data-view="founders"] .sec.founders,.lb[data-view="story"] .sec.story,.lb[data-view="how"] .sec.how,.lb[data-view="pricing"] .sec.pricing{display:block!important}
+.lb[data-view="home"] .sec.home,.lb[data-view="clinicians"] .sec.clinicians,.lb[data-view="market"] .sec.market,.lb[data-view="fragile"] .sec.fragile,.lb[data-view="solutions"] .sec.solutions,.lb[data-view="founders"] .sec.founders,.lb[data-view="story"] .sec.story,.lb[data-view="how"] .sec.how,.lb[data-view="pricing"] .sec.pricing{display:block!important}
 .navlink{color:var(--muted);font-size:14.5px;font-weight:500;text-decoration:none;transition:color .15s}
 .navlink:hover{color:var(--navy)}
 `;
@@ -2776,7 +2776,7 @@ function ClinicianSection({ onEnter }) {
   const [country, setCountry] = useState(CLIN_TABS[0]);
   const c = CLIN_COUNTRIES[country];
   return (
-    <div id="clinicians" className="sec" style={{ background: "var(--navy)", color: "#fff", padding: "84px 24px" }}>
+    <div id="clinicians" className="sec home clinicians" style={{ background: "var(--navy)", color: "#fff", padding: "84px 24px" }}>
       <div className="wrap">
         <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 10px" }}>
           <span className="chip chip-cyan" style={{ background: "rgba(0,194,184,.15)", color: "var(--cyan)" }}>For clinicians</span>
@@ -2892,7 +2892,7 @@ function Landing({ onEnter, onDemo }) {
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(255,255,255,.82)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--line)" }}>
         <div className="row" style={{ justifyContent: "space-between", height: 72, padding: "0 20px" }}>
           <span onClick={() => setView("home")} style={{ cursor: "pointer" }}><Wordmark /></span>
-          <div className="row hsm" style={{ gap: 18 }}>{[["Home", "home"], ["Marketplace", "market"], ["How it works", "how"], ["Fragile professions", "fragile"], ["Solutions", "solutions"], ["Our story", "story"], ["Pricing", "pricing"]].map(([l, k]) => k === "how" ? (
+          <div className="row hsm" style={{ gap: 18 }}>{[["Home", "home"], ["For clinicians", "clinicians"], ["Marketplace", "market"], ["How it works", "how"], ["Fragile professions", "fragile"], ["Solutions", "solutions"], ["Our story", "story"], ["Pricing", "pricing"]].map(([l, k]) => k === "how" ? (
             <div key={k} ref={howRef} style={{ position: "relative" }}>
               <button onClick={() => setHowMenu((o) => !o)} className="navlink row" style={{ gap: 5, background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: view === k ? 700 : 500, color: view === k ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{l} <ChevronDown size={13} style={{ transform: howMenu ? "rotate(180deg)" : "none", transition: "transform .18s" }} /></button>
               {howMenu ? (
