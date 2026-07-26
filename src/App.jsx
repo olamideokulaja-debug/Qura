@@ -2820,7 +2820,10 @@ function ClinicianSection({ onEnter }) {
           </div>
           <div style={{ textAlign: "center", marginTop: 22 }}>
             <button className="btn btn-primary" onClick={onEnter} style={{ padding: "12px 28px", fontSize: 15 }}>Check my eligibility & sign up</button>
-            <div style={{ fontSize: 12, color: "#8697B0", marginTop: 10 }}>Guidance only, not immigration advice. Requirements are confirmed during verification.</div>
+            <div style={{ fontSize: 12, color: "#8697B0", marginTop: 10, marginBottom: 22 }}>Guidance only, not immigration advice. Requirements are confirmed during verification.</div>
+            <div style={{ fontSize: 13.5, color: "#AEBED6", marginBottom: 14, fontWeight: 600 }}>Track your applications in real time. Get the app.</div>
+            <StoreBadges />
+            <div style={{ fontSize: 12, color: "#8697B0", marginTop: 12 }}>Available on iOS and Android.</div>
           </div>
         </div>
       </div>
