@@ -40,7 +40,11 @@ async function loadVerifiedTalent() {
   const rows = await kvListByKey(PROFILE_KEY);
   const cards = [];
   for (const { owner, value } of rows) {
-    if (value && isVerified(value)) cards.push(toCard(owner, value));
+    if (value && isVerified(value)) {
+      const card = toCard(owner, value);
+      try { const sum = await kvGet(owner, "cv_summary"); if (sum && sum.summary) card.summary = sum.summary; } catch (e) {}
+      cards.push(card);
+    }
   }
   return cards;
 }
