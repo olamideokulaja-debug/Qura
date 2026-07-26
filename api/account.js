@@ -10,11 +10,11 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     const a = (await kvGet(user.id, KEY)) || {};
-    return res.status(200).json({ role: a.role || null, org: a.org || null, email: user.email });
+    return res.status(200).json({ role: a.role || null, org: a.org || null, firstName: a.firstName || null, email: user.email });
   }
 
   if (req.method === "POST") {
-    const { role, org } = req.body || {};
+    const { role, org, firstName } = req.body || {};
     if (role && !["clinician", "supplier"].includes(role)) {
       return res.status(400).json({ error: "Invalid role" });
     }
@@ -23,11 +23,12 @@ export default async function handler(req, res) {
       ...current,
       ...(role ? { role } : {}),
       ...(org !== undefined ? { org } : {}),
+      ...(firstName !== undefined ? { firstName } : {}),
       email: user.email,
       updatedAt: new Date().toISOString(),
     };
     await kvSet(user.id, KEY, merged);
-    return res.status(200).json({ role: merged.role || null, org: merged.org || null });
+    return res.status(200).json({ role: merged.role || null, org: merged.org || null, firstName: merged.firstName || null });
   }
 
   return res.status(405).json({ error: "Method not allowed" });
