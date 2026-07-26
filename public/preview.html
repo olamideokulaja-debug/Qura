@@ -27,13 +27,13 @@ h1{font-size:26px;font-weight:800;color:var(--text);letter-spacing:-.3px}
 .btn:active{transform:scale(.96)}
 .btn.light{background:var(--bg2);color:var(--text);border-color:var(--line)}
 .btn.dark{background:var(--navy);color:#fff;border-color:var(--navy)}
-.btn.ghost{background:transparent;border-color:rgba(255,255,255,.3);color:#fff}
 .chip{display:inline-block;padding:5px 11px;border-radius:999px;font-size:11.5px;font-weight:600;margin:3px 5px 0 0}
 .chip.blue{background:#EAF0FF;color:var(--blueInk)}.chip.cyan{background:var(--cyanSoft);color:#06776F}.chip.grey{background:var(--bg2);color:var(--muted)}
+.ai{background:var(--cyanSoft);color:#06776F;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px}
 .ring{width:52px;height:52px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;flex-shrink:0}
 .tabbar{position:absolute;bottom:0;left:0;right:0;height:84px;background:var(--white);border-top:1px solid var(--line);display:none;padding-top:8px;z-index:50}
 .tabbar.show{display:flex}
-.tab{flex:1;text-align:center;font-size:11px;font-weight:600;color:var(--faint);cursor:pointer;padding-top:6px}
+.tab{flex:1;text-align:center;font-size:10.5px;font-weight:600;color:var(--faint);cursor:pointer;padding-top:6px}
 .tab.on{color:var(--teal)}.tab .dot{width:7px;height:7px;border-radius:99px;background:currentColor;margin:0 auto 8px}
 .banner{background:var(--navy);border-radius:16px;padding:18px;color:#fff;margin-bottom:14px}
 .stat{flex:1;background:var(--white);border:1px solid var(--line);border-radius:16px;padding:14px}
@@ -41,47 +41,51 @@ h1{font-size:26px;font-weight:800;color:var(--text);letter-spacing:-.3px}
 .row{display:flex;gap:10px}.between{display:flex;justify-content:space-between;align-items:flex-start}
 .logo{width:34px;height:34px;border-radius:9px;background:var(--navy);display:inline-flex;align-items:center;justify-content:center;vertical-align:middle}
 .progress{height:5px;background:var(--line);border-radius:9px;overflow:hidden;margin:3px 4px}.progress>i{display:block;height:100%;background:var(--teal)}
-.selbtn{border:1.5px solid var(--line);border-radius:16px;padding:16px;margin-bottom:10px;cursor:pointer;background:#fff}
+.selbtn{border:1.5px solid var(--line);border-radius:16px;padding:15px;margin-bottom:10px;cursor:pointer;background:#fff}
 .selbtn.on{border-color:var(--teal);background:var(--cyanSoft)}
-input{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px;font-size:15px;color:var(--text);background:#fff;margin-bottom:10px}
-.stepbar{display:flex;gap:5px;margin:14px 0}.stepbar>i{flex:1;height:4px;border-radius:9px;background:var(--line)}.stepbar>i.on{background:var(--teal)}
+input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px;font-size:15px;color:var(--text);background:#fff;margin-bottom:10px;font-family:inherit}
+.stepbar{display:flex;gap:4px;margin:14px 0}.stepbar>i{flex:1;height:4px;border-radius:9px;background:var(--line)}.stepbar>i.on{background:var(--teal)}
 .back{color:var(--teal);font-weight:700;margin-bottom:10px;cursor:pointer;display:inline-block}
+.link{color:var(--teal);font-weight:700;font-size:13.5px;cursor:pointer;margin-top:12px;display:inline-block}
+.pill{padding:8px 13px;border-radius:999px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;border:1px solid var(--line);background:#fff;color:var(--muted)}
+.pill.on{background:var(--navy);color:#fff;border-color:var(--navy)}
 .hint{position:absolute;bottom:106px;left:50%;transform:translateX(-50%);background:rgba(10,26,48,.9);color:#fff;padding:9px 16px;border-radius:999px;font-size:12px;z-index:70;white-space:nowrap;animation:pulse 2s infinite}
 .hint.low{bottom:26px}
 @keyframes pulse{0%,100%{opacity:.92}50%{opacity:.55}}
+.yn{flex:1;text-align:center;padding:10px;border-radius:12px;font-weight:700;font-size:13px;cursor:pointer;border:1.5px solid var(--line);background:#fff;color:var(--muted)}
+.yn.yes{background:var(--cyanSoft);border-color:var(--teal);color:#06776F}
+.yn.no{background:#FBE8E8;border-color:var(--red);color:var(--red)}
 </style>
 </head>
 <body>
 <div class="phone" id="phone">
   <div class="notch"></div>
 
-  <!-- ===== SIGN IN ===== -->
+  <!-- SIGN IN -->
   <div class="screen noTabs active" id="signin" style="background:var(--navy)">
     <div class="status light"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
     <div style="padding:40px 26px 0">
       <svg width="60" height="60" viewBox="0 0 30 30" style="margin-bottom:14px"><circle cx="12" cy="12" r="8.5" stroke="#fff" stroke-width="2.2" fill="none"/><path d="M17.8 17.8 L23 23" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><rect x="7.2" y="13" width="2.2" height="5" rx="1" fill="#3DD6C8"/><rect x="10.6" y="10" width="2.2" height="8" rx="1" fill="#22C7CE"/><rect x="14" y="6.5" width="2.2" height="11.5" rx="1" fill="#1AA6D6"/></svg>
       <div style="font-size:40px;font-weight:800;color:#fff;letter-spacing:1px">Qura</div>
       <div style="color:var(--cyan);font-size:14px;margin:4px 0 28px">Healthcare growth platform</div>
-      <input id="emailField" placeholder="you@organisation.com" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff">
+      <input placeholder="you@organisation.com" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff">
       <input placeholder="Password" type="password" value="••••••••" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff">
       <div class="btn" id="signinBtn" onclick="doSignIn()">Create account</div>
       <div style="color:rgba(255,255,255,.7);text-align:center;margin-top:18px;font-size:13.5px;cursor:pointer" id="modeToggle" onclick="toggleMode()">Already have an account? Sign in</div>
     </div>
-    <div class="hint low">Tap “Create account” to begin →</div>
+    <div class="hint low">Tap "Create account" to begin →</div>
   </div>
 
-  <!-- ===== ROLE PICKER (with names) ===== -->
+  <!-- ROLE PICKER -->
   <div class="screen noTabs" id="rolepick">
     <div class="status"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
     <div class="pad" style="padding-top:30px">
       <div style="text-align:center;margin-bottom:20px">
         <span class="logo" style="width:48px;height:48px;border-radius:12px"><svg width="28" height="28" viewBox="0 0 30 30"><circle cx="12" cy="12" r="8" stroke="#fff" stroke-width="2.2" fill="none"/><path d="M17.5 17.5 L22 22" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><rect x="7.5" y="13" width="2" height="4" rx="1" fill="#3DD6C8"/><rect x="10.5" y="10" width="2" height="7" rx="1" fill="#22C7CE"/><rect x="13.5" y="7" width="2" height="10" rx="1" fill="#1AA6D6"/></svg></span>
-        <h1 style="margin-top:12px">Welcome to Qura</h1>
-        <div class="sub" style="text-align:center">Let's set you up.</div>
+        <h1 style="margin-top:12px">Welcome to Qura</h1><div class="sub" style="text-align:center">Let's set you up.</div>
       </div>
       <div class="small" style="margin-bottom:6px">Your name</div>
-      <input id="firstField" placeholder="First name" value="Ola">
-      <input placeholder="Last name" value="Folawiyo">
+      <input id="firstField" placeholder="First name" value="Ola"><input placeholder="Last name" value="Folawiyo">
       <div class="small" style="margin:8px 0 6px">How will you use Qura?</div>
       <div class="selbtn" id="pickClin" onclick="pickRole('clinician')"><div class="h2">I'm a healthcare professional</div><div class="muted" style="margin-top:4px">Get verified, get matched to roles, and manage applications.</div></div>
       <div class="selbtn" id="pickSup" onclick="pickRole('supplier')"><div class="h2">I'm a supplier or employer</div><div class="muted" style="margin-top:4px">See live demand, shortlist verified clinicians, and build your pipeline.</div></div>
@@ -89,14 +93,14 @@ input{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px;fo
     </div>
   </div>
 
-  <!-- ===== CLINICIAN HOME ===== -->
+  <!-- CLINICIAN HOME -->
   <div class="screen" id="home">
     <div class="status"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
     <div class="pad">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px"><span class="logo"><svg width="20" height="20" viewBox="0 0 30 30"><circle cx="12" cy="12" r="8" stroke="#fff" stroke-width="2.2" fill="none"/><path d="M17.5 17.5 L22 22" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><rect x="7.5" y="13" width="2" height="4" rx="1" fill="#3DD6C8"/><rect x="10.5" y="10" width="2" height="7" rx="1" fill="#22C7CE"/><rect x="13.5" y="7" width="2" height="10" rx="1" fill="#1AA6D6"/></svg></span><span class="small" style="letter-spacing:2px;font-weight:700">QURA</span></div>
       <h1 id="homeGreeting">Hi, Ola</h1>
       <div class="banner" id="verifyBanner">
-        <div class="between"><div style="flex:1"><div style="font-weight:800;font-size:15px">Get verified to be seen</div><div style="color:#AEBED6;font-size:12.5px;margin-top:4px">Hospitals and suppliers can only see verified profiles.</div></div>
+        <div class="between"><div style="flex:1"><div style="font-weight:800;font-size:15px" id="bannerTitle">Get verified to be seen</div><div style="color:#AEBED6;font-size:12.5px;margin-top:4px">Hospitals and suppliers can only see verified profiles.</div></div>
         <div class="ring" style="background:var(--navy2);position:relative" id="homeRing"><span id="homeRingPct">0%</span></div></div>
         <div class="btn" style="margin-top:14px" onclick="go('verify')" id="verifyCta">Start verification</div>
       </div>
@@ -110,53 +114,57 @@ input{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px;fo
           <div class="between" style="margin:10px 0 8px"><span class="muted">Private</span><span class="small">8 live</span></div><div class="progress"><i style="width:48%;background:var(--blue)"></i></div>
           <div class="between" style="margin:10px 0 8px"><span class="muted">International</span><span class="small">5 live</span></div><div class="progress"><i style="width:30%;background:var(--violet)"></i></div>
         </div></div>
-      <div class="card"><div class="between"><div class="h2">New roles this week</div><span class="chip grey">7 days</span></div>
-        <div class="muted" style="margin-top:6px">33 new opportunities appeared, trending up.</div>
-        <svg width="100%" height="60" viewBox="0 0 300 60" style="margin-top:10px"><polyline points="0,45 50,40 100,42 150,28 200,30 250,18 300,20" fill="none" stroke="var(--teal)" stroke-width="2.5"/><polygon points="0,45 50,40 100,42 150,28 200,30 250,18 300,20 300,60 0,60" fill="var(--cyanSoft)" opacity=".5"/></svg></div>
     </div>
-    <div class="hint">Try “Start verification” in the banner ↑</div>
+    <div class="hint">Try "Start verification" ↑ or the Destinations tab</div>
   </div>
 
-  <!-- ===== VERIFY (multi-step) ===== -->
+  <!-- VERIFY (7 steps) -->
   <div class="screen noTabs" id="verify">
     <div class="status"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
     <div class="pad">
       <span class="back" onclick="go('home')">‹ Back</span>
       <h1 style="font-size:22px">Get verified</h1>
       <div class="stepbar" id="stepbar"></div>
-      <div class="small" id="stepLabel">Step 1 of 6</div>
-      <div class="h2" style="font-size:20px;margin:4px 0 14px" id="stepTitle">Your category</div>
+      <div class="small" id="stepLabel">Step 1 of 7</div>
+      <div class="h2" style="font-size:20px;margin:4px 0 14px" id="stepTitle"></div>
       <div id="stepBody"></div>
       <div class="btn" id="verifyNext" onclick="verifyNext()">Continue</div>
     </div>
   </div>
 
-  <!-- ===== OPPORTUNITIES ===== -->
+  <!-- DESTINATIONS / ELIGIBILITY -->
+  <div class="screen" id="destinations">
+    <div class="status"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
+    <div class="pad"><h1 style="font-size:23px">Where can you work?</h1><div class="sub">Check what each destination requires and whether you qualify.</div></div>
+    <div style="display:flex;gap:8px;overflow-x:auto;padding:14px 18px 4px" id="destTabs"></div>
+    <div class="pad" id="destBody"></div>
+  </div>
+
+  <!-- OPPORTUNITIES -->
   <div class="screen" id="opps">
     <div class="status"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
     <div class="pad"><h1>Opportunities</h1><div class="sub">Roles matched to your profile, updating around the clock.</div>
       <input placeholder="Search roles, employers, regions" style="margin-top:12px">
       <div class="card" onclick="go('detail')" style="cursor:pointer"><div class="between"><div class="h2" style="flex:1;padding-right:10px">Consultant Radiologist</div><div class="ring" style="background:var(--teal)">96%</div></div><div class="muted" style="margin-top:2px">Royal London Hospital · London</div><div style="margin-top:6px"><span class="chip blue">NHS</span><span class="chip grey">£800/day</span><span class="chip cyan">Closes 6d</span></div></div>
       <div class="card" onclick="go('detail')" style="cursor:pointer"><div class="between"><div class="h2" style="flex:1;padding-right:10px">MRI Radiographer</div><div class="ring" style="background:var(--teal)">91%</div></div><div class="muted" style="margin-top:2px">Community Diagnostic Centre · Manchester</div><div style="margin-top:6px"><span class="chip blue">NHS</span><span class="chip grey">Band 7</span><span class="chip cyan">Closes 9d</span></div></div>
-      <div class="card" onclick="go('detail')" style="cursor:pointer"><div class="between"><div class="h2" style="flex:1;padding-right:10px">Sonographer (MSK)</div><div class="ring" style="background:#3B9E92">84%</div></div><div class="muted" style="margin-top:2px">Private provider · Leeds</div><div style="margin-top:6px"><span class="chip blue">Private</span><span class="chip grey">£320/day</span><span class="chip cyan">Closes 12d</span></div></div>
     </div>
   </div>
 
-  <!-- ===== OPP DETAIL ===== -->
+  <!-- OPP DETAIL -->
   <div class="screen noTabs" id="detail">
     <div class="status"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
     <div class="pad"><span class="back" onclick="go('opps')">‹ Back</span>
       <div class="between"><h1 style="flex:1;padding-right:12px;font-size:23px">Consultant Radiologist</h1><div class="ring" style="width:54px;height:54px;background:var(--teal)">96%</div></div>
       <div class="muted" style="margin-top:4px;font-size:15px">Royal London Hospital · London</div>
-      <div style="margin-top:10px"><span class="chip blue">NHS</span><span class="chip grey">£800/day</span><span class="chip grey">Start ASAP</span><span class="chip cyan">Closes 6d</span></div>
-      <div class="card" style="margin-top:16px"><div class="h2" style="margin-bottom:8px">About this role</div><div class="muted">A leading teaching hospital seeks a consultant radiologist for its insourcing programme. Cross-sectional imaging focus, modern equipment, flexible sessions.</div></div>
-      <div class="card"><div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><div class="h2">Why you're a strong match</div><span style="background:var(--cyanSoft);color:#06776F;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px">AI</span></div><div class="muted">You're a UK-based radiologist with 6-10 years of experience, so you likely hold or are eligible for a consultant-level post and already work within the NHS framework. Your established UK experience aligns directly with the regulatory and operational requirements of this London role.</div></div>
+      <div style="margin-top:10px"><span class="chip blue">NHS</span><span class="chip grey">£800/day</span><span class="chip cyan">Closes 6d</span></div>
+      <div class="card" style="margin-top:16px"><div class="h2" style="margin-bottom:8px">About this role</div><div class="muted">A leading teaching hospital seeks a consultant radiologist for its insourcing programme. Cross-sectional imaging focus, modern equipment.</div></div>
+      <div class="card"><div style="display:flex;align-items:center;gap:6px;margin-bottom:8px"><div class="h2">Why you're a strong match</div><span class="ai">AI</span></div><div class="muted">You're a UK-based radiologist with 6-10 years of experience, so you likely hold or are eligible for a consultant-level post and already work within the NHS framework. Your established UK experience aligns directly with this London role.</div></div>
       <div class="btn" onclick="this.textContent='Interest sent ✓';this.className='btn light'">Express interest</div>
       <div class="btn light" onclick="this.textContent='Saved ✓'">Save for later</div>
     </div>
   </div>
 
-  <!-- ===== APPLICATIONS ===== -->
+  <!-- APPLICATIONS -->
   <div class="screen" id="apps">
     <div class="status"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
     <div class="pad"><h1>Applications</h1><div class="sub">Track where you stand with every role.</div>
@@ -165,17 +173,17 @@ input{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px;fo
     </div>
   </div>
 
-  <!-- ===== SUPPLIER DEMAND ===== -->
+  <!-- SUPPLIER DEMAND -->
   <div class="screen" id="demand">
     <div class="status"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
     <div class="pad"><h1>Live demand</h1><div class="sub">Open roles and tenders across the network, ready to pursue.</div>
-      <div style="margin:12px 0"><span class="chip" style="background:var(--navy);color:#fff">All</span><span class="chip grey">NHS</span><span class="chip grey">Private</span><span class="chip grey">International</span></div>
-      <div class="card"><div class="between"><div class="h2" style="flex:1">MRI Radiographers x3</div><span class="chip cyan">3 needed</span></div><div class="muted" style="margin-top:2px">Community Diagnostic Centre · London</div><div style="margin:4px 0 8px"><span class="chip blue">NHS</span><span class="chip grey">Band 7</span></div><div class="muted">Insourcing programme across three imaging sites.</div><div class="small" style="margin-top:8px">Closes in 6 days</div></div>
-      <div class="card"><div class="between"><div class="h2" style="flex:1">ICU Nurses x8</div><span class="chip cyan">8 placements</span></div><div class="muted" style="margin-top:2px">Private hospital group · Dubai</div><div style="margin:4px 0 8px"><span class="chip blue">International</span><span class="chip grey">Tax-free</span></div><div class="muted">International relocation, full support provided.</div><div class="small" style="margin-top:8px">Closes in 30 days</div></div>
+      <div style="margin:12px 0"><span class="chip" style="background:var(--navy);color:#fff">All</span><span class="chip grey">NHS</span><span class="chip grey">International</span></div>
+      <div class="card"><div class="between"><div class="h2" style="flex:1">MRI Radiographers x3</div><span class="chip cyan">3 needed</span></div><div class="muted" style="margin-top:2px">Community Diagnostic Centre · London</div><div style="margin:4px 0 8px"><span class="chip blue">NHS</span><span class="chip grey">Band 7</span></div><div class="muted">Insourcing programme across three imaging sites.</div></div>
+      <div class="card"><div class="between"><div class="h2" style="flex:1">ICU Nurses x8</div><span class="chip cyan">8 placements</span></div><div class="muted" style="margin-top:2px">Private hospital group · Dubai</div><div style="margin:4px 0 8px"><span class="chip blue">International</span><span class="chip grey">Tax-free</span></div></div>
     </div>
   </div>
 
-  <!-- ===== SUPPLIER TALENT ===== -->
+  <!-- SUPPLIER TALENT -->
   <div class="screen" id="talent">
     <div class="status"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
     <div class="pad"><h1>Talent</h1><div class="sub">Verified clinicians you can shortlist for your roles.</div>
@@ -183,29 +191,25 @@ input{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px;fo
       <div class="card"><div class="between"><div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><div class="h2">Radiographer, MRI</div><span style="width:16px;height:16px;border-radius:99px;background:var(--teal);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center">✓</span></div><div class="muted" style="margin-top:2px">London · 6 to 10 years</div><div style="margin-top:6px"><span class="chip cyan">MRI</span><span class="chip blue">HCPC</span></div><div class="small" style="margin-top:8px;line-height:18px;color:var(--muted)">- 8 years across NHS trusts · cross-sectional imaging specialist</div></div><div class="ring" style="background:var(--cyanSoft);color:#06776F">✓</div></div>
         <div class="btn light" onclick="this.textContent='On shortlist ✓'">Add to shortlist</div>
         <div class="btn dark" onclick="aiIntro(this)">Request introduction</div></div>
-      <div class="card"><div class="between"><div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><div class="h2">ICU Nurse</div><span style="width:16px;height:16px;border-radius:99px;background:var(--teal);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center">✓</span></div><div class="muted" style="margin-top:2px">Dubai · 6 to 10 years</div><div style="margin-top:6px"><span class="chip cyan">Critical care</span><span class="chip blue">NMC</span></div></div><div class="ring" style="background:var(--cyanSoft);color:#06776F">✓</div></div>
-        <div class="btn light" onclick="this.textContent='On shortlist ✓'">Add to shortlist</div></div>
     </div>
   </div>
 
-  <!-- ===== ALERTS (with role switch) ===== -->
+  <!-- ALERTS -->
   <div class="screen" id="alerts">
     <div class="status"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
     <div class="pad"><h1>Alerts</h1><div class="sub">Notifications and your account.</div>
       <div class="card" style="margin-top:14px"><div class="h2">🔔 A matching role went live</div><div class="muted" style="margin-top:4px">Consultant Radiologist at Royal London Hospital fits your profile.</div></div>
-      <div class="card"><div class="h2">✓ You're verified</div><div class="muted" style="margin-top:4px">Your profile is visible to hospitals and suppliers.</div></div>
       <div class="btn light" id="switchBtn" onclick="switchSide()">Switch to supplier view</div>
       <div class="btn light" onclick="resetToSignin()">Sign out</div>
-      <div style="text-align:center;color:var(--red);font-size:13px;margin-top:12px">Delete my account</div>
       <div class="small" style="text-align:center;margin-top:16px">Founder account · role switching enabled</div>
     </div>
   </div>
 
-  <!-- celebration -->
-  <div id="celebrateOverlay" style="display:none;position:absolute;inset:0;background:rgba(10,26,48,.96);z-index:100;align-items:center;justify-content:center;flex-direction:column">
+  <!-- celebrations -->
+  <div id="celebrateOverlay" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(10,26,48,.96);z-index:100;align-items:center;justify-content:center;flex-direction:column">
     <div style="width:92px;height:92px;border-radius:99px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:46px;color:#fff;font-weight:900;animation:pop .5s">✓</div>
-    <div style="color:#fff;font-size:22px;font-weight:800;margin-top:22px">You're verified!</div>
-    <div style="color:#AEBED6;font-size:14px;margin-top:8px;text-align:center;padding:0 40px">Your profile is complete and visible to hospitals and suppliers.</div>
+    <div id="celTitle" style="color:#fff;font-size:22px;font-weight:800;margin-top:22px">You're verified!</div>
+    <div id="celSub" style="color:#AEBED6;font-size:14px;margin-top:8px;text-align:center;padding:0 40px">Your profile is complete and visible to hospitals and suppliers.</div>
   </div>
   <style>@keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.2)}100%{transform:scale(1)}}</style>
 
@@ -213,19 +217,38 @@ input{width:100%;border:1px solid var(--line);border-radius:12px;padding:13px;fo
 </div>
 
 <script>
-let side="clinician", chosenRole=null, current="signin", mode="up", verifyStep=0, verified=false;
-const tabsClinician=[["home","Home"],["opps","Opportunities"],["apps","Applications"],["alerts","Alerts"]];
+let side="clinician",chosenRole=null,current="signin",mode="up",verifyStep=0,verified=false,destCountry="United Kingdom",regEntered=false;
+const tabsClinician=[["home","Home"],["opps","Opportunities"],["destinations","Destinations"],["apps","Applications"],["alerts","Alerts"]];
 const tabsSupplier=[["demand","Demand"],["talent","Talent"],["alerts","Alerts"]];
 const noTabScreens=["signin","rolepick","verify","detail"];
 
+const REG={"United Kingdom":"GMC","Australia":"AHPRA","United States":"State board / ECFMG","Dubai (UAE)":"DHA / DOH / MOHAP","Nigeria":"MDCN","Ireland":"IMC","Canada":"Provincial college"};
+const DEST=["United Kingdom","Australia","United States","Ireland","Canada","Nigeria"];
+const RESIDENCE=["Nigeria","United Kingdom","India","Philippines","United Arab Emirates","Other"];
+
 const steps=[
-  {t:"Your category",b:[["Doctor",1],["Nurse / Midwife",0],["Allied Health Professional",0]]},
-  {t:"Your profession",b:[["Radiologist",1],["General Practitioner",0],["Anaesthetist",0],["Surgeon",0]]},
-  {t:"Registration",input:"GMC number"},
-  {t:"Country",b:[["United Kingdom",1],["Nigeria",0],["United Arab Emirates",0]]},
-  {t:"Experience",b:[["6 to 10 years",1],["3 to 5 years",0],["More than 10 years",0]]},
+  {t:"What is your professional category?",opts:["Doctor","Nurse / Midwife","Allied Health Professional"],key:"category"},
+  {t:"Your profession",opts:["Radiologist","General Practitioner","Anaesthetist","Surgeon"],key:"profession"},
+  {t:"Where do you currently live?",opts:RESIDENCE,key:"residence"},
+  {t:"Where do you want to work?",opts:DEST,key:"destination",note:"Choose where you want to work. We'll ask for the registration that country requires."},
+  {t:"Registration",reg:true},
+  {t:"Experience",opts:["6 to 10 years","3 to 5 years","More than 10 years"],key:"experience"},
   {t:"Your CV",cv:true}
 ];
+const sel={};
+
+const ELIG={
+  "United Kingdom":{flag:"🇬🇧",reg:"GMC / NMC / HCPC",items:["Registration or eligibility with the relevant UK regulator","English language evidence (IELTS/OET) where required","Right to work or a Health and Care Worker visa"]},
+  "Australia":{flag:"🇦🇺",reg:"AHPRA",items:["Registration or eligibility with AHPRA","English language evidence where required","Skills assessment and an eligible work visa"]},
+  "United States":{flag:"🇺🇸",reg:"State board / ECFMG",items:["ECFMG certification and USMLE for doctors","State licensure or eligibility","An eligible US work visa"]},
+  "Dubai (UAE)":{flag:"🇦🇪",reg:"DHA / DOH / MOHAP",items:["Eligibility for licensing with a UAE authority","Primary source verification (DataFlow)","Employer visa sponsorship"]},
+  "Nigeria":{flag:"🇳🇬",reg:"MDCN / NMCN / PCN",items:["Current registration with the relevant Nigerian regulator","Evidence of qualification and a current practising licence","Internship / NYSC where applicable"]},
+  "Ireland":{flag:"🇮🇪",reg:"IMC / NMBI / CORU",items:["Registration or eligibility with the relevant Irish regulator","English language evidence where required","Eligibility to work in Ireland / EU"]},
+  "Canada":{flag:"🇨🇦",reg:"Provincial colleges",items:["Eligibility with the relevant provincial college","Credential assessment (NNAS / MCC)","An eligible Canadian work permit"]},
+};
+const ELIG_TABS=["United Kingdom","Australia","United States","Dubai (UAE)","Nigeria","Ireland","Canada"];
+const UNIVERSAL=["At least 2 years of post-qualification experience","A CV with evidence of your qualification","You have held a previous clinical role (qualified staff only)"];
+let destAns={};
 
 function renderTabs(){
   const bar=document.getElementById("tabbar");
@@ -238,39 +261,80 @@ function go(id){
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   const el=document.getElementById(id); if(el){el.classList.add("active");current=id;el.scrollTop=0;}
   document.querySelectorAll(".status").forEach(s=>s.classList.remove("light"));
-  if(id==="signin"){document.querySelector("#signin .status").classList.add("light");}
+  if(id==="signin")document.querySelector("#signin .status").classList.add("light");
   renderTabs(); animateCounts();
   if(id==="verify")renderVerify();
+  if(id==="destinations")renderDest();
 }
 function toggleMode(){mode=mode==="up"?"in":"up";document.getElementById("signinBtn").textContent=mode==="up"?"Create account":"Sign in";document.getElementById("modeToggle").textContent=mode==="up"?"Already have an account? Sign in":"New to Qura? Create an account";}
-function doSignIn(){ if(mode==="up"){go("rolepick");} else { chosenRole="clinician"; verified=true; enterApp(); } }
+function doSignIn(){ if(mode==="up")go("rolepick"); else {chosenRole="clinician";verified=true;enterApp();} }
 function pickRole(r){chosenRole=r;document.getElementById("pickClin").classList.toggle("on",r==="clinician");document.getElementById("pickSup").classList.toggle("on",r==="supplier");document.getElementById("roleContinue").style.opacity="1";}
 function roleGo(){ if(!chosenRole)return; side=chosenRole; enterApp(); }
-function enterApp(){
-  const first=document.getElementById("firstField").value||"Ola";
-  document.getElementById("homeGreeting").textContent="Hi, "+first;
-  if(side==="supplier"){go("demand");}
-  else{ updateVerifyBanner(); go("home"); }
-}
-function updateVerifyBanner(){
-  const ring=document.getElementById("homeRing"), pct=document.getElementById("homeRingPct"), cta=document.getElementById("verifyCta");
-  if(verified){ ring.style.background="conic-gradient(var(--cyan) 100%,#20344f 0)"; pct.textContent="100%"; pct.style.cssText="position:absolute;background:var(--navy);width:38px;height:38px;border-radius:99px;display:flex;align-items:center;justify-content:center"; document.querySelector("#verifyBanner .between div div").textContent="You're verified"; cta.textContent="View verification"; }
-}
+function enterApp(){ const f=document.getElementById("firstField").value||"Ola"; document.getElementById("homeGreeting").textContent="Hi, "+f; if(side==="supplier")go("demand"); else {updateBanner();go("home");} }
+function updateBanner(){ if(!verified)return; const r=document.getElementById("homeRing"),p=document.getElementById("homeRingPct");
+  r.style.background="conic-gradient(var(--cyan) 100%,#20344f 0)";p.textContent="100%";p.style.cssText="position:absolute;background:var(--navy);width:38px;height:38px;border-radius:99px;display:flex;align-items:center;justify-content:center";
+  document.getElementById("bannerTitle").textContent="You're verified";document.getElementById("verifyCta").textContent="View verification"; }
+
 function renderVerify(){
   const s=steps[verifyStep];
   document.getElementById("stepbar").innerHTML=steps.map((_,i)=>`<i class="${i<=verifyStep?'on':''}"></i>`).join("");
-  document.getElementById("stepLabel").textContent=`Step ${verifyStep+1} of 6`;
+  document.getElementById("stepLabel").textContent=`Step ${verifyStep+1} of 7`;
   document.getElementById("stepTitle").textContent=s.t;
-  const body=document.getElementById("stepBody");
-  if(s.input){body.innerHTML=`<div class="muted" style="margin-bottom:8px">Registered with GMC.</div><input placeholder="${s.input}" value="GMC7461123"><div class="small">We verify this against the GMC register before your profile goes live.</div>`;}
-  else if(s.cv){body.innerHTML=`<div class="card" style="margin:0"><div class="muted" style="margin-bottom:10px">Upload your CV so hospitals and suppliers can see your full background.</div><div class="btn light" onclick="this.textContent='Uploaded: Ola_CV.pdf ✓'">Choose CV file</div><div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div class="h2">Professional summary</div><span style="background:var(--cyanSoft);color:#06776F;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px">AI</span></div><div class="small" style="margin-bottom:8px">Describe your background in a sentence. We'll polish it into clean highlights suppliers see.</div><textarea id="cvText" style="width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;min-height:60px;font-size:14px;font-family:inherit;color:var(--text)" placeholder="e.g. MRI radiographer, 8 years across NHS trusts, cross-sectional imaging">MRI radiographer, 8 years across NHS trusts, cross-sectional imaging, HCPC registered</textarea><div class="btn light" onclick="genHighlights(this)" style="margin-top:10px">Generate highlights</div><div id="cvHighlights"></div></div></div>`;}
-  else{body.innerHTML=s.b.map((o,i)=>`<div class="selbtn ${o[1]?'on':''}">${o[0]}</div>`).join("");}
-  document.getElementById("verifyNext").textContent=verifyStep===5?"Finish":"Continue";
+  const b=document.getElementById("stepBody");
+  if(s.reg){ const body=REG[sel.destination]||"GMC";
+    b.innerHTML=`<div class="card" style="margin:0"><div class="muted">To work in ${sel.destination||'the UK'}, professionals register with ${body}.</div>
+      <div class="small" style="margin:12px 0 6px">${body} registration number</div>
+      <input id="regNum" placeholder="${body} number" oninput="regEntered=this.value.length>=3" value="GMC7461123">
+      <div class="small" style="margin-top:8px">We verify this against the official ${body} register before your profile goes live.</div>
+      <span class="link" onclick="checkRegister('${body}')">Check the official ${body} register ›</span></div>`;
+    regEntered=true;
+  } else if(s.cv){
+    b.innerHTML=`<div class="card" style="margin:0"><div class="muted" style="margin-bottom:10px">Upload your CV so hospitals and suppliers can see your full background.</div>
+      <div class="btn light" onclick="this.textContent='Uploaded: Ola_CV.pdf ✓'">Choose CV file</div>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div class="h2">Professional summary</div><span class="ai">AI</span></div>
+      <div class="small" style="margin-bottom:8px">Describe your background in a sentence. We'll polish it into clean highlights.</div>
+      <textarea id="cvText" style="min-height:60px">MRI radiographer, 8 years across NHS trusts, cross-sectional imaging, HCPC registered</textarea>
+      <div class="btn light" onclick="genHighlights(this)">Generate highlights</div><div id="cvHi"></div></div></div>`;
+  } else {
+    b.innerHTML=(s.note?`<div class="small" style="margin-bottom:10px">${s.note}</div>`:"")+s.opts.map(o=>`<div class="selbtn ${sel[s.key]===o?'on':''}" onclick="pickOpt('${s.key}','${o.replace(/'/g,"\\'")}',this)">${o}</div>`).join("");
+  }
+  document.getElementById("verifyNext").textContent=verifyStep===6?"Finish":"Continue";
 }
-function verifyNext(){ if(verifyStep<5){verifyStep++;renderVerify();} else { celebrate(); } }
-function celebrate(){const o=document.getElementById("celebrateOverlay");o.style.display="flex";verified=true;setTimeout(()=>{o.style.display="none";verifyStep=0;updateVerifyBanner();go("home");},2500);}
-function switchSide(){ side=side==="clinician"?"supplier":"clinician"; document.getElementById("switchBtn").textContent="Switch to "+(side==="clinician"?"supplier":"clinician")+" view"; go(side==="clinician"?"home":"demand"); }
-function resetToSignin(){side="clinician";chosenRole=null;verifyStep=0;verified=false;mode="up";document.getElementById("signinBtn").textContent="Create account";go("signin");}
+function pickOpt(key,val,el){sel[key]=val;el.parentNode.querySelectorAll('.selbtn').forEach(x=>x.classList.remove('on'));el.classList.add('on');}
+function checkRegister(body){ if(!regEntered){alert("Enter your "+body+" number first");return;} celebrate("Verified for "+sel.destination+"!","Your registration checks out. You're recognised as eligible to work in "+sel.destination+"."); }
+function verifyNext(){ if(verifyStep<6){verifyStep++;renderVerify();} else celebrate("You're verified!","Your profile is complete and visible to hospitals and suppliers.",true); }
+function genHighlights(btn){btn.textContent="Generating…";setTimeout(()=>{document.getElementById("cvHi").innerHTML=`<div style="margin-top:12px;background:var(--bg2);border-radius:12px;padding:12px"><div class="small" style="margin-bottom:4px">Your highlights</div><div class="muted" style="line-height:21px">- HCPC registered MRI radiographer<br>- 8 years across NHS trusts<br>- Cross-sectional imaging specialist</div></div>`;btn.textContent="Regenerate highlights";},900);}
+
+function renderDest(){
+  document.getElementById("destTabs").innerHTML=ELIG_TABS.map(c=>`<div class="pill ${destCountry===c?'on':''}" onclick="setDest('${c.replace(/'/g,"\\'")}')">${ELIG[c].flag} ${c}</div>`).join("");
+  const d=ELIG[destCountry];
+  document.getElementById("destBody").innerHTML=`
+    <div class="card"><div class="h2" style="margin-bottom:8px">${d.flag} Working in ${destCountry}</div><div class="small" style="margin-bottom:8px">Regulator: ${d.reg}</div>
+      <div class="muted" style="font-weight:700;margin-bottom:4px">Requirements</div>${d.items.map(i=>`<div class="muted" style="margin-bottom:4px">• ${i}</div>`).join("")}</div>
+    <div class="card"><div class="muted" style="font-weight:700;margin-bottom:6px">Everyone also needs</div>${UNIVERSAL.map(i=>`<div class="muted" style="margin-bottom:4px">• ${i}</div>`).join("")}</div>
+    <div class="h2" style="margin:6px 0 10px">Check your eligibility</div>
+    ${d.items.slice(0,3).map((q,i)=>`<div class="card"><div class="muted" style="margin-bottom:10px">${['Are you registered, or eligible to register, with '+d.reg+'?','Do you have English language evidence, or are you exempt?','Are you eligible for the relevant work visa?'][i]}</div>
+      <div class="row"><div class="yn" id="yn${i}y" onclick="setYn(${i},'y')">Yes</div><div class="yn" id="yn${i}n" onclick="setYn(${i},'n')">Not yet</div></div></div>`).join("")}
+    <div id="eligResult"></div>
+    <div class="small" style="text-align:center;margin-top:8px">Guidance only, not immigration advice. Confirmed during verification.</div>`;
+}
+function setDest(c){destCountry=c;destAns={};renderDest();}
+function setYn(i,v){destAns[i]=v;document.getElementById("yn"+i+"y").className="yn"+(v==='y'?' yes':'');document.getElementById("yn"+i+"n").className="yn"+(v==='n'?' no':'');
+  if(Object.keys(destAns).length>=3){const all=Object.values(destAns).every(x=>x==='y');
+    document.getElementById("eligResult").innerHTML=`<div class="card" style="background:${all?'var(--cyanSoft)':'var(--bg2)'};border-color:${all?'var(--teal)':'var(--line)'}"><div class="h2" style="margin-bottom:6px">${all?"You look eligible for "+destCountry:"You may need a few more steps"}</div><div class="muted">${all?"You meet the core requirements. Get verified to be discovered by employers hiring for "+destCountry+".":"Some requirements aren't met yet. Qura will guide you on what's needed."}</div><div class="btn" onclick="go('verify')">Get verified</div></div>`;}
+}
+
+function aiIntro(btn){const card=btn.closest(".card");btn.textContent="Requesting…";
+  setTimeout(()=>{ btn.outerHTML=`<div style="margin-top:10px;background:var(--bg2);border-radius:12px;padding:12px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div class="small" style="font-weight:700">AI-drafted introduction</div><span class="ai">AI</span></div><div class="muted" style="line-height:20px">We're pleased to connect you with an HCPC-registered MRI Radiographer based in the UK, with 6-10 years of experience. Given your MRI insourcing programme in London, this profile may be of interest.</div></div><div class="btn" onclick="payIntro(this)">Continue to payment · £99</div>`; },1000);
+}
+function payIntro(btn){btn.textContent="Opening secure checkout…";setTimeout(()=>{btn.textContent="Introduction requested ✓";btn.className="btn light";
+  const n=document.createElement("div");n.className="small";n.style.cssText="text-align:center;margin-top:8px;color:var(--teal)";n.textContent="Payment opens in Stripe. You and the team are notified instantly.";btn.after(n);},1000);}
+
+function celebrate(title,sub,goHome){const o=document.getElementById("celebrateOverlay");document.getElementById("celTitle").textContent=title;document.getElementById("celSub").textContent=sub;o.style.display="flex";
+  if(goHome)verified=true;
+  setTimeout(()=>{o.style.display="none";if(goHome){verifyStep=0;updateBanner();go("home");}},2400);}
+function switchSide(){side=side==="clinician"?"supplier":"clinician";document.getElementById("switchBtn").textContent="Switch to "+(side==="clinician"?"supplier":"clinician")+" view";go(side==="clinician"?"home":"demand");}
+function resetToSignin(){side="clinician";chosenRole=null;verifyStep=0;verified=false;mode="up";Object.keys(sel).forEach(k=>delete sel[k]);document.getElementById("signinBtn").textContent="Create account";go("signin");}
 function animateCounts(){document.querySelectorAll(".screen.active [data-count]").forEach(el=>{const t=+el.getAttribute("data-count");let n=0;const st=Math.max(1,Math.round(t/18));clearInterval(el._t);el._t=setInterval(()=>{n+=st;if(n>=t){n=t;clearInterval(el._t);}el.textContent=n;},45);});}
 go("signin");
 </script>
