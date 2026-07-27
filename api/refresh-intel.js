@@ -1,4 +1,5 @@
 import { limited } from "./_ratelimit.js";
+import { alertFounders } from "./_alert.js";
 // Scheduled job (Vercel Cron) that refreshes the Public Sector Intelligence page.
 // It fetches each public source, asks Anthropic to distil only Qura-relevant points,
 // and writes the results to Supabase (shared rows) which the app reads on load.
@@ -121,6 +122,9 @@ export default async function handler(req, res) {
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json({ ok: true, updated, icb: icb.length, bodies: bodies.length, liveIcb: icb.filter((x) => x.live).length });
   } catch (e) {
+    // Scheduled job. Nobody is watching it run, so a failure has to announce
+    // itself or the page just quietly goes stale.
+    await alertFounders("cron-intel", "Public sector intelligence refresh failed", String((e && e.message) || e));
     return res.status(500).json({ error: String((e && e.message) || e) });
   }
 }

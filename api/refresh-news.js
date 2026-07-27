@@ -1,4 +1,5 @@
 import { limited } from "./_ratelimit.js";
+import { alertFounders } from "./_alert.js";
 // Scheduled job (Vercel Cron) that refreshes the regional Industry News feed.
 // Pulls public healthcare news per region from Google News RSS (no API key needed),
 // and writes the results to Supabase (shared rows) which the app reads on load.
@@ -85,6 +86,9 @@ export default async function handler(req, res) {
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json({ ok: true, items: any });
   } catch (e) {
+    // Scheduled job. Nobody is watching it run, so a failure has to announce
+    // itself or the page just quietly goes stale.
+    await alertFounders("cron-news", "Industry news refresh failed", String((e && e.message) || e));
     return res.status(500).json({ error: String((e && e.message) || e) });
   }
 }
