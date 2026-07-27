@@ -20,6 +20,7 @@ import { LAUNCH_DATE, CountdownBanner } from "./components/countdown.jsx";
 import { PlatformContent, WhySwitch, MarketMap } from "./pages/sections.jsx";
 import { CLIN_TAGLINES, CLIN_UNIVERSAL, CLIN_TABS, CLIN_COUNTRIES, ClinicianSection } from "./pages/clinician.jsx";
 import { APP_NAME } from "./constants.js";
+import { initAnalytics, trackPage } from "./lib/analytics.js";
 import { QuraLogo, Wordmark, Avatar, useCountUp, Stat, Kpi, SectionHead, PageHead, Toggle, Stars, Reveal, PulseLine } from "./components/ui.jsx";
 import { REGISTER, SPECIALTIES, REAL_OPPS, CLIENTS, INTL_OPPS, OPPS, CLINICIANS, AGENCIES, MEETINGS, INTEL, STAGES, PIPE_DATA, REGION_DATA, SPEC_DATA, GMV_TREND, REGIONS, FUNNEL, TOP_AGENCIES, TOP_OPPS, FEED_POOL, ALERTS } from "./data/marketplace.js";
 import { PRIORITY, PROTECTED_LIST, REG_BODY, NURSE_TYPES, AHP_TYPES, SCIENCE_TYPES, DOCTOR_SPECIALTIES, RESIDENCE_LIST } from "./data/clinical.js";
@@ -2626,6 +2627,13 @@ function Landing({ onEnter, onDemo }) {
     if (typeof document === "undefined") return;
     document.title = PAGE_TITLES[view] || PAGE_TITLES.home;
   }, [view]);
+
+  // Analytics starts only if this visitor has already agreed. Page views are
+  // counted from here so the recorded address matches the tidy one.
+  useEffect(() => { initAnalytics(); }, []);
+  useEffect(() => {
+    trackPage(pathFor(view, howSec), PAGE_TITLES[view] || PAGE_TITLES.home);
+  }, [view, howSec]);
   useEffect(() => {
     const t = setTimeout(() => {
       try {
@@ -2996,6 +3004,7 @@ function Landing({ onEnter, onDemo }) {
               <button key={k} onClick={() => setPolicy(k)} className="faint" style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 12.5, whiteSpace: "nowrap" }}>{l}</button>
             ))}
             <a href="/delete-account.html" className="faint" style={{ fontSize: 12.5, textDecoration: "none", whiteSpace: "nowrap" }}>Delete your account</a>
+            <button onClick={() => window.dispatchEvent(new Event("qura:cookie-preferences"))} className="faint" style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 12.5, whiteSpace: "nowrap" }}>Cookie preferences</button>
           </div>
 
           <div style={{ display: "flex", justifyContent: "center", marginTop: 22 }}><StoreBadges /></div>
