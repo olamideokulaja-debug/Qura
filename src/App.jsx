@@ -447,7 +447,7 @@ function ProposalGenerator({ onSaved, initialOpp }) {
     title: `Workforce solution for ${o.org}`,
     summary: `${APP_NAME} proposes a fully managed staffing solution for the ${o.role.toLowerCase()} requirement at ${o.org}, mobilising pre-vetted, compliance-ready clinicians against a ${o.val} contract within your timeline.`,
     understanding: `We understand ${o.org} needs reliable, credentialed cover for ${o.role.toLowerCase()} in ${o.loc}, with a decision window of ${o.close}. Continuity of care and compliance are the priority.`,
-    solution: ["Dedicated account lead with weekly delivery reporting", "Pre-vetted talent pool matched to your specialty and grade", "Single managed contract with full audit trail and SLAs"],
+    solution: ["Dedicated account lead with weekly delivery reporting", "Registered clinicians matched to your specialty and grade", "Single managed contract with full audit trail and SLAs"],
     clinicians: ["Dr. Sarah Ahmed, Consultant (98% match)", "Maria Santos, ICU Nurse (93% match)"],
     pricing: `Indicative value ${o.val}, billed against agreed framework rates with no upfront platform fee.`,
     next: "A 30-minute call this week to confirm scope and mobilisation dates.",
@@ -1083,7 +1083,7 @@ function ClinicianNetwork({ onToast, isOwner }) {
   const lab = { fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--faint)", marginBottom: 6 };
   return (
   <div>
-    <PageHead title="Clinician network" sub="Pre-vetted, hospital-rated clinicians. Every profile is qualified and checked, so hiring managers place quality candidates faster." right={<span className="chip chip-cyan"><ShieldCheck size={12} /> Pre-vetted by Qura</span>} />
+    <PageHead title="Clinician network" sub="Registered, hospital-rated clinicians. Registration is checked against the official register before an introduction is made." right={<span className="chip chip-cyan"><ShieldCheck size={12} /> Registered on Qura</span>} />
     <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--cyan-soft)", border: "none" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><Globe size={18} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 12.5, lineHeight: 1.55 }}>Qura facilitates international recruitment in line with the WHO and UK Code of Practice protected-countries list. Clinicians from listed countries are welcome to join and apply directly, of their own accord. We do not actively advertise to or target recruitment from those countries, and availability is shown by country of residence in line with each destination's own recruitment policy.</div></div></div>
     <div className="card" style={{ padding: 16, marginBottom: 16 }}>
       <div className="row" style={{ gap: 8, border: "1px solid var(--line)", borderRadius: 999, padding: "0 14px", background: "var(--bg2)", marginBottom: 12 }}><Search size={16} className="faint" /><input className="in" style={{ border: "none", boxShadow: "none", padding: "10px 0" }} placeholder="Search name, specialty or country" value={q} onChange={(e) => setQ(e.target.value)} /></div>
@@ -2588,7 +2588,7 @@ function CountdownBanner() {
   const DAILY = [
     { tag: "For clinicians", title: "Get verified once, be seen everywhere", line: "One vetted profile, in front of hospitals and workforce suppliers worldwide, every day." },
     { tag: "For workforce suppliers", title: "Win work in the time others spend searching", line: "Stop mapping the market by hand. Live demand and decision-makers on one platform." },
-    { tag: "For hospitals", title: "Pre-vetted talent in seconds, not weeks", line: "Search ready-to-start clinicians and request introductions the moment a need appears." },
+    { tag: "For hospitals", title: "Ready-to-start talent in seconds, not weeks", line: "Search ready-to-start clinicians and request introductions the moment a need appears." },
     { tag: "For medical device companies", title: "Reach the buyers who actually buy", line: "The decision-makers behind every trust and ICB, on one live platform." },
     { tag: "For GP & care", title: "Fill sessions and shifts faster", line: "Find available GPs, nurses and carers, with compliance built in." },
   ];
@@ -2626,7 +2626,7 @@ function ScreenGallery({ onBack }) {
     { s: "marketmap", l: "Market map", d: "The market mapped for you automatically, instead of hours of manual research." },
     { s: "publicintel", l: "Public sector intel", d: "ICB and trust board papers read and summarised for you, every day." },
     { s: "aiassistant", l: "AI assistant", d: "Outreach and answers drafted in your own tone of voice, in seconds." },
-    { s: "cliniciannetwork", l: "Clinician network", d: "Pre-vetted clinicians, filtered by country, sector and experience." },
+    { s: "cliniciannetwork", l: "Clinician network", d: "Registered clinicians, filtered by country, sector and experience." },
     { s: "talentpipeline", l: "Talent pipeline", d: "Advertise available candidates anonymously, and let hospitals come to you." },
     { s: "weeklyreport", l: "Weekly report", d: "A board-ready activity report, written for you and emailed each week." },
     { s: "analytics", l: "Analytics", d: "What is working, what is not, and where the next win is coming from." },
@@ -2841,24 +2841,46 @@ const SUPPLIER_TAGLINES = [
 ];
 
 // Store badge links — replace with the real store URLs once the app is published.
-const APPSTORE_URL = "#";   // TODO: App Store link when live
-const PLAYSTORE_URL = "#";  // TODO: Google Play link when live
+// Store links. Leave these as empty strings until each listing is actually live.
+// While empty, the badges render as "coming soon" and are not clickable, so the
+// site never points anyone at a dead link.
+// Google Play, paste in once the listing is published:
+//   https://play.google.com/store/apps/details?id=org.qurahealth.app
+// App Store, paste in once the app exists in App Store Connect (the numeric id
+// is issued then):
+//   https://apps.apple.com/gb/app/qura/id0000000000
+const APPSTORE_URL = "";
+const PLAYSTORE_URL = "";
+const APP_LAUNCH = "22 September 2026";
 
-function StoreBadges() {
+function StoreBadge({ href, children }) {
+  const live = !!href;
+  const inner = (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#000", color: "#fff", borderRadius: 12, padding: "10px 18px", minWidth: 180, opacity: live ? 1 : 0.55 }}>
+      {children}
+    </div>
+  );
+  if (!live) return <div style={{ cursor: "default" }} title={"Launching " + APP_LAUNCH}>{inner}</div>;
+  return <a href={href} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>{inner}</a>;
+}
+
+function StoreBadges({ compact }) {
+  const live = !!APPSTORE_URL || !!PLAYSTORE_URL;
   return (
-    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-      <a href={APPSTORE_URL} style={{ textDecoration: "none" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#000", color: "#fff", borderRadius: 12, padding: "10px 18px", minWidth: 180 }}>
+    <div>
+    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: compact ? "flex-start" : "center" }}>
+      <StoreBadge href={APPSTORE_URL}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.01-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.9-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.79 1.3 10.34.86 1.25 1.88 2.65 3.22 2.6 1.29-.05 1.78-.83 3.34-.83 1.56 0 1.99.83 3.35.81 1.38-.03 2.26-1.27 3.11-2.53.98-1.45 1.38-2.85 1.4-2.92-.03-.01-2.69-1.03-2.72-4.09zM14.53 4.5c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44z"/></svg>
           <div style={{ textAlign: "left" }}><div style={{ fontSize: 9, opacity: .85 }}>Download on the</div><div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1 }}>App Store</div></div>
-        </div>
-      </a>
-      <a href={PLAYSTORE_URL} style={{ textDecoration: "none" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#000", color: "#fff", borderRadius: 12, padding: "10px 18px", minWidth: 180 }}>
+      </StoreBadge>
+      <StoreBadge href={PLAYSTORE_URL}>
           <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#00D9FF" d="M3.6 2.3c-.3.3-.5.8-.5 1.4v16.6c0 .6.2 1.1.5 1.4l.1.1L13 12.1v-.2L3.6 2.3z"/><path fill="#00F076" d="M16.3 15.4l-3.3-3.3v-.2l3.3-3.3.1.1 3.9 2.2c1.1.6 1.1 1.7 0 2.3l-4 2.2z"/><path fill="#FF3A44" d="M16.4 15.3L13 11.9 3.6 21.7c.4.4 1 .4 1.7.1l11.1-6.5z"/><path fill="#FFC800" d="M16.4 8.5L5.3 2.1c-.7-.4-1.3-.3-1.7.1L13 11.9l3.4-3.4z"/></svg>
           <div style={{ textAlign: "left" }}><div style={{ fontSize: 9, opacity: .85 }}>GET IT ON</div><div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1 }}>Google Play</div></div>
-        </div>
-      </a>
+      </StoreBadge>
+    </div>
+    {!live ? (
+      <div style={{ fontSize: 12, opacity: .8, marginTop: 10, textAlign: compact ? "left" : "center" }}>Launching {APP_LAUNCH}</div>
+    ) : null}
     </div>
   );
 }
@@ -2882,18 +2904,37 @@ function SupplierAppSection() {
         </div>
         <div style={{ textAlign: "center" }}>
           <StoreBadges />
-          <div style={{ fontSize: 12, color: "#8697B0", marginTop: 14 }}>Available on iOS and Android.</div>
+          <div style={{ fontSize: 12, color: "#8697B0", marginTop: 14 }}>Coming to iOS and Android.</div>
         </div>
       </div>
     </div>
   );
 }
 
+// Top navigation. Five groups instead of nine flat links, so the row stops
+// crowding. A value of "how:walk" means view "how" with section "walk".
+const NAV = [
+  { k: "home", l: "Home" },
+  { k: "who", l: "Who it's for", items: [
+    ["For clinicians", "clinicians", "The app, your career, your applications"],
+    ["For suppliers", "suppliers-app", "Live demand, talent and introductions"],
+  ] },
+  { k: "platform", l: "Platform", items: [
+    ["How it works", "how:walk", "Step through Qura by lens"],
+    ["Inside the platform", "how:gallery", "Real screens, page by page"],
+    ["Marketplace", "market", "The live marketplace, every market"],
+    ["Solutions", "solutions", "What Qura solves, by organisation"],
+    ["Fragile professions", "fragile", "The scarce roles, covered properly"],
+  ] },
+  { k: "pricing", l: "Pricing" },
+  { k: "story", l: "Our story" },
+];
+
 function Landing({ onEnter, onDemo }) {
   const [view, setView] = useState("home");
   const [howSec, setHowSec] = useState("walk");
-  const [howMenu, setHowMenu] = useState(false);
-  const howRef = useRef(null);
+  const [navMenu, setNavMenu] = useState(null);
+  const navRef = useRef(null);
   useEffect(() => {
     const t = setTimeout(() => {
       try {
@@ -2905,13 +2946,13 @@ function Landing({ onEnter, onDemo }) {
     return () => clearTimeout(t);
   }, [view, howSec]);
   useEffect(() => {
-    if (!howMenu) return;
-    const onDoc = (e) => { if (howRef.current && !howRef.current.contains(e.target)) setHowMenu(false); };
-    const onKey = (e) => { if (e.key === "Escape") setHowMenu(false); };
+    if (!navMenu) return;
+    const onDoc = (e) => { if (navRef.current && !navRef.current.contains(e.target)) setNavMenu(null); };
+    const onKey = (e) => { if (e.key === "Escape") setNavMenu(null); };
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
     return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
-  }, [howMenu]);
+  }, [navMenu]);
   const [policy, setPolicy] = useState(null);
   const [lens, setLens] = useState("global");
   const [tick, setTick] = useState(0);
@@ -2953,21 +2994,32 @@ function Landing({ onEnter, onDemo }) {
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(255,255,255,.82)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--line)" }}>
         <div className="row" style={{ justifyContent: "space-between", height: 72, padding: "0 20px" }}>
           <span onClick={() => setView("home")} style={{ cursor: "pointer" }}><Wordmark /></span>
-          <div className="row hsm" style={{ gap: 18 }}>{[["Home", "home"], ["For clinicians", "clinicians"], ["For suppliers", "suppliers-app"], ["Marketplace", "market"], ["How it works", "how"], ["Fragile professions", "fragile"], ["Solutions", "solutions"], ["Our story", "story"], ["Pricing", "pricing"]].map(([l, k]) => k === "how" ? (
-            <div key={k} ref={howRef} style={{ position: "relative" }}>
-              <button onClick={() => setHowMenu((o) => !o)} className="navlink row" style={{ gap: 5, background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: view === k ? 700 : 500, color: view === k ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{l} <ChevronDown size={13} style={{ transform: howMenu ? "rotate(180deg)" : "none", transition: "transform .18s" }} /></button>
-              {howMenu ? (
-                <div className="card" style={{ position: "absolute", top: "calc(100% + 2px)", left: 0, padding: 6, width: 232, zIndex: 40, boxShadow: "0 16px 40px rgba(10,23,48,.18)" }}>
-                  {[["How it works", "walk", "Step through Qura by lens"], ["Inside the platform", "gallery", "Real screens, page by page"]].map(([ml, ms, md]) => (
-                    <button key={ms} onClick={() => { setView("how"); setHowSec(ms); setHowMenu(false); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} style={{ width: "100%", textAlign: "left", padding: "9px 11px", borderRadius: 9, border: "none", cursor: "pointer", background: view === "how" && howSec === ms ? "var(--cyan-soft)" : "transparent" }}>
-                      <span style={{ display: "block", fontWeight: 600, fontSize: 13.5, color: "var(--text)" }}>{ml}</span>
-                      <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>{md}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : (<button key={k} onClick={() => { setView(k); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} className="navlink" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: view === k ? 700 : 500, color: view === k ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{l}</button>))}</div>
+          <div className="row hsm" ref={navRef} style={{ gap: 20 }}>{NAV.map((n) => {
+            const groupActive = n.items ? n.items.some(([, mv]) => view === mv.split(":")[0]) : view === n.k;
+            if (!n.items) return (
+              <button key={n.k} onClick={() => { setView(n.k); setNavMenu(null); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} className="navlink" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: groupActive ? 700 : 500, color: groupActive ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{n.l}</button>
+            );
+            const open = navMenu === n.k;
+            return (
+              <div key={n.k} style={{ position: "relative" }}>
+                <button onClick={() => setNavMenu(open ? null : n.k)} className="navlink row" style={{ gap: 5, background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: groupActive ? 700 : 500, color: groupActive ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{n.l} <ChevronDown size={13} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .18s" }} /></button>
+                {open ? (
+                  <div className="card" style={{ position: "absolute", top: "calc(100% + 2px)", left: 0, padding: 6, width: 258, zIndex: 40, boxShadow: "0 16px 40px rgba(10,23,48,.18)" }}>
+                    {n.items.map(([ml, mv, md]) => {
+                      const tv = mv.split(":")[0], ts = mv.split(":")[1];
+                      const on = view === tv && (!ts || howSec === ts);
+                      return (
+                        <button key={mv} onClick={() => { setView(tv); if (ts) setHowSec(ts); setNavMenu(null); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} style={{ width: "100%", textAlign: "left", padding: "9px 11px", borderRadius: 9, border: "none", cursor: "pointer", background: on ? "var(--cyan-soft)" : "transparent" }}>
+                          <span style={{ display: "block", fontWeight: 600, fontSize: 13.5, color: "var(--text)" }}>{ml}</span>
+                          <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>{md}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}</div>
           <div className="row" style={{ gap: 12 }}><button className="btn btn-light hsm" style={{ background: "var(--bg)" }} onClick={onDemo}>Book a demo</button><button className="btn btn-primary" onClick={onEnter}>Get started / Sign in</button></div>
         </div>
       </div>
@@ -3255,7 +3307,7 @@ function Landing({ onEnter, onDemo }) {
           <div className="grid g3" style={{ gap: 18 }}>
             {[
               { who: "Workforce suppliers", accent: "#00C2B8", plans: [["Starter", "£450", "£375 billed annually"], ["Growth", "£1,200", "£999 billed annually"]], pts: ["Live opportunities across every market", "Verified decision-makers", "AI outreach and proposals", "Pipeline, CRM and weekly reports"] },
-              { who: "Hospitals & providers", accent: "#7FA9FF", plans: [["Team", "£350", "£290 billed annually"], ["Intelligence", "£900", "£750 billed annually"]], pts: ["Post vacancies and search candidates", "Pre-vetted clinician access", "ICB and council intelligence", "Analytics and insights"] },
+              { who: "Hospitals & providers", accent: "#7FA9FF", plans: [["Team", "£350", "£290 billed annually"], ["Intelligence", "£900", "£750 billed annually"]], pts: ["Post vacancies and search candidates", "Registered clinician access", "ICB and council intelligence", "Analytics and insights"] },
               { who: "Clinicians", accent: "#C4B5FD", plans: [["Free", "£0", "Always free to join and apply"], ["Career+", "£15", "£12 billed annually"]], pts: ["Verified profile, seen worldwide", "Unlimited search and alerts", "Salary and tariff insights", "Relocation support"] },
             ].map((col, i) => (
               <Reveal key={col.who} delay={i * 60}>
@@ -3291,7 +3343,7 @@ function Landing({ onEnter, onDemo }) {
       </div>
 
       </div>
-      <div className="wrap row" style={{ padding: "32px 24px", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}><Wordmark /><div className="row" style={{ gap: 18, flexWrap: "wrap", alignItems: "center" }}><button onClick={() => setPolicy("privacy")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Privacy</button><button onClick={() => setPolicy("cookies")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Cookies</button><button onClick={() => setPolicy("refunds")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Refunds</button><span className="faint" style={{ fontSize: 13, textAlign: "right", lineHeight: 1.5 }}>© {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM<br />Qura Ltd, company no. 17310951 · 167-169 Great Portland Street, 5th Floor, London W1W 5PF</span></div></div>
+      <div className="wrap row" style={{ padding: "32px 24px", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}><div><Wordmark /><div style={{ marginTop: 16 }}><StoreBadges compact /></div></div><div className="row" style={{ gap: 18, flexWrap: "wrap", alignItems: "center" }}><button onClick={() => setPolicy("privacy")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Privacy</button><button onClick={() => setPolicy("cookies")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Cookies</button><button onClick={() => setPolicy("refunds")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Refunds</button><span className="faint" style={{ fontSize: 13, textAlign: "right", lineHeight: 1.5 }}>© {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM<br />Qura Ltd, company no. 17310951 · 167-169 Great Portland Street, 5th Floor, London W1W 5PF</span></div></div>
       {policy ? <div onClick={() => setPolicy(null)} style={{ position: "fixed", inset: 0, background: "rgba(6,14,30,.55)", zIndex: 95, display: "grid", placeItems: "center", padding: 20 }}><div onClick={(e) => e.stopPropagation()} className="card" style={{ maxWidth: 620, width: "100%", padding: 28, maxHeight: "84vh", overflowY: "auto" }}><div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}><h3 className="disp" style={{ fontSize: 21, fontWeight: 700, margin: 0 }}>{policy === "privacy" ? "Privacy & data protection" : policy === "refunds" ? "Refund & cancellation policy" : "Cookie notice"}</h3><button className="btn btn-light" style={{ padding: "6px 10px" }} onClick={() => setPolicy(null)}>Close</button></div>{policy === "privacy" ? <PrivacyContent /> : policy === "refunds" ? <RefundContent /> : <CookieContent />}</div></div> : null}
     </div>
   );
