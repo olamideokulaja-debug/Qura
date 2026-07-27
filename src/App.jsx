@@ -2924,10 +2924,17 @@ const NAV = [
     ["Inside the platform", "how:gallery", "Real screens, page by page"],
     ["Marketplace", "market", "The live marketplace, every market"],
     ["Solutions", "solutions", "What Qura solves, by organisation"],
-    ["Fragile professions", "fragile", "The scarce roles, covered properly"],
   ] },
+  { k: "fragile", l: "Fragile professions" },
   { k: "pricing", l: "Pricing" },
   { k: "story", l: "Our story" },
+];
+
+// Footer columns, mirroring the top navigation so the two never drift apart.
+const FOOTER_COLS = [
+  { t: "Who it's for", links: [["For clinicians", "clinicians"], ["For suppliers", "suppliers-app"]] },
+  { t: "Platform", links: [["How it works", "how:walk"], ["Inside the platform", "how:gallery"], ["Marketplace", "market"], ["Solutions", "solutions"]] },
+  { t: "Explore", links: [["Fragile professions", "fragile"], ["Pricing", "pricing"], ["Our story", "story"]] },
 ];
 
 function Landing({ onEnter, onDemo }) {
@@ -2935,6 +2942,15 @@ function Landing({ onEnter, onDemo }) {
   const [howSec, setHowSec] = useState("walk");
   const [navMenu, setNavMenu] = useState(null);
   const navRef = useRef(null);
+  // One handler for every internal link, top nav and footer alike.
+  // "how:walk" means view "how", section "walk".
+  const goTo = (mv) => {
+    const tv = mv.split(":")[0], ts = mv.split(":")[1];
+    setView(tv);
+    if (ts) setHowSec(ts);
+    setNavMenu(null);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+  };
   useEffect(() => {
     const t = setTimeout(() => {
       try {
@@ -3343,7 +3359,40 @@ function Landing({ onEnter, onDemo }) {
       </div>
 
       </div>
-      <div className="wrap row" style={{ padding: "32px 24px", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}><div><Wordmark /><div style={{ marginTop: 16 }}><StoreBadges compact /></div></div><div className="row" style={{ gap: 18, flexWrap: "wrap", alignItems: "center" }}><button onClick={() => setPolicy("privacy")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Privacy</button><button onClick={() => setPolicy("cookies")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Cookies</button><button onClick={() => setPolicy("refunds")} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, padding: 0 }}>Refunds</button><span className="faint" style={{ fontSize: 13, textAlign: "right", lineHeight: 1.5 }}>© {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM<br />Qura Ltd, company no. 17310951 · 167-169 Great Portland Street, 5th Floor, London W1W 5PF</span></div></div>
+      <div style={{ borderTop: "1px solid var(--line)", background: "var(--bg)" }}>
+        <div className="wrap" style={{ padding: "52px 24px 26px", display: "grid", gap: 34, gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))" }}>
+          <div style={{ minWidth: 230 }}>
+            <Wordmark />
+            <p className="faint" style={{ fontSize: 13.5, lineHeight: 1.65, margin: "14px 0 18px", maxWidth: 290 }}>The 24/7 live healthcare marketplace and growth CRM, across the NHS, private and international markets.</p>
+            <StoreBadges compact />
+          </div>
+          {FOOTER_COLS.map((c) => (
+            <div key={c.t}>
+              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--navy)", marginBottom: 14 }}>{c.t}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-start" }}>
+                {c.links.map(([l, mv]) => (
+                  <button key={mv} onClick={() => goTo(mv)} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13.5, padding: 0, textAlign: "left" }}>{l}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--navy)", marginBottom: 14 }}>Legal</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-start" }}>
+              {[["Privacy", "privacy"], ["Cookies", "cookies"], ["Refunds", "refunds"]].map(([l, k]) => (
+                <button key={k} onClick={() => setPolicy(k)} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13.5, padding: 0, textAlign: "left" }}>{l}</button>
+              ))}
+              <a href="/delete-account.html" className="faint" style={{ fontSize: 13.5, textDecoration: "none" }}>Delete your account</a>
+            </div>
+          </div>
+        </div>
+        <div className="wrap" style={{ padding: "0 24px 34px" }}>
+          <div className="row" style={{ borderTop: "1px solid var(--line)", paddingTop: 18, justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+            <span className="faint" style={{ fontSize: 12.5 }}>© {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM</span>
+            <span className="faint" style={{ fontSize: 12.5 }}>Qura Ltd, company no. 17310951 · 167-169 Great Portland Street, 5th Floor, London W1W 5PF</span>
+          </div>
+        </div>
+      </div>
       {policy ? <div onClick={() => setPolicy(null)} style={{ position: "fixed", inset: 0, background: "rgba(6,14,30,.55)", zIndex: 95, display: "grid", placeItems: "center", padding: 20 }}><div onClick={(e) => e.stopPropagation()} className="card" style={{ maxWidth: 620, width: "100%", padding: 28, maxHeight: "84vh", overflowY: "auto" }}><div className="row" style={{ justifyContent: "space-between", marginBottom: 12 }}><h3 className="disp" style={{ fontSize: 21, fontWeight: 700, margin: 0 }}>{policy === "privacy" ? "Privacy & data protection" : policy === "refunds" ? "Refund & cancellation policy" : "Cookie notice"}</h3><button className="btn btn-light" style={{ padding: "6px 10px" }} onClick={() => setPolicy(null)}>Close</button></div>{policy === "privacy" ? <PrivacyContent /> : policy === "refunds" ? <RefundContent /> : <CookieContent />}</div></div> : null}
     </div>
   );
