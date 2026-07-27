@@ -65,6 +65,12 @@ async function start() {
         },
       });
       client = posthog;
+      // Apply whichever mode the app is already in, in case the visitor signed
+      // in before agreeing to analytics.
+      try {
+        posthog.set_config({ autocapture: marketing });
+        if (!marketing) posthog.stopSessionRecording();
+      } catch (e) {}
       flush();
       return client;
     } catch (e) {
@@ -112,6 +118,21 @@ export function disableAnalytics() {
 export function trackPage(path, title) {
   try {
     send("$pageview", { $current_url: window.location.origin + path, page_title: title });
+  } catch (e) {}
+}
+
+// Automatic click tracking and session replay run on the public marketing site
+// only. Inside the signed-in product, suppliers click on clinician names and see
+// them on screen, and neither should end up recorded: those are real people who
+// were never asked. Once signed in, only the events written by hand are sent,
+// and none of those carry anyone's name.
+let marketing = true;
+export function setMarketingMode(on) {
+  marketing = !!on;
+  if (!client) return;
+  try {
+    client.set_config({ autocapture: marketing });
+    if (marketing) { client.startSessionRecording(); } else { client.stopSessionRecording(); }
   } catch (e) {}
 }
 
