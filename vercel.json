@@ -2,5 +2,11 @@
   "crons": [
     { "path": "/api/refresh-intel", "schedule": "0 6 * * *" },
     { "path": "/api/refresh-news", "schedule": "0 5 * * *" }
+  ],
+  "rewrites": [
+    {
+      "source": "/((?!api/|assets/|team/|.*\\.[a-zA-Z0-9]+$).*)",
+      "destination": "/index.html"
+    }
   ]
 }

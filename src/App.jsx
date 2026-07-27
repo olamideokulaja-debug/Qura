@@ -2552,9 +2552,48 @@ const FOOTER_LINKS = [
   ["Our story", "story"],
 ];
 
+
+// ---- URL routing for the public site -------------------------------------
+// Each marketing view gets a real address, so pages can be linked, shared and
+// bookmarked, and the browser back button behaves. The rendering itself is
+// unchanged: the sections are still shown and hidden the same way. This only
+// keeps the address bar and the view in step with each other.
+const ROUTES = [
+  ["/", "home"],
+  ["/for-clinicians", "clinicians"],
+  ["/for-suppliers", "suppliers-app"],
+  ["/marketplace", "market"],
+  ["/how-it-works", "how", "walk"],
+  ["/inside-the-platform", "how", "gallery"],
+  ["/solutions", "solutions"],
+  ["/fragile-professions", "fragile"],
+  ["/pricing", "pricing"],
+  ["/our-story", "story"],
+];
+const PAGE_TITLES = {
+  home: "Qura, the 24/7 live healthcare marketplace and growth CRM",
+  clinicians: "For clinicians, Qura",
+  "suppliers-app": "For workforce suppliers, Qura",
+  market: "Marketplace, Qura",
+  how: "How Qura works",
+  solutions: "Solutions, Qura",
+  fragile: "Fragile professions, Qura",
+  pricing: "Pricing, Qura",
+  story: "Our story, Qura",
+};
+function pathFor(view, howSec) {
+  const hit = ROUTES.find((r) => r[1] === view && (!r[2] || r[2] === howSec));
+  return hit ? hit[0] : "/";
+}
+function routeFromPath(path) {
+  const hit = ROUTES.find((r) => r[0] === path.replace(/\/+$/, "") || (path === "/" && r[0] === "/"));
+  return hit ? { view: hit[1], howSec: hit[2] || null } : null;
+}
+
 function Landing({ onEnter, onDemo }) {
-  const [view, setView] = useState("home");
-  const [howSec, setHowSec] = useState("walk");
+  const initial = (typeof window !== "undefined" && routeFromPath(window.location.pathname)) || null;
+  const [view, setView] = useState(initial ? initial.view : "home");
+  const [howSec, setHowSec] = useState(initial && initial.howSec ? initial.howSec : "walk");
   const [navMenu, setNavMenu] = useState(null);
   const navRef = useRef(null);
   // One handler for every internal link, top nav and footer alike.
@@ -2564,8 +2603,29 @@ function Landing({ onEnter, onDemo }) {
     setView(tv);
     if (ts) setHowSec(ts);
     setNavMenu(null);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+    if (typeof window !== "undefined") {
+      const next = pathFor(tv, ts || howSec);
+      if (window.location.pathname !== next) window.history.pushState({}, "", next);
+      window.scrollTo({ top: 0 });
+    }
   };
+
+  // Back and forward buttons.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onPop = () => {
+      const r = routeFromPath(window.location.pathname);
+      if (r) { setView(r.view); if (r.howSec) setHowSec(r.howSec); }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  // Page title follows the view, so tabs, bookmarks and shared links read properly.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.title = PAGE_TITLES[view] || PAGE_TITLES.home;
+  }, [view]);
   useEffect(() => {
     const t = setTimeout(() => {
       try {
@@ -2624,11 +2684,11 @@ function Landing({ onEnter, onDemo }) {
     <div style={{ background: "#fff", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(255,255,255,.82)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--line)" }}>
         <div className="row" style={{ justifyContent: "space-between", height: 72, padding: "0 20px" }}>
-          <span onClick={() => setView("home")} style={{ cursor: "pointer" }}><Wordmark /></span>
+          <span onClick={() => goTo("home")} style={{ cursor: "pointer" }}><Wordmark /></span>
           <div className="row hsm" ref={navRef} style={{ gap: 20 }}>{NAV.map((n) => {
             const groupActive = n.items ? n.items.some(([, mv]) => view === mv.split(":")[0]) : view === n.k;
             if (!n.items) return (
-              <button key={n.k} onClick={() => { setView(n.k); setNavMenu(null); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} className="navlink" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: groupActive ? 700 : 500, color: groupActive ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{n.l}</button>
+              <button key={n.k} onClick={() => goTo(n.k)} className="navlink" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: groupActive ? 700 : 500, color: groupActive ? "var(--blue)" : "var(--text)", whiteSpace: "nowrap" }}>{n.l}</button>
             );
             const open = navMenu === n.k;
             return (
@@ -2640,7 +2700,7 @@ function Landing({ onEnter, onDemo }) {
                       const tv = mv.split(":")[0], ts = mv.split(":")[1];
                       const on = view === tv && (!ts || howSec === ts);
                       return (
-                        <button key={mv} onClick={() => { setView(tv); if (ts) setHowSec(ts); setNavMenu(null); if (typeof window !== "undefined") window.scrollTo({ top: 0 }); }} style={{ width: "100%", textAlign: "left", padding: "9px 11px", borderRadius: 9, border: "none", cursor: "pointer", background: on ? "var(--cyan-soft)" : "transparent" }}>
+                        <button key={mv} onClick={() => goTo(mv)} style={{ width: "100%", textAlign: "left", padding: "9px 11px", borderRadius: 9, border: "none", cursor: "pointer", background: on ? "var(--cyan-soft)" : "transparent" }}>
                           <span style={{ display: "block", fontWeight: 600, fontSize: 13.5, color: "var(--text)" }}>{ml}</span>
                           <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>{md}</span>
                         </button>
