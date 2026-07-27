@@ -1,3 +1,5 @@
+import { Briefcase, FileText, Link2, Sparkles, Stethoscope, Trophy } from "lucide-react";
+
 // Extracted from App.jsx, 27 July 2026. Pure data only, no components and no
 // behaviour, so moving it cannot change how anything renders.
 
