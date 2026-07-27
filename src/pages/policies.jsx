@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { enableAnalytics, disableAnalytics } from "../lib/analytics.js";
 
 // Extracted from App.jsx on 27 July 2026. Behaviour unchanged.
 
@@ -47,7 +48,19 @@ export function CookieConsent() {
   const [show, setShow] = useState(false);
   const [open, setOpen] = useState(false);
   useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_cookie_consent"); if (!r || !r.value) setShow(true); } catch (e) { setShow(true); } })(); }, []);
-  const choose = (v) => { try { window.storage?.set("qura_cookie_consent", v); } catch (e) {} setShow(false); };
+  // Anyone can change their mind later: the footer link fires this event and the
+  // banner comes back. Withdrawing consent has to be as easy as giving it.
+  useEffect(() => {
+    const reopen = () => setShow(true);
+    window.addEventListener("qura:cookie-preferences", reopen);
+    return () => window.removeEventListener("qura:cookie-preferences", reopen);
+  }, []);
+
+  const choose = (v) => {
+    try { window.storage?.set("qura_cookie_consent", v); } catch (e) {}
+    if (v === "all") { enableAnalytics(); } else { disableAnalytics(); }
+    setShow(false);
+  };
   if (!show && !open) return null;
   return (
     <>
