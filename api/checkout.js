@@ -1,3 +1,4 @@
+import { limited } from "./_ratelimit.js";
 import Stripe from "stripe";
 
 const ONE_OFF_GROUPS = ["SESSION", "WORKSHOP"];
@@ -21,6 +22,8 @@ const modeFor = (plan) => {
 };
 
 export default async function handler(req, res) {
+  // Limited by network address, since checkout can be reached before sign-in.
+  if (await limited(req, res, null, { bucket: "checkout", limit: 20, windowSec: 3600 })) return;
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) return res.status(500).json({ error: "Stripe is not configured" });

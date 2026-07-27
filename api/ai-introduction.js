@@ -1,4 +1,5 @@
 import { getUser, kvGet } from "./_auth.js";
+import { limited } from "./_ratelimit.js";
 import { askAI } from "./_ai.js";
 import { planOf, ENTITLEMENTS, upgradeBlock } from "./_entitlements.js";
 
@@ -9,6 +10,7 @@ export default async function handler(req, res) {
   const user = await getUser(req);
   if (!user) return res.status(401).json({ error: "Sign in required" });
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (await limited(req, res, user, { bucket: "ai", limit: 40, windowSec: 3600 })) return;
 
   // The AI assistant is a Growth-tier feature.
   const plan = await planOf(user.id);

@@ -1,4 +1,5 @@
 import { getUser, kvGet, kvSet } from "./_auth.js";
+import { limited } from "./_ratelimit.js";
 import { askAI } from "./_ai.js";
 
 // POST /api/ai-cv-summary { text }  -> AI-polished professional highlights, saved to profile
@@ -17,6 +18,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
+    if (await limited(req, res, user, { bucket: "ai", limit: 20, windowSec: 3600 })) return;
     const { text } = req.body || {};
     if (!text || text.length < 20) return res.status(400).json({ error: "Please add a bit more detail." });
 
