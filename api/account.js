@@ -34,8 +34,20 @@ export default async function handler(req, res) {
       email: user.email,
       updatedAt: new Date().toISOString(),
     };
-    await kvSet(user.id, KEY, merged);
-    return res.status(200).json({ role: merged.role || null, org: merged.org || null, firstName: merged.firstName || null, lastName: merged.lastName || null, isFounder: isFounder(user.email) });
+    const wrote = await kvSet(user.id, KEY, merged);
+    // Read it back. This endpoint used to return the object it INTENDED to save
+    // regardless of whether the save worked, so a failed write looked like a
+    // success and the caller was told the role had changed when it had not.
+    const after = (await kvGet(user.id, KEY)) || {};
+    if (!wrote || (role && after.role !== role)) {
+      return res.status(500).json({
+        error: "save_failed",
+        message: "We could not save that change. Please try again.",
+        attempted: role || null,
+        stored: after.role || null,
+      });
+    }
+    return res.status(200).json({ role: after.role || null, org: after.org || null, firstName: after.firstName || null, lastName: after.lastName || null, isFounder: isFounder(user.email) });
   }
 
   return res.status(405).json({ error: "Method not allowed" });
