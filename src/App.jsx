@@ -14,6 +14,11 @@ import {
 } from "recharts";
 import { billingEnabled, startCheckout } from "./billing.js";
 import { supabase, supabaseEnabled } from "./supabase.js";
+import { PrivacyContent, RefundContent, CookieContent, CookieConsent } from "./pages/policies.jsx";
+import { APPSTORE_URL, PLAYSTORE_URL, APP_LAUNCH, StoreBadge, StoreBadges } from "./components/store.jsx";
+import { LAUNCH_DATE, CountdownBanner } from "./components/countdown.jsx";
+import { PlatformContent, WhySwitch, MarketMap } from "./pages/sections.jsx";
+import { CLIN_TAGLINES, CLIN_UNIVERSAL, CLIN_TABS, CLIN_COUNTRIES, ClinicianSection } from "./pages/clinician.jsx";
 import { APP_NAME } from "./constants.js";
 import { QuraLogo, Wordmark, Avatar, useCountUp, Stat, Kpi, SectionHead, PageHead, Toggle, Stars, Reveal, PulseLine } from "./components/ui.jsx";
 import { REGISTER, SPECIALTIES, REAL_OPPS, CLIENTS, INTL_OPPS, OPPS, CLINICIANS, AGENCIES, MEETINGS, INTEL, STAGES, PIPE_DATA, REGION_DATA, SPEC_DATA, GMV_TREND, REGIONS, FUNNEL, TOP_AGENCIES, TOP_OPPS, FEED_POOL, ALERTS } from "./data/marketplace.js";
@@ -1684,106 +1689,13 @@ function AgencyBot({ plan = "starter" }) {
   );
 }
 
-function WhySwitch() {
-  const CRMS = ["Bullhorn", "Tracker", "Salesforce", "Access"];
-  const ROWS = [
-    { f: "Data accuracy", crm: "You maintain it by hand; it decays fast", qura: "Live, verified contacts with last-checked dates" },
-    { f: "Market mapping", crm: "Hours mapping regions manually", qura: "Mapped for you, continuously, in real time" },
-    { f: "Live opportunities", crm: "You chase and log leads yourself", qura: "A 24/7 feed of live vacancies and needs" },
-    { f: "Fragile professions", crm: "Generic pipelines", qura: "Niche vacancies summarised as they appear" },
-    { f: "Reach decision-makers", crm: "Cold lists you buy and clean", qura: "Verified decision-makers, credit-controlled" },
-    { f: "AI assistant", crm: "A bolt-on, if any", qura: "Built-in 24/7 AI assistant that replies in your voice" },
-    { f: "Time to value", crm: "Months of setup and data entry", qura: "Live in minutes" },
-  ];
-  const cell = { padding: "13px 16px", fontSize: 13, borderTop: "1px solid var(--line)" };
-  return (
-    <div>
-      <PageHead title="Why switch to Qura" sub="The CRMs you know store your data. Qura keeps it correct, live and mapped for you." right={<span className="chip chip-cyan">vs legacy CRMs</span>} />
-      <div className="card" style={{ padding: 20, marginBottom: 16, background: "var(--navy)", color: "#fff", border: "none" }}>
-        <div className="grid g3" style={{ gap: 16 }}>{[["98.4%", "Contacts verified in the last 90 days"], ["Real time", "Market mapping, no manual region work"], ["24/7", "Live opportunities and AI cover"]].map(([n, l]) => (<div key={l}><div className="disp" style={{ fontSize: 28, fontWeight: 700 }}>{n}</div><div style={{ fontSize: 12.5, color: "#9FB0D0" }}>{l}</div></div>))}</div>
-      </div>
-      <div className="faint row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 12, fontSize: 12.5, alignItems: "center" }}>Coming from {CRMS.map((c) => (<span key={c} className="chip chip-grey" style={{ fontWeight: 600 }}>{c}</span>))} ? Here is what changes.</div>
-      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1fr 1fr" }}>
-          <div style={{ padding: "14px 16px", fontWeight: 700, fontSize: 13, background: "var(--bg)" }}>Capability</div>
-          <div style={{ padding: "14px 16px", fontWeight: 700, fontSize: 13, background: "var(--bg)", borderLeft: "1px solid var(--line)" }}>Legacy CRM</div>
-          <div style={{ padding: "14px 16px", fontWeight: 700, fontSize: 13, background: "var(--cyan-soft)", color: "#06776F", borderLeft: "1px solid var(--line)" }}>Qura</div>
-          {ROWS.map((r, i) => ([
-            <div key={"f" + i} style={{ ...cell, fontWeight: 600, fontSize: 13.5 }}>{r.f}</div>,
-            <div key={"c" + i} style={{ ...cell, color: "var(--muted)", borderLeft: "1px solid var(--line)" }}>{r.crm}</div>,
-            <div key={"q" + i} style={{ ...cell, borderLeft: "1px solid var(--line)" }}><span className="row" style={{ gap: 7, alignItems: "flex-start" }}><Check size={15} color="#0E8C7E" style={{ flexShrink: 0, marginTop: 1 }} />{r.qura}</span></div>,
-          ]))}
-        </div>
-      </div>
-      <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>Qura complements your CRM or replaces it. Correct data is the value: every contact carries a last-checked date, and the register is continuously re-verified.</div>
-    </div>
-  );
-}
 
-function MarketMap({ go }) {
-  const REGIONS = [
-    { r: "London", dm: 62, opps: 14, vac: 210, sup: 48 },
-    { r: "South East", dm: 38, opps: 9, vac: 140, sup: 30 },
-    { r: "Midlands", dm: 29, opps: 7, vac: 120, sup: 24 },
-    { r: "North West", dm: 24, opps: 6, vac: 98, sup: 19 },
-    { r: "Yorkshire & Humber", dm: 18, opps: 5, vac: 76, sup: 15 },
-    { r: "Scotland", dm: 14, opps: 4, vac: 60, sup: 12 },
-    { r: "Wales", dm: 9, opps: 3, vac: 40, sup: 8 },
-    { r: "International", dm: 14, opps: 11, vac: 180, sup: 22 },
-  ];
-  const totals = REGIONS.reduce((a, x) => ({ dm: a.dm + x.dm, opps: a.opps + x.opps, vac: a.vac + x.vac, sup: a.sup + x.sup }), { dm: 0, opps: 0, vac: 0, sup: 0 });
-  const maxV = Math.max(...REGIONS.map((x) => x.vac));
-  return (
-    <div>
-      <PageHead title="Market map" sub="The market, mapped for you and kept live. No more mapping regions by hand for hours." right={<span className="chip chip-cyan"><Globe size={12} /> Auto-mapped</span>} />
-      <div className="grid-stats" style={{ marginBottom: 18 }}>
-        <Stat label="Decision-makers" value={totals.dm.toLocaleString()} icon={Users} />
-        <Stat label="Live opportunities" value={String(totals.opps)} icon={Target} accent="cyan" />
-        <Stat label="Open vacancies" value={totals.vac.toLocaleString()} icon={Rss} />
-        <Stat label="Suppliers mapped" value={String(totals.sup)} icon={Package} accent="cyan" />
-      </div>
-      <div className="card" style={{ padding: 20 }}>
-        <SectionHead title="Coverage by region" action={<span className="faint" style={{ fontSize: 12 }}>Updated continuously</span>} />
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>{REGIONS.map((x) => (
-          <div key={x.r} onClick={() => go && go("feed")} className="lift" style={{ cursor: "pointer", padding: "12px 14px", border: "1px solid var(--line)", borderRadius: 12 }}>
-            <div className="row" style={{ justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 6 }}><span style={{ fontWeight: 600, fontSize: 14 }}>{x.r}</span><span className="faint hsm" style={{ fontSize: 12.5 }}>{x.dm} decision-makers · {x.opps} opportunities · {x.sup} suppliers</span></div>
-            <div className="row" style={{ gap: 10, alignItems: "center" }}><div style={{ flex: 1, height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}><div style={{ width: Math.max(4, (x.vac / maxV) * 100) + "%", height: "100%", background: "linear-gradient(90deg, var(--teal), var(--cyan))", borderRadius: 999 }} /></div><span className="num" style={{ fontSize: 13, width: 96, textAlign: "right" }}>{x.vac} vacancies</span></div>
-          </div>
-        ))}</div>
-      </div>
-      <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>Qura maps the market continuously from live activity, so your team never spends hours mapping regions manually. Tap any region to jump to its live feed.</div>
-    </div>
-  );
-}
 
-function PrivacyContent() {
-  return (
-    <div style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--text)" }}>
-      <p style={{ marginTop: 0 }}><b>Data controller.</b> Qura Ltd (company no. 17310951), registered office 167-169 Great Portland Street, 5th Floor, London W1W 5PF, is the controller of your personal data. Contact us at privacy@qurahealth.org.</p>
-      <p>Qura is committed to protecting your personal data in line with the UK GDPR and the Data Protection Act 2018.</p>
-      <p><b>What we collect.</b> Account details you provide (name, email, role), the data you add (shortlists, notes, messages) and the basic usage needed to run the service.</p>
-      <p><b>Lawful basis.</b> We process account data to provide the service you signed up for (contract), and professional business-contact information on the basis of legitimate interests, balanced against individuals' rights. Contact details are masked until consent is confirmed.</p>
-      <p><b>Your rights.</b> You can access, correct, export or delete your data, object to processing, and withdraw consent at any time. Use the data controls in Settings, or contact privacy@qurahealth.org.</p>
-      <p><b>Retention & security.</b> Data is stored per account and kept only as long as needed. We do not sell your data and we do not show third-party ads.</p>
-      <p><b>Personal profiles.</b> Individuals' names and contact details are anonymised or withheld until written consent is given, in line with GDPR.</p>
-      <p className="faint" style={{ fontSize: 12 }}>This is a plain-English summary. For a specific request, contact privacy@qurahealth.org.</p>
-    </div>
-  );
-}
 
-function CookieConsent() {
-  const [show, setShow] = useState(false);
-  const [open, setOpen] = useState(false);
-  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_cookie_consent"); if (!r || !r.value) setShow(true); } catch (e) { setShow(true); } })(); }, []);
-  const choose = (v) => { try { window.storage?.set("qura_cookie_consent", v); } catch (e) {} setShow(false); };
-  if (!show && !open) return null;
-  return (
-    <>
-      {open ? <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(6,14,30,.55)", zIndex: 90, display: "grid", placeItems: "center", padding: 20 }}><div onClick={(e) => e.stopPropagation()} className="card" style={{ maxWidth: 560, width: "100%", padding: 26, maxHeight: "82vh", overflowY: "auto" }}><div className="row" style={{ justifyContent: "space-between", marginBottom: 10 }}><h3 className="disp" style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Privacy & data protection</h3><button className="btn btn-light" style={{ padding: "6px 9px" }} onClick={() => setOpen(false)}>Close</button></div><PrivacyContent /></div></div> : null}
-      {show ? <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 80, padding: 16, display: "flex", justifyContent: "center" }}><div className="card" style={{ maxWidth: 720, width: "100%", padding: 16, boxShadow: "0 12px 40px rgba(10,23,51,.28)" }}><div className="row" style={{ gap: 14, justifyContent: "space-between", flexWrap: "wrap", alignItems: "center" }}><div style={{ fontSize: 13, lineHeight: 1.5, flex: 1, minWidth: 220 }}>We use essential cookies to run Qura and, with your consent, a little analytics to improve it. See our <button onClick={() => setOpen(true)} style={{ background: "none", border: "none", color: "var(--blue)", fontWeight: 600, cursor: "pointer", padding: 0 }}>privacy notice</button>.</div><div className="row" style={{ gap: 8 }}><button className="btn btn-light" onClick={() => choose("essential")}>Essential only</button><button className="btn btn-primary" onClick={() => choose("all")}>Accept all</button></div></div></div></div> : null}
-    </>
-  );
-}
+
+
+
+
 
 
 
@@ -1935,31 +1847,9 @@ function LiveProjects({ onToast }) {
   );
 }
 
-function RefundContent() {
-  return (
-    <div style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--text)" }}>
-      <p style={{ marginTop: 0 }}><b>Who we are.</b> Qura Ltd (company no. 17310951), 167-169 Great Portland Street, 5th Floor, London W1W 5PF.</p>
-      <p><b>Cancelling a subscription.</b> Cancel any time in your account settings or by emailing support@qurahealth.org. Cancelling stops the next renewal, and your access continues until the end of the period you have already paid for.</p>
-      <p><b>Your first 14 days.</b> If you are unhappy within 14 days of a new subscription, contact us and we will refund your first payment in full. Consumers also have a statutory 14 day right to cancel; where the service starts immediately, a proportionate deduction may apply for what has been used.</p>
-      <p><b>Renewals.</b> Renewal payments are not automatically refundable, since you can cancel any time before a renewal date. We send a reminder before annual renewals, and will consider unused renewals case by case.</p>
-      <p><b>Sessions and workshops.</b> Cancel or reschedule free of charge up to 48 hours before the start time, for a full refund or a new date. Inside 48 hours the fee is non-refundable, though we will try to reschedule where we can. If we cancel, you get a full refund or a replacement booking.</p>
-      <p><b>How to request one.</b> Email support@qurahealth.org with your account email. We aim to reply within 2 working days, and approved refunds return to your original payment method within 5 to 10 working days.</p>
-      <p><b>Price changes.</b> Existing subscribers are told in advance, and any new price applies from the next renewal, never mid-term.</p>
-    </div>
-  );
-}
 
-function CookieContent() {
-  return (
-    <div style={{ fontSize: 13.5, lineHeight: 1.6, color: "var(--text)" }}>
-      <p style={{ marginTop: 0 }}>Qura uses essential cookies and browser storage to run the service, for example keeping you signed in and remembering your consent choice. With your consent, we may use a little analytics to improve the product.</p>
-      <p><b>Your choice.</b> On your first visit you can choose Accept all or Essential only. You can change this at any time by clearing your browser storage or contacting privacy@qurahealth.org.</p>
-      <p><b>Third parties.</b> Payment (Stripe) and hosting (Vercel) may set cookies when their features are used, under their own notices.</p>
-      <p><b>Who we are.</b> Qura Ltd (company no. 17310951), 167-169 Great Portland Street, 5th Floor, London W1W 5PF.</p>
-      <p className="faint" style={{ fontSize: 12 }}>The full cookie policy is available on request at privacy@qurahealth.org.</p>
-    </div>
-  );
-}
+
+
 
 function HowToUseQura({ email, onToast }) {
   const [view, setView] = useState("menu");
@@ -2430,49 +2320,9 @@ const CONFERENCE = {
 };
 
 
-const LAUNCH_DATE = "2026-09-22T09:00:00"; // set your launch date and time; countdown hides automatically after it passes
+ // set your launch date and time; countdown hides automatically after it passes
 
-function CountdownBanner() {
-  const target = new Date(LAUNCH_DATE).getTime();
-  const [now, setNow] = useState(Date.now());
-  const [email, setEmail] = useState("");
-  const [joined, setJoined] = useState(false);
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t); }, []);
-  const diff = Math.max(0, target - now);
-  const d = Math.floor(diff / 86400000), h = Math.floor(diff / 3600000) % 24, m = Math.floor(diff / 60000) % 60, sec = Math.floor(diff / 1000) % 60;
-  const DAILY = [
-    { tag: "For clinicians", title: "Get verified once, be seen everywhere", line: "One vetted profile, in front of hospitals and workforce suppliers worldwide, every day." },
-    { tag: "For workforce suppliers", title: "Win work in the time others spend searching", line: "Stop mapping the market by hand. Live demand and decision-makers on one platform." },
-    { tag: "For hospitals", title: "Ready-to-start talent in seconds, not weeks", line: "Search ready-to-start clinicians and request introductions the moment a need appears." },
-    { tag: "For medical device companies", title: "Reach the buyers who actually buy", line: "The decision-makers behind every trust and ICB, on one live platform." },
-    { tag: "For GP & care", title: "Fill sessions and shifts faster", line: "Find available GPs, nurses and carers, with compliance built in." },
-  ];
-  const spot = DAILY[new Date().getDate() % DAILY.length];
-  const join = async () => {
-    if (!email || !email.includes("@")) return;
-    try { let list = []; const r = await window.storage?.get("qura_waitlist"); if (r?.value) list = JSON.parse(r.value); if (!Array.isArray(list)) list = []; if (!list.includes(email)) { list.push(email); await window.storage?.set("qura_waitlist", JSON.stringify(list)); } } catch (e) {}
-    setJoined(true);
-  };
-  if (diff <= 0) return null;
-  const box = (v, l) => (<div style={{ textAlign: "center", minWidth: 62 }}><div className="disp" style={{ fontSize: 36, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{String(v).padStart(2, "0")}</div><div style={{ fontSize: 11, letterSpacing: ".1em", textTransform: "uppercase", color: "rgba(255,255,255,.6)", marginTop: 5 }}>{l}</div></div>);
-  return (
-    <div style={{ background: "linear-gradient(120deg, #0A1730 0%, #123A63 55%, #0E8C7E 100%)", borderRadius: 22, padding: "30px 24px", margin: "0 auto 30px", maxWidth: 900, color: "#fff", boxShadow: "0 18px 46px rgba(10,23,48,.30)" }}>
-      <div className="row" style={{ justifyContent: "center", marginBottom: 8 }}><span className="chip" style={{ background: "rgba(0,194,184,.22)", color: "#9FF6EF", border: "1px solid rgba(0,194,184,.4)" }}>{spot.tag}</span></div>
-      <div className="disp" style={{ textAlign: "center", fontWeight: 800, fontSize: 25, marginBottom: 5 }}>{spot.title}</div>
-      <div style={{ textAlign: "center", fontSize: 13.5, opacity: .82, maxWidth: 560, margin: "0 auto 20px", lineHeight: 1.5 }}>{spot.line}</div>
-      <div className="row" style={{ justifyContent: "center", gap: 18, marginBottom: 20 }}>{box(d, "Days")}{box(h, "Hrs")}{box(m, "Min")}{box(sec, "Sec")}</div>
-      {joined ? (
-        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 14.5 }}><Check size={16} style={{ verticalAlign: "middle" }} /> You are on the early-access list. See you at launch.</div>
-      ) : (
-        <div className="row" style={{ gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@organisation.com" style={{ padding: "12px 16px", borderRadius: 999, border: "none", minWidth: 260, fontSize: 14, outline: "none" }} />
-          <button onClick={join} className="btn lift" style={{ background: "#00C2B8", color: "#04231F", fontWeight: 800, padding: "12px 22px" }}>Get early access <ArrowRight size={15} /></button>
-        </div>
-      )}
-      <div style={{ textAlign: "center", fontSize: 11.5, opacity: .6, marginTop: 14 }}>Launching {new Date(LAUNCH_DATE).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}. A different side of Qura revealed each day.</div>
-    </div>
-  );
-}
+
 
 function ScreenGallery({ onBack }) {
   const SCREENS = [
@@ -2609,82 +2459,13 @@ function HowItWorks({ section = "walk", go }) {
 
 
 /* ===== Clinician-facing section: tag lines + country eligibility (drives clinician sign-ups) ===== */
-const CLIN_TAGLINES = [
-  "Take your career into your own hands and track your application process in real time.",
-  "No more sending your CV and hoping, without any visibility.",
-  "Step by step updates on your application to the most reputable hospitals globally, via Qura.",
-];
 
-const CLIN_COUNTRIES = {
-  "United Kingdom": { flag: "\uD83C\uDDEC\uD83C\uDDE7", reg: "GMC / NMC / HCPC", items: ["Registration or eligibility with the relevant UK regulator", "English language evidence (IELTS/OET) where required", "Right to work or a Health and Care Worker visa"] },
-  "Australia": { flag: "\uD83C\uDDE6\uD83C\uDDFA", reg: "AHPRA", items: ["Registration or eligibility with AHPRA", "English language evidence where required", "Skills assessment and an eligible work visa"] },
-  "United States": { flag: "\uD83C\uDDFA\uD83C\uDDF8", reg: "State board / ECFMG", items: ["ECFMG certification and USMLE for doctors, where applicable", "State licensure or eligibility", "An eligible US work visa"] },
-  "Dubai (UAE)": { flag: "\uD83C\uDDE6\uD83C\uDDEA", reg: "DHA / DOH / MOHAP", items: ["Eligibility for licensing with a UAE authority", "Primary source verification (DataFlow)", "Employer visa sponsorship"] },
-  "Nigeria": { flag: "\uD83C\uDDF3\uD83C\uDDEC", reg: "MDCN / NMCN / PCN", items: ["Current registration with the relevant Nigerian regulator", "Evidence of qualification and a current practising licence", "Internship / NYSC where applicable"] },
-  "Ireland": { flag: "\uD83C\uDDEE\uD83C\uDDEA", reg: "IMC / NMBI / CORU", items: ["Registration or eligibility with the relevant Irish regulator", "English language evidence where required", "Eligibility to work in Ireland / EU"] },
-  "Canada": { flag: "\uD83C\uDDE8\uD83C\uDDE6", reg: "Provincial colleges", items: ["Eligibility with the relevant provincial college", "Credential assessment (NNAS / MCC)", "An eligible Canadian work permit or PR pathway"] },
-};
-const CLIN_TABS = ["United Kingdom", "Australia", "United States", "Dubai (UAE)", "Nigeria", "Ireland", "Canada"];
-const CLIN_UNIVERSAL = ["At least 2 years of post-qualification experience", "A CV with evidence of your qualification", "You have held a previous clinical role (qualified staff only, not students or aspiring)"];
 
-function ClinicianSection({ onEnter }) {
-  const [country, setCountry] = useState(CLIN_TABS[0]);
-  const c = CLIN_COUNTRIES[country];
-  return (
-    <div id="clinicians" className="sec clinicians" style={{ background: "var(--navy)", color: "#fff", padding: "84px 24px" }}>
-      <div className="wrap">
-        <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 10px" }}>
-          <span className="chip chip-cyan" style={{ background: "rgba(0,194,184,.15)", color: "var(--cyan)" }}>For clinicians</span>
-          <h2 className="disp" style={{ fontSize: "clamp(26px,4vw,40px)", fontWeight: 700, margin: "16px 0 8px", lineHeight: 1.1 }}>Your move abroad, in your hands.</h2>
-        </div>
-        <div style={{ display: "grid", gap: 12, maxWidth: 820, margin: "0 auto 20px", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))" }}>
-          {CLIN_TAGLINES.map((t, i) => (
-            <div key={i} style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: "16px 18px", fontSize: 15, lineHeight: 1.5 }}>{t}</div>
-          ))}
-        </div>
-        <div style={{ maxWidth: 820, margin: "0 auto 26px", textAlign: "center", color: "#AEBED6", fontSize: 14.5, lineHeight: 1.65 }}>
-          Clinical managers rarely give feedback in the time frames shown in adverts. It is not that they do not want to, they are overwhelmed with work and cannot keep up. Qura has stepped in to filter the talent. If your CV matches the requirements, Qura has increased the likelihood of you being found. Sign up today and start getting notified.
-        </div>
 
-        <div style={{ maxWidth: 900, margin: "0 auto", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 22 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14, textAlign: "center" }}>Where do you want to work? Check what it takes.</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 20 }}>
-            {CLIN_TABS.map((t) => (
-              <button key={t} onClick={() => setCountry(t)} style={{ cursor: "pointer", padding: "8px 14px", borderRadius: 999, fontSize: 13, fontWeight: 600,
-                background: country === t ? "var(--cyan)" : "rgba(255,255,255,.06)", color: country === t ? "var(--navy)" : "#fff",
-                border: "1px solid " + (country === t ? "var(--cyan)" : "rgba(255,255,255,.15)") }}>{CLIN_COUNTRIES[t].flag} {t}</button>
-            ))}
-          </div>
-          <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))" }}>
-            <div>
-              <div style={{ fontSize: 12.5, color: "var(--cyan)", fontWeight: 600, marginBottom: 8, letterSpacing: ".04em" }}>REGULATOR: {c.reg}</div>
-              {c.items.map((it, i) => (
-                <div key={i} style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 8, paddingLeft: 18, position: "relative" }}>
-                  <span style={{ position: "absolute", left: 0, color: "var(--cyan)" }}>{"\u2713"}</span>{it}
-                </div>
-              ))}
-            </div>
-            <div>
-              <div style={{ fontSize: 12.5, color: "#AEBED6", fontWeight: 600, marginBottom: 8, letterSpacing: ".04em" }}>EVERYONE ALSO NEEDS</div>
-              {CLIN_UNIVERSAL.map((it, i) => (
-                <div key={i} style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 8, paddingLeft: 18, position: "relative" }}>
-                  <span style={{ position: "absolute", left: 0, color: "#AEBED6" }}>{"\u2022"}</span>{it}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={{ textAlign: "center", marginTop: 22 }}>
-            <button className="btn btn-primary" onClick={onEnter} style={{ padding: "12px 28px", fontSize: 15 }}>Check my eligibility & sign up</button>
-            <div style={{ fontSize: 12, color: "#8697B0", marginTop: 10, marginBottom: 22 }}>Guidance only, not immigration advice. Requirements are confirmed during verification.</div>
-            <div style={{ fontSize: 13.5, color: "#AEBED6", marginBottom: 14, fontWeight: 600 }}>Track your applications in real time. Get the app.</div>
-            <StoreBadges />
-            <div style={{ fontSize: 12, color: "#8697B0", marginTop: 12 }}>Available on iOS and Android.</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+
+
+
+
 
 
 /* ===== Supplier-facing app-download section (drives mobile app installs) ===== */
@@ -2704,41 +2485,13 @@ const SUPPLIER_TAGLINES = [
 // App Store, paste in once the app exists in App Store Connect (the numeric id
 // is issued then):
 //   https://apps.apple.com/gb/app/qura/id0000000000
-const APPSTORE_URL = "";
-const PLAYSTORE_URL = "";
-const APP_LAUNCH = "22 September 2026";
 
-function StoreBadge({ href, children }) {
-  const live = !!href;
-  const inner = (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#000", color: "#fff", borderRadius: 12, padding: "10px 18px", minWidth: 180, opacity: live ? 1 : 0.55 }}>
-      {children}
-    </div>
-  );
-  if (!live) return <div style={{ cursor: "default" }} title={"Launching " + APP_LAUNCH}>{inner}</div>;
-  return <a href={href} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>{inner}</a>;
-}
 
-function StoreBadges({ compact }) {
-  const live = !!APPSTORE_URL || !!PLAYSTORE_URL;
-  return (
-    <div>
-    <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: compact ? "flex-start" : "center" }}>
-      <StoreBadge href={APPSTORE_URL}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="#fff"><path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.01-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.9-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.79 1.3 10.34.86 1.25 1.88 2.65 3.22 2.6 1.29-.05 1.78-.83 3.34-.83 1.56 0 1.99.83 3.35.81 1.38-.03 2.26-1.27 3.11-2.53.98-1.45 1.38-2.85 1.4-2.92-.03-.01-2.69-1.03-2.72-4.09zM14.53 4.5c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44z"/></svg>
-          <div style={{ textAlign: "left" }}><div style={{ fontSize: 9, opacity: .85 }}>Download on the</div><div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1 }}>App Store</div></div>
-      </StoreBadge>
-      <StoreBadge href={PLAYSTORE_URL}>
-          <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#00D9FF" d="M3.6 2.3c-.3.3-.5.8-.5 1.4v16.6c0 .6.2 1.1.5 1.4l.1.1L13 12.1v-.2L3.6 2.3z"/><path fill="#00F076" d="M16.3 15.4l-3.3-3.3v-.2l3.3-3.3.1.1 3.9 2.2c1.1.6 1.1 1.7 0 2.3l-4 2.2z"/><path fill="#FF3A44" d="M16.4 15.3L13 11.9 3.6 21.7c.4.4 1 .4 1.7.1l11.1-6.5z"/><path fill="#FFC800" d="M16.4 8.5L5.3 2.1c-.7-.4-1.3-.3-1.7.1L13 11.9l3.4-3.4z"/></svg>
-          <div style={{ textAlign: "left" }}><div style={{ fontSize: 9, opacity: .85 }}>GET IT ON</div><div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1 }}>Google Play</div></div>
-      </StoreBadge>
-    </div>
-    {!live ? (
-      <div style={{ fontSize: 12, opacity: .8, marginTop: 10, textAlign: compact ? "left" : "center" }}>Launching {APP_LAUNCH}</div>
-    ) : null}
-    </div>
-  );
-}
+
+
+
+
+
 
 function SupplierAppSection() {
   return (
@@ -3199,19 +2952,7 @@ function Landing({ onEnter, onDemo }) {
 }
 
 /* ===================== auth ===================== */
-function PlatformContent() {
-  const items = [
-    { i: Rss, t: "24/7 live marketplace", d: "A live feed of demand and supply across every market, refreshing around the clock." },
-    { i: Radar, t: "Automated market mapping", d: "The market is mapped for you continuously, so your team never maps regions by hand." },
-    { i: ShieldCheck, t: "Fragile professions", d: "Specialist coverage of the scarce clinical roles the NHS most struggles to fill." },
-    { i: Users, t: "Verified decision-makers", d: "Reach the right people, credit-controlled to keep every message considered." },
-    { i: Sparkles, t: "AI assistant", d: "A 24/7 AI assistant that replies, qualifies and drafts in your voice." },
-    { i: Globe, t: "Relocation & mobility", d: "Move talent between countries with a managed concierge on a vetted partner network." },
-    { i: Network, t: "Public sector intelligence", d: "ICB and council intelligence, summarised for you and refreshed daily." },
-    { i: BarChart3, t: "Analytics & weekly reports", d: "Board-ready activity reports, generated automatically." },
-  ];
-  return (<><h1 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "0 0 6px" }}>The platform</h1><p className="muted" style={{ fontSize: 16, maxWidth: 620, marginTop: 0 }}>One live platform across the NHS, private healthcare and international markets, 24/7.</p><div className="grid g3" style={{ marginTop: 28 }}>{items.map((x) => (<div key={x.t} className="card" style={{ padding: 22 }}><div style={{ width: 44, height: 44, borderRadius: 12, background: "#EEF3FF", display: "grid", placeItems: "center" }}><x.i size={21} color="#1E54E6" /></div><div style={{ fontWeight: 600, fontSize: 16, marginTop: 12 }}>{x.t}</div><p className="muted" style={{ fontSize: 13.5, marginTop: 5, lineHeight: 1.55 }}>{x.d}</p></div>))}</div></>);
-}
+
 
 function PricingContent({ onEnter }) {
   const fam = [
