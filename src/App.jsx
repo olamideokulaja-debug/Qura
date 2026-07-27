@@ -20,7 +20,7 @@ import { LAUNCH_DATE, CountdownBanner } from "./components/countdown.jsx";
 import { PlatformContent, WhySwitch, MarketMap } from "./pages/sections.jsx";
 import { CLIN_TAGLINES, CLIN_UNIVERSAL, CLIN_TABS, CLIN_COUNTRIES, ClinicianSection } from "./pages/clinician.jsx";
 import { APP_NAME } from "./constants.js";
-import { initAnalytics, trackPage } from "./lib/analytics.js";
+import { initAnalytics, trackPage, setMarketingMode } from "./lib/analytics.js";
 import { QuraLogo, Wordmark, Avatar, useCountUp, Stat, Kpi, SectionHead, PageHead, Toggle, Stars, Reveal, PulseLine } from "./components/ui.jsx";
 import { REGISTER, SPECIALTIES, REAL_OPPS, CLIENTS, INTL_OPPS, OPPS, CLINICIANS, AGENCIES, MEETINGS, INTEL, STAGES, PIPE_DATA, REGION_DATA, SPEC_DATA, GMV_TREND, REGIONS, FUNNEL, TOP_AGENCIES, TOP_OPPS, FEED_POOL, ALERTS } from "./data/marketplace.js";
 import { PRIORITY, PROTECTED_LIST, REG_BODY, NURSE_TYPES, AHP_TYPES, SCIENCE_TYPES, DOCTOR_SPECIALTIES, RESIDENCE_LIST } from "./data/clinical.js";
@@ -3577,6 +3577,9 @@ function BillingResult({ result, onSignIn, onClose }) {
 
 export default function App() {
   const [stage, setStage] = useState("landing");
+  // Click tracking and session replay follow the visitor: on for the public
+  // site, off the moment they are inside the product.
+  useEffect(() => { setMarketingMode(stage !== "app"); }, [stage]);
   const [billingResult, setBillingResult] = useState(null);
   useEffect(() => {
     try {
