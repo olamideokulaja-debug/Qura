@@ -18,6 +18,25 @@ export const CONSENT_KEY = "qura_cookie_consent";
 let client = null;
 let starting = null;
 
+// PostHog is fetched on demand, which takes a moment. Anything captured during
+// that gap would otherwise be thrown away, so it waits here and is sent once the
+// client is ready.
+let pending = [];
+function flush() {
+  const queued = pending;
+  pending = [];
+  queued.forEach(({ name, props }) => {
+    try { client.capture(name, props); } catch (e) {}
+  });
+}
+function send(name, props) {
+  if (client) {
+    try { client.capture(name, props); } catch (e) {}
+  } else {
+    if (pending.length < 50) pending.push({ name, props });
+  }
+}
+
 export async function readConsent() {
   try {
     const r = await window.storage?.get(CONSENT_KEY);
@@ -46,6 +65,7 @@ async function start() {
         },
       });
       client = posthog;
+      flush();
       return client;
     } catch (e) {
       return null;
@@ -68,12 +88,18 @@ export async function enableAnalytics() {
   const c = await start();
   if (c) {
     try { c.opt_in_capturing(); } catch (e) {}
+    // Count the page they were on when they agreed, which would otherwise be
+    // the one view we always miss.
+    try {
+      send("$pageview", { $current_url: window.location.href, page_title: document.title });
+    } catch (e) {}
   }
   return c;
 }
 
 /** Called when the visitor declines, or later withdraws consent. */
 export function disableAnalytics() {
+  pending = [];
   try {
     if (client) {
       client.opt_out_capturing();
@@ -85,13 +111,13 @@ export function disableAnalytics() {
 /** A page view, sent by hand so the recorded address is the tidy one. */
 export function trackPage(path, title) {
   try {
-    if (client) client.capture("$pageview", { $current_url: window.location.origin + path, page_title: title });
+    send("$pageview", { $current_url: window.location.origin + path, page_title: title });
   } catch (e) {}
 }
 
 /** Any other event worth counting. Silently does nothing without consent. */
 export function track(name, props) {
   try {
-    if (client) client.capture(name, props || {});
+    send(name, props || {});
   } catch (e) {}
 }
