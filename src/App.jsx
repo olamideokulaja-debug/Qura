@@ -3003,6 +3003,7 @@ function Landing({ onEnter, onDemo }) {
             {[["Privacy", "privacy"], ["Cookies", "cookies"], ["Refunds", "refunds"]].map(([l, k]) => (
               <button key={k} onClick={() => setPolicy(k)} className="faint" style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 12.5, whiteSpace: "nowrap" }}>{l}</button>
             ))}
+            <a href="/terms.html" className="faint" style={{ fontSize: 12.5, textDecoration: "none", whiteSpace: "nowrap" }}>Terms</a>
             <a href="/delete-account.html" className="faint" style={{ fontSize: 12.5, textDecoration: "none", whiteSpace: "nowrap" }}>Delete your account</a>
             <button onClick={() => window.dispatchEvent(new Event("qura:cookie-preferences"))} className="faint" style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 12.5, whiteSpace: "nowrap" }}>Cookie preferences</button>
           </div>
