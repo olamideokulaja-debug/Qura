@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: "Sign in required" });
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  const { clinicianId, handle, profession, country } = req.body || {};
+  const { clinicianId, handle, profession, country, from } = req.body || {};
   if (!clinicianId) return res.status(400).json({ error: "clinicianId required" });
 
   // Subscribers on any paid plan (monthly or yearly) get introductions included, no fee.
@@ -81,8 +81,11 @@ export default async function handler(req, res) {
       customer_email: user.email || undefined,
       client_reference_id: user.id,
       metadata: { supplier: user.id, clinicianId, introId: entry.id },
-      success_url: origin + "/?intro=success",
-      cancel_url: origin + "/?intro=cancelled",
+      // Payment happens in the phone's browser, so a supplier paying from the
+      // app would otherwise be stranded on a web page with no way back. They are
+      // sent to a small page that hands them straight to the app.
+      success_url: from === "app" ? origin + "/return-to-app.html?status=success" : origin + "/?intro=success",
+      cancel_url: from === "app" ? origin + "/return-to-app.html?status=cancelled" : origin + "/?intro=cancelled",
     });
     return res.status(200).json({ url: session.url, fee: INTRO_FEE_GBP });
   } catch (e) {

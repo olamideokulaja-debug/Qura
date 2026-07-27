@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Returning to Qura</title>
+<style>
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#F4F7FB;color:#1A2233;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px}
+  .card{background:#fff;border:1px solid #E4EAF3;border-radius:16px;padding:32px;max-width:400px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(10,26,48,.08)}
+  h1{font-size:20px;margin:0 0 8px}
+  p{color:#5A6783;font-size:14.5px;line-height:1.6;margin:0 0 22px}
+  a.btn{display:inline-block;padding:13px 24px;border-radius:10px;background:#0E8C7E;color:#fff;font-size:15px;font-weight:700;text-decoration:none}
+  .muted{color:#8A97AE;font-size:12.5px;margin-top:18px;margin-bottom:0}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1 id="title">Taking you back to Qura</h1>
+  <p id="msg">One moment.</p>
+  <a class="btn" id="open" href="#">Open the Qura app</a>
+  <p class="muted">If nothing happens, tap the button above.</p>
+</div>
+<script>
+  var params = new URLSearchParams(window.location.search);
+  var status = params.get("status") === "cancelled" ? "cancelled" : "success";
+  var target = "qura://intro?status=" + status;
+  document.getElementById("open").setAttribute("href", target);
+  if (status === "success") {
+    document.getElementById("title").textContent = "Payment received";
+    document.getElementById("msg").textContent = "Taking you back to the Qura app to see your introduction.";
+  } else {
+    document.getElementById("title").textContent = "Payment cancelled";
+    document.getElementById("msg").textContent = "Nothing has been charged. Taking you back to the Qura app.";
+  }
+  // Try to hand over immediately. If the app is not installed nothing happens
+  // and the button is there as a fallback.
+  setTimeout(function () { window.location.href = target; }, 400);
+</script>
+</body>
+</html>
