@@ -2930,11 +2930,18 @@ const NAV = [
   { k: "story", l: "Our story" },
 ];
 
-// Footer columns, mirroring the top navigation so the two never drift apart.
-const FOOTER_COLS = [
-  { t: "Who it's for", links: [["For clinicians", "clinicians"], ["For suppliers", "suppliers-app"]] },
-  { t: "Platform", links: [["How it works", "how:walk"], ["Inside the platform", "how:gallery"], ["Marketplace", "market"], ["Solutions", "solutions"]] },
-  { t: "Explore", links: [["Fragile professions", "fragile"], ["Pricing", "pricing"], ["Our story", "story"]] },
+// Footer links, mirroring the top navigation so the two never drift apart.
+// One centred row, wrapping on narrow screens.
+const FOOTER_LINKS = [
+  ["For clinicians", "clinicians"],
+  ["For suppliers", "suppliers-app"],
+  ["How it works", "how:walk"],
+  ["Inside the platform", "how:gallery"],
+  ["Marketplace", "market"],
+  ["Solutions", "solutions"],
+  ["Fragile professions", "fragile"],
+  ["Pricing", "pricing"],
+  ["Our story", "story"],
 ];
 
 function Landing({ onEnter, onDemo }) {
@@ -3360,36 +3367,27 @@ function Landing({ onEnter, onDemo }) {
 
       </div>
       <div style={{ borderTop: "1px solid var(--line)", background: "var(--bg)" }}>
-        <div className="wrap" style={{ padding: "52px 24px 26px", display: "grid", gap: 34, gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))" }}>
-          <div style={{ minWidth: 230 }}>
-            <Wordmark />
-            <p className="faint" style={{ fontSize: 13.5, lineHeight: 1.65, margin: "14px 0 18px", maxWidth: 290 }}>The 24/7 live healthcare marketplace and growth CRM, across the NHS, private and international markets.</p>
-            <StoreBadges compact />
+        <div className="wrap" style={{ padding: "34px 24px 28px", textAlign: "center" }}>
+          <div style={{ display: "flex", justifyContent: "center" }}><Wordmark /></div>
+
+          <div className="row" style={{ justifyContent: "center", flexWrap: "wrap", gap: "10px 22px", marginTop: 20 }}>
+            {FOOTER_LINKS.map(([l, mv]) => (
+              <button key={mv} onClick={() => goTo(mv)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 13.5, fontWeight: 500, color: "var(--text)", whiteSpace: "nowrap" }}>{l}</button>
+            ))}
           </div>
-          {FOOTER_COLS.map((c) => (
-            <div key={c.t}>
-              <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--navy)", marginBottom: 14 }}>{c.t}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-start" }}>
-                {c.links.map(([l, mv]) => (
-                  <button key={mv} onClick={() => goTo(mv)} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13.5, padding: 0, textAlign: "left" }}>{l}</button>
-                ))}
-              </div>
-            </div>
-          ))}
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--navy)", marginBottom: 14 }}>Legal</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "flex-start" }}>
-              {[["Privacy", "privacy"], ["Cookies", "cookies"], ["Refunds", "refunds"]].map(([l, k]) => (
-                <button key={k} onClick={() => setPolicy(k)} className="faint" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13.5, padding: 0, textAlign: "left" }}>{l}</button>
-              ))}
-              <a href="/delete-account.html" className="faint" style={{ fontSize: 13.5, textDecoration: "none" }}>Delete your account</a>
-            </div>
+
+          <div className="row" style={{ justifyContent: "center", flexWrap: "wrap", gap: "8px 18px", marginTop: 12 }}>
+            {[["Privacy", "privacy"], ["Cookies", "cookies"], ["Refunds", "refunds"]].map(([l, k]) => (
+              <button key={k} onClick={() => setPolicy(k)} className="faint" style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 12.5, whiteSpace: "nowrap" }}>{l}</button>
+            ))}
+            <a href="/delete-account.html" className="faint" style={{ fontSize: 12.5, textDecoration: "none", whiteSpace: "nowrap" }}>Delete your account</a>
           </div>
-        </div>
-        <div className="wrap" style={{ padding: "0 24px 34px" }}>
-          <div className="row" style={{ borderTop: "1px solid var(--line)", paddingTop: 18, justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
-            <span className="faint" style={{ fontSize: 12.5 }}>© {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM</span>
-            <span className="faint" style={{ fontSize: 12.5 }}>Qura Ltd, company no. 17310951 · 167-169 Great Portland Street, 5th Floor, London W1W 5PF</span>
+
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 22 }}><StoreBadges /></div>
+
+          <div className="faint" style={{ fontSize: 12.5, marginTop: 22, lineHeight: 1.6 }}>
+            © {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM<br />
+            Qura Ltd, company no. 17310951 · 167-169 Great Portland Street, 5th Floor, London W1W 5PF
           </div>
         </div>
       </div>
