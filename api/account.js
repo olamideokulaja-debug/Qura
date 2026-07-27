@@ -1,4 +1,5 @@
 import { getUser, kvGet, kvSet } from "./_auth.js";
+import { alertFounders } from "./_alert.js";
 
 // GET  /api/account        -> { role: "clinician" | "supplier" | null, org }
 // POST /api/account {role, org} -> sets the account role (chosen at sign-up)
@@ -40,6 +41,11 @@ export default async function handler(req, res) {
     // success and the caller was told the role had changed when it had not.
     const after = (await kvGet(user.id, KEY)) || {};
     if (!wrote || (role && after.role !== role)) {
+      await alertFounders("account-save", "Account change did not save", {
+        user: user.id,
+        attempted: role || null,
+        stored: after.role || null,
+      });
       return res.status(500).json({
         error: "save_failed",
         message: "We could not save that change. Please try again.",

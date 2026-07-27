@@ -12,6 +12,8 @@ function rawBody(req) {
   });
 }
 
+import { alertFounders } from "./_alert.js";
+
 export default async function handler(req, res) {
   const key = process.env.STRIPE_SECRET_KEY;
   const whsec = process.env.STRIPE_WEBHOOK_SECRET;
@@ -25,6 +27,8 @@ export default async function handler(req, res) {
     const raw = await rawBody(req);
     event = stripe.webhooks.constructEvent(raw, req.headers["stripe-signature"], whsec);
   } catch (e) {
+    await alertFounders("stripe-signature", "Stripe webhook signature rejected",
+      "A call to /api/stripe-webhook failed signature verification. If this is not a probe, STRIPE_WEBHOOK_SECRET may be wrong or out of date, and payments will not be applied to accounts.\n\n" + String(e.message || e));
     return res.status(400).send("Webhook signature error: " + e.message);
   }
 
@@ -48,7 +52,17 @@ export default async function handler(req, res) {
       const sub = event.data.object;
       await setPlan(sub.metadata?.userId, null); // subscription ended -> free tier
     }
-  } catch (e) { /* return 200 anyway so Stripe does not retry on our internal error */ }
+  } catch (e) {
+    // Still return 200 so Stripe does not retry forever, but do not let it pass
+    // unnoticed: at this point the customer has paid and their plan may not have
+    // been written.
+    await alertFounders("stripe-webhook", "Stripe payment received but not applied", {
+      eventType: event && event.type,
+      eventId: event && event.id,
+      error: String(e.message || e),
+      action: "Check the customer in Stripe and set their plan by hand if needed.",
+    });
+  }
 
   res.status(200).json({ received: true });
 }
