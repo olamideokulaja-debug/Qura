@@ -2524,15 +2524,18 @@ function SupplierAppSection() {
 // crowding. A value of "how:walk" means view "how" with section "walk".
 const NAV = [
   { k: "home", l: "Home" },
-  { k: "who", l: "Who it's for", items: [
-    ["For clinicians", "clinicians", "The app, your career, your applications"],
-    ["For suppliers", "suppliers-app", "Live demand, talent and introductions"],
-  ] },
+  // Platform first: it is the larger thing, and the app sits inside it.
   { k: "platform", l: "Platform", items: [
     ["How it works", "how:walk", "Step through Qura by lens"],
     ["Inside the platform", "how:gallery", "Real screens, page by page"],
     ["Marketplace", "market", "The live marketplace, every market"],
     ["Solutions", "solutions", "What Qura solves, by organisation"],
+  ] },
+  // Named for the app specifically. "Who it's for" read as though it described
+  // the whole platform, when what sits under it is the two app audiences.
+  { k: "who", l: "Qura App", items: [
+    ["For clinicians", "clinicians", "The app, your career, your applications"],
+    ["For suppliers", "suppliers-app", "Live demand, talent and introductions"],
   ] },
   { k: "fragile", l: "Fragile professions" },
   { k: "pricing", l: "Pricing" },
@@ -2542,12 +2545,12 @@ const NAV = [
 // Footer links, mirroring the top navigation so the two never drift apart.
 // One centred row, wrapping on narrow screens.
 const FOOTER_LINKS = [
-  ["For clinicians", "clinicians"],
-  ["For suppliers", "suppliers-app"],
   ["How it works", "how:walk"],
   ["Inside the platform", "how:gallery"],
   ["Marketplace", "market"],
   ["Solutions", "solutions"],
+  ["For clinicians", "clinicians"],
+  ["For suppliers", "suppliers-app"],
   ["Fragile professions", "fragile"],
   ["Pricing", "pricing"],
   ["Our story", "story"],
