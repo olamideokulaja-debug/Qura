@@ -1,3 +1,4 @@
+import { limited } from "./_ratelimit.js";
 // Scheduled job (Vercel Cron) that refreshes the regional Industry News feed.
 // Pulls public healthcare news per region from Google News RSS (no API key needed),
 // and writes the results to Supabase (shared rows) which the app reads on load.
@@ -57,6 +58,9 @@ async function fetchRegion(r) {
 }
 
 export default async function handler(req, res) {
+  // Scheduled job. Cron fires once a day, so a tight limit costs nothing and
+  // stops anyone else triggering an expensive AI run by hitting the address.
+  if (await limited(req, res, null, { bucket: "cron-news", limit: 3, windowSec: 86400 })) return;
   const secret = process.env.CRON_SECRET;
   if (secret) {
     const auth = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
