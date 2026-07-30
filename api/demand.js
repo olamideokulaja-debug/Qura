@@ -19,10 +19,15 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const posted = (await kvGet("shared", "demand_posted")) || [];
     const { market, profession } = req.query || {};
-    // Real posted demand always shows. The illustrative set only fills the gap
-    // before launch, and is flagged so it can be labelled.
+    // Real public procurement notices, refreshed daily by api/refresh-tenders.js
+    // from Find a Tender and Contracts Finder. These are genuinely live and
+    // carry a link back to the original notice.
+    const tenders = (await kvGet("shared", "tenders")) || {};
+    const live = Array.isArray(tenders.items) ? tenders.items : [];
+    // Order: supplier-posted demand, then real public notices, then the
+    // illustrative set, which only fills the gap before launch.
     const filler = seedActive() ? SEED.map((d) => ({ ...d, seeded: true })) : [];
-    let items = [...(Array.isArray(posted) ? posted : []), ...filler];
+    let items = [...(Array.isArray(posted) ? posted : []), ...live, ...filler];
     // Plan gate: only Growth/Intelligence and above see International markets.
     const plan = await planOf(user.id);
     const canInternational = ENTITLEMENTS.internationalMarkets(plan);
