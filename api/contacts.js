@@ -2,31 +2,68 @@
 // This data contains named individuals, so it must never ship in the public
 // browser bundle. It lives here, server-side, and is returned only when the
 // caller presents a valid Supabase session token.
+//
+// Contact details are released by PLAN, not by the browser. The previous
+// version returned every field to any signed-in user and left the paywall to
+// the front end, which meant a free account with developer tools could take the
+// whole register in one request. Names, organisations, roles and specialties are
+// visible to everyone signed in, because that is the shop window. Email
+// addresses and telephone numbers are only returned to plans that include
+// decision-maker access, and are masked for everyone else.
+//
+// Internal business development notes from the source sheet are deliberately
+// NOT included here. They are our commentary about these people, not data we
+// should be handing to subscribers.
 
-const CONTACTS = [{"name": "Gareth Whyte", "org": "Addenbrooke’s / CDC Wisbech context", "role": "Decision maker", "spec": "Audiology"}, {"name": "Tina Snellgrove", "org": "BHR CDC", "role": "PA", "spec": "Sonography"}, {"name": "Gorkem Deyazak", "org": "Barts Health", "role": "Clinical Lead – Royal London", "spec": "Radiography & Radiology"}, {"name": "Freda Amponsa-Dadzie", "org": "Bedfordshire Hospitals NHS Foundation Trust", "role": "Operational Manager, Imaging", "spec": "Echocardiography"}, {"name": "Sian Redgewell", "org": "Cambridge NHS", "role": "Imaging Directorate Support Manager", "spec": "Respiratory"}, {"name": "Beth Roberts", "org": "Cromwell Hospital - BUPA", "role": "Magnit Client Services", "spec": "Speech & Language Therapy"}, {"name": "Ian Allcock", "org": "Doncaster and Bassetlaw NHS Trust", "role": "Decision maker", "spec": "Pathology"}, {"name": "Hannah Farr", "org": "Gloucerstershire Hospitals NHS Foundation Trust", "role": "Decision maker", "spec": "Biomedical Science"}, {"name": "Donna Flynn", "org": "Alliance Medical Diagnostic Imaging Ltd", "role": "Decision maker", "spec": "Ophthalmology"}, {"name": "Richard Duddy", "org": "BUPA Cromwell Hospital - Plastic Surgery Associates UK", "role": "Decision maker", "spec": "Gastroenterology"}, {"name": "Kathryn Knight", "org": "Barts Health", "role": "Decision maker", "spec": "Oncology"}, {"name": "Jess Moreton", "org": "Betsi Cadwaladr University Health Board", "role": "Decision maker", "spec": "Dermatology"}, {"name": "Lynsey Searle", "org": "Cambridge University Hospitals NHS Foundation Trust", "role": "Decision maker", "spec": "Audiology"}, {"name": "Jane Cole", "org": "Croydon Health Services NHS Trust", "role": "Decision maker", "spec": "Sonography"}, {"name": "Kelvin spoke with Richard Summerfield the Head of Procurement who gave him a full run down of what he wants from an MSP", "org": "Doncaster and Bassettlaw Teaching Hospitals", "role": "Decision maker", "spec": "Radiography & Radiology"}, {"name": "Claire Thornton", "org": "Gloucestershire Hospitals NHS Foundation Trust", "role": "Decision maker", "spec": "Echocardiography"}, {"name": "Alex Curley", "org": "Aneurin Bevan University Health Board", "role": "Decision maker", "spec": "Respiratory"}, {"name": "Tanysha Garcia", "org": "Barchester Healthcare", "role": "Decision maker", "spec": "Speech & Language Therapy"}, {"name": "Bradley Day", "org": "Barts Health NHS Trust", "role": "Decision maker", "spec": "Pathology"}, {"name": "Hannah Williamson", "org": "Birmingham NHS Foundation Trust", "role": "Decision maker", "spec": "Biomedical Science"}, {"name": "Robert Mackenzie", "org": "Cambridge University Hospitals NHS Foundation Trust", "role": "Decision maker", "spec": "Ophthalmology"}, {"name": "Jasmine Penny", "org": "Croydon Health Services NHS Trust", "role": "Head of Temporary Staffing", "spec": "Gastroenterology"}, {"name": "Cara Barlow", "org": "East Kent Hospitals University NHS Foundation Trust", "role": "Decision maker", "spec": "Oncology"}, {"name": "Emma Beard", "org": "Great Ormond Street Hospital For Children NHS Foundation Trust", "role": "Contract Manager", "spec": "Dermatology"}, {"name": "Hannah Evans", "org": "Aneurin Bevan University Health Board", "role": "Decision maker", "spec": "Audiology"}, {"name": "Jodie Heywood- Procurement Business Partner", "org": "Barking Havering and Redbridge NHS Trust", "role": "Decision maker", "spec": "Sonography"}, {"name": "Hardev Virdee", "org": "Barts Health NHS Trust", "role": "Decision maker", "spec": "Radiography & Radiology"}, {"name": "Jane Byrnes", "org": "Bolton NHS", "role": "Workforce Deployment Manager", "spec": "Echocardiography"}, {"name": "Sally Stokes", "org": "Cambridge University Hospitals NHS Foundation Trust", "role": "Decision maker", "spec": "Respiratory"}, {"name": "Kevin Curnow", "org": "Croydon Health Services NHS Trust", "role": "Decision maker", "spec": "Speech & Language Therapy"}, {"name": "Emma Ince", "org": "East Kent Hospitals University NHS Foundation Trust / NHS England East of England", "role": "Decision maker", "spec": "Pathology"}, {"name": "Jay Gunawardene", "org": "Great Ormond Street Hospital for Children NHS Foundation Trust", "role": "Decision maker", "spec": "Biomedical Science"}, {"name": "James Calvert", "org": "Aneurin Bevan University Health Board", "role": "Decision maker", "spec": "Ophthalmology"}, {"name": "Snehal Warade", "org": "Barking, Havering and Redbridge University Hospitals NHS Trust", "role": "Decision maker", "spec": "Gastroenterology"}, {"name": "John Simon", "org": "Barts Health NHS Trust", "role": "Decision maker", "spec": "Oncology"}, {"name": "Tina Stoyles", "org": "Bristol Royal Infirmary / University Hospitals Bristol and Weston NHS FT", "role": "Radiology Section Head (Ultrasound)", "spec": "Dermatology"}, {"name": "Robin Tyler", "org": "Chelsea and Westminster Foundation Trust", "role": "Decision maker", "spec": "Audiology"}, {"name": "Naura De Melo", "org": "Croydon Health Services NHS Trust", "role": "Decision maker", "spec": "Sonography"}, {"name": "Scott De Freitas", "org": "Elysium Healthcare", "role": "Decision maker", "spec": "Radiography & Radiology"}, {"name": "Bill Martin", "org": "Guy's and St Thomas' NHS Foundation Trust", "role": "Decision maker", "spec": "Echocardiography"}, {"name": "Katy Jones", "org": "Aneurin Bevan University Health Board", "role": "Decision maker", "spec": "Respiratory"}, {"name": "Chris Thickett", "org": "Barnsley Hospital NHS Foundation Trust", "role": "Decision maker", "spec": "Speech & Language Therapy"}, {"name": "Liam Slattery", "org": "Barts Health NHS Trust", "role": "Decision maker", "spec": "Pathology"}, {"name": "Christy francis", "org": "CHCP - City Health Care Paretnership", "role": "Decision maker", "spec": "Biomedical Science"}, {"name": "Steve Heppinstall -CFO", "org": "Chesterfield Royal Hospital NHS Trust", "role": "Decision maker", "spec": "Ophthalmology"}, {"name": "Tania Marcus", "org": "Croydon Health Services NHS Trust", "role": "Decision maker", "spec": "Gastroenterology"}, {"name": "Helen Segger", "org": "Frimley Health NHS Foundation Trust", "role": "Decision maker", "spec": "Oncology"}, {"name": "Louise Turpin", "org": "Guy's and St Thomas' NHS Foundation Trust", "role": "Decision maker", "spec": "Dermatology"}, {"name": "Rhiannon Penny", "org": "Aneurin Bevan University Health Board", "role": "Decision maker", "spec": "Audiology"}, {"name": "Christopher Thickett", "org": "Barnsley Hospital NHS Foundation Trust- kelvin Handling", "role": "Decision maker", "spec": "Sonography"}, {"name": "Virginia Asakaviciene", "org": "Barts Health NHS Trust", "role": "BP Supply Chain Manager", "spec": "Radiography & Radiology"}, {"name": "Nigel Wiliams", "org": "CIG Cymru NHS Wales", "role": "Decision maker", "spec": "Echocardiography"}, {"name": "Robert Botwright", "org": "Circle Health Group", "role": "Decision maker", "spec": "Respiratory"}, {"name": "Lisa Jones", "org": "Dartford & Gravesham NHS", "role": "Decision maker", "spec": "Speech & Language Therapy"}, {"name": "Les Keith", "org": "Gateshead Health", "role": "Decision maker", "spec": "Pathology"}, {"name": "Pia Fcips", "org": "Guy's and St Thomas' NHS Foundation Trust", "role": "Decision maker", "spec": "Biomedical Science"}, {"name": "Monika Mesuria", "org": "BHR CDC", "role": "Programme Manager", "spec": "Ophthalmology"}, {"name": "Chantel Orotayo", "org": "Barts Health", "role": "Decision maker", "spec": "Gastroenterology"}, {"name": "Penny Smee", "org": "Bath Hospital", "role": "Decision maker", "spec": "Oncology"}, {"name": "Rachel Crooke", "org": "Cambridge NHS", "role": "Imaging DOM", "spec": "Dermatology"}, {"name": "Amit Patel", "org": "Community Pharmacy South West London / Community Pharmacy London / SWL Primary Care Board", "role": "Decision maker", "spec": "Audiology"}, {"name": "Adam Beckman", "org": "Derriford Hospital/Plymouth", "role": "Decision maker", "spec": "Sonography"}, {"name": "Claire Watkins", "org": "GenesisCare", "role": "Decision maker", "spec": "Radiography & Radiology"}, {"name": "Robert Stevens", "org": "Guy's and St Thomas' NHS Foundation Trust", "role": "Decision maker", "spec": "Echocardiography"}];;
+import { getUser } from "./_auth.js";
+import { ENTITLEMENTS, planOf } from "./_entitlements.js";
+import { limited } from "./_ratelimit.js";
 
-async function isAuthenticated(req) {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-  // If no auth backend is configured at all (local preview), allow through.
-  if (!url || !key) return true;
-  const auth = req.headers.authorization || "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-  if (!token) return false;
-  try {
-    const r = await fetch(url.replace(/\/$/, "") + "/auth/v1/user", {
-      headers: { Authorization: "Bearer " + token, apikey: key },
-    });
-    return r.ok;
-  } catch (e) {
-    return false;
-  }
+import { CONTACTS } from "./_contacts.js";
+
+function maskEmail(e) {
+  if (!e || e.indexOf("@") < 0) return "";
+  const [u, d] = e.split("@");
+  const dot = d.lastIndexOf(".");
+  const host = dot > 0 ? d.slice(0, dot) : d;
+  return u.slice(0, 1) + "•".repeat(Math.max(3, u.length - 1)) + "@" + host.slice(0, 1) + "•".repeat(3) + (dot > 0 ? d.slice(dot) : "");
+}
+function maskPhone(p) {
+  if (!p) return "";
+  const digits = String(p).replace(/\D/g, "");
+  if (digits.length < 4) return "";
+  return "•".repeat(Math.max(6, digits.length - 3)) + digits.slice(-3);
 }
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
-  const ok = await isAuthenticated(req);
-  if (!ok) return res.status(401).json({ error: "Sign in to view the decision-maker register", contacts: [] });
+
+  const user = await getUser(req);
+  if (!user) return res.status(401).json({ error: "Sign in to view the decision-maker register", contacts: [] });
+  if (await limited(req, res, user, { bucket: "contacts", limit: 120, windowSec: 3600 })) return;
+
+  const plan = await planOf(user.id);
+  // Decision-maker contact details sit with the same tier as the rest of the
+  // commercial intelligence.
+  const unlocked = ENTITLEMENTS.intelligence(plan);
+
+  const contacts = CONTACTS.map((c) => ({
+    name: c.name,
+    org: c.org,
+    role: c.role,
+    spec: c.spec,
+    hasEmail: !!c.email,
+    hasPhone: !!c.phone,
+    email: unlocked ? c.email : maskEmail(c.email),
+    phone: unlocked ? c.phone : maskPhone(c.phone),
+  }));
+
   res.setHeader("Cache-Control", "private, no-store");
-  return res.status(200).json({ contacts: CONTACTS });
+  return res.status(200).json({
+    contacts,
+    total: contacts.length,
+    withContactDetails: CONTACTS.filter((c) => c.email || c.phone).length,
+    organisations: new Set(CONTACTS.map((c) => (c.org || "").toLowerCase())).size,
+    unlocked,
+  });
 }
