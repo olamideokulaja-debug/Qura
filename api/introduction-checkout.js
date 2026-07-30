@@ -1,3 +1,4 @@
+import { isSeededId, refuseSeeded } from "./_seed.js";
 import Stripe from "stripe";
 import { getUser, kvGet, kvSet } from "./_auth.js";
 
@@ -27,6 +28,8 @@ export default async function handler(req, res) {
 
   const { clinicianId, handle, profession, country, from } = req.body || {};
   if (!clinicianId) return res.status(400).json({ error: "clinicianId required" });
+  // This is the one that takes money. Never for an illustrative profile.
+  if (isSeededId(clinicianId)) return refuseSeeded(res);
 
   // Subscribers on any paid plan (monthly or yearly) get introductions included, no fee.
   const plan = await kvGet(user.id, "qura_plan");
