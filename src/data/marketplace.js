@@ -3,7 +3,7 @@ import { Briefcase, FileText, Link2, Sparkles, Stethoscope, Trophy } from "lucid
 // Extracted from App.jsx, 27 July 2026. Pure data only, no components and no
 // behaviour, so moving it cannot change how anything renders.
 
-export const REGISTER = { total: 64, deduped: 64, orgs: 43 };
+export const REGISTER = { total: 370, deduped: 317, orgs: 207 };
 
 export const SPECIALTIES = ["Audiology", "Sonography", "Radiography & Radiology", "Echocardiography", "Respiratory", "Speech & Language Therapy", "Pathology", "Biomedical Science", "Ophthalmology", "Gastroenterology", "Oncology", "Dermatology"];
 
