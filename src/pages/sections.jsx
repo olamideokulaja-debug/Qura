@@ -35,7 +35,7 @@ export function WhySwitch() {
     <div>
       <PageHead title="Why switch to Qura" sub="The CRMs you know store your data. Qura keeps it correct, live and mapped for you." right={<span className="chip chip-cyan">vs legacy CRMs</span>} />
       <div className="card" style={{ padding: 20, marginBottom: 16, background: "var(--navy)", color: "#fff", border: "none" }}>
-        <div className="grid g3" style={{ gap: 16 }}>{[["98.4%", "Contacts verified in the last 90 days"], ["Real time", "Market mapping, no manual region work"], ["24/7", "Live opportunities and AI cover"]].map(([n, l]) => (<div key={l}><div className="disp" style={{ fontSize: 28, fontWeight: 700 }}>{n}</div><div style={{ fontSize: 12.5, color: "#9FB0D0" }}>{l}</div></div>))}</div>
+        <div className="grid g3" style={{ gap: 16 }}>{[["Consented", "Every contact opted in, never scraped"], ["Real time", "Market mapping, no manual region work"], ["24/7", "Live opportunities and AI cover"]].map(([n, l]) => (<div key={l}><div className="disp" style={{ fontSize: 28, fontWeight: 700 }}>{n}</div><div style={{ fontSize: 12.5, color: "#9FB0D0" }}>{l}</div></div>))}</div>
       </div>
       <div className="faint row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 12, fontSize: 12.5, alignItems: "center" }}>Coming from {CRMS.map((c) => (<span key={c} className="chip chip-grey" style={{ fontWeight: 600 }}>{c}</span>))} ? Here is what changes.</div>
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
@@ -70,7 +70,7 @@ export function MarketMap({ go }) {
   const maxV = Math.max(...REGIONS.map((x) => x.vac));
   return (
     <div>
-      <PageHead title="Market map" sub="The market, mapped for you and kept live. No more mapping regions by hand for hours." right={<span className="chip chip-cyan"><Globe size={12} /> Auto-mapped</span>} />
+      <PageHead title="Market map" sub="The market, mapped for you. Regional figures below are illustrative until enough live activity exists to compute them." right={<span className="chip chip-cyan"><Globe size={12} /> Auto-mapped</span>} />
       <div className="grid-stats" style={{ marginBottom: 18 }}>
         <Stat label="Decision-makers" value={totals.dm.toLocaleString()} icon={Users} />
         <Stat label="Live opportunities" value={String(totals.opps)} icon={Target} accent="cyan" />
