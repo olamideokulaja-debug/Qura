@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { BarChart3, Check, Globe, Network, Package, Radar, Rss, ShieldCheck, Sparkles, Target, Users } from "lucide-react";
 import { PageHead, SectionHead, Stat } from "../components/ui.jsx";
-import { REGIONS } from "../data/marketplace.js";
+import { supabase } from "../supabase.js";
 
 // Extracted from App.jsx on 27 July 2026. Behaviour unchanged.
 
@@ -56,37 +56,86 @@ export function WhySwitch() {
 }
 
 export function MarketMap({ go }) {
-  const REGIONS = [
-    { r: "London", dm: 62, opps: 14, vac: 210, sup: 48 },
-    { r: "South East", dm: 38, opps: 9, vac: 140, sup: 30 },
-    { r: "Midlands", dm: 29, opps: 7, vac: 120, sup: 24 },
-    { r: "North West", dm: 24, opps: 6, vac: 98, sup: 19 },
-    { r: "Yorkshire & Humber", dm: 18, opps: 5, vac: 76, sup: 15 },
-    { r: "Scotland", dm: 14, opps: 4, vac: 60, sup: 12 },
-    { r: "Wales", dm: 9, opps: 3, vac: 40, sup: 8 },
-    { r: "International", dm: 14, opps: 11, vac: 180, sup: 22 },
-  ];
-  const totals = REGIONS.reduce((a, x) => ({ dm: a.dm + x.dm, opps: a.opps + x.opps, vac: a.vac + x.vac, sup: a.sup + x.sup }), { dm: 0, opps: 0, vac: 0, sup: 0 });
-  const maxV = Math.max(...REGIONS.map((x) => x.vac));
+  // Every figure on this page is now counted from real data by /api/market-map:
+  // opportunities from the live procurement feed, decision-makers from the
+  // register. Vacancies and supplier counts are deliberately absent rather than
+  // invented, because nothing computes them yet.
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    let dead = false;
+    (async () => {
+      try {
+        let token = "";
+        if (supabase) {
+          const { data } = await supabase.auth.getSession();
+          token = (data && data.session && data.session.access_token) || "";
+        }
+        const res = await fetch("/api/market-map", { headers: token ? { Authorization: "Bearer " + token } : {} });
+        const j = await res.json();
+        if (dead) return;
+        if (res.ok) setData(j); else setError("Sign in to view the market map.");
+      } catch (e) {
+        if (!dead) setError("Could not load the market map. Please try again.");
+      }
+    })();
+    return () => { dead = true; };
+  }, []);
+
+  const rows = (data && data.rows) || [];
+  const live = rows.filter((x) => x.opportunities > 0 || x.decisionMakers > 0);
+  const maxOpps = Math.max(1, ...live.map((x) => x.opportunities));
+  const when = data && data.refreshedAt ? new Date(data.refreshedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : null;
+
   return (
     <div>
-      <PageHead title="Market map" sub="The market, mapped for you. Regional figures below are illustrative until enough live activity exists to compute them." right={<span className="chip chip-cyan"><Globe size={12} /> Auto-mapped</span>} />
+      <PageHead title="Market map" sub="Where the demand is, counted from live procurement notices and our decision-maker register." />
+
       <div className="grid-stats" style={{ marginBottom: 18 }}>
-        <Stat label="Decision-makers" value={totals.dm.toLocaleString()} icon={Users} />
-        <Stat label="Live opportunities" value={String(totals.opps)} icon={Target} accent="cyan" />
-        <Stat label="Open vacancies" value={totals.vac.toLocaleString()} icon={Rss} />
-        <Stat label="Suppliers mapped" value={String(totals.sup)} icon={Package} accent="cyan" />
+        <Stat label="Decision-makers" value={data ? String((data.totals || {}).decisionMakers ?? 0) : "..."} icon={Users} />
+        <Stat label="Live opportunities" value={data ? String((data.totals || {}).opportunities ?? 0) : "..."} icon={Target} accent="cyan" />
+        <Stat label="Regions with activity" value={data ? String((data.totals || {}).regionsWithActivity ?? 0) : "..."} icon={Rss} />
+        <Stat label="Suppliers mapped" value={data ? String((data.totals || {}).suppliers ?? 0) : "..."} icon={Package} accent="cyan" />
       </div>
-      <div className="card" style={{ padding: 20 }}>
-        <SectionHead title="Coverage by region" action={<span className="faint" style={{ fontSize: 12 }}>Updated continuously</span>} />
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>{REGIONS.map((x) => (
-          <div key={x.r} onClick={() => go && go("feed")} className="lift" style={{ cursor: "pointer", padding: "12px 14px", border: "1px solid var(--line)", borderRadius: 12 }}>
-            <div className="row" style={{ justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 6 }}><span style={{ fontWeight: 600, fontSize: 14 }}>{x.r}</span><span className="faint hsm" style={{ fontSize: 12.5 }}>{x.dm} decision-makers · {x.opps} opportunities · {x.sup} suppliers</span></div>
-            <div className="row" style={{ gap: 10, alignItems: "center" }}><div style={{ flex: 1, height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}><div style={{ width: Math.max(4, (x.vac / maxV) * 100) + "%", height: "100%", background: "linear-gradient(90deg, var(--teal), var(--cyan))", borderRadius: 999 }} /></div><span className="num" style={{ fontSize: 13, width: 96, textAlign: "right" }}>{x.vac} vacancies</span></div>
-          </div>
-        ))}</div>
+
+      {error ? (
+        <div className="card" style={{ padding: 18, color: "#8A1030" }}>{error}</div>
+      ) : (
+        <div className="card" style={{ padding: 20 }}>
+          <SectionHead
+            title="Coverage by region"
+            action={<span className="faint" style={{ fontSize: 12 }}>{when ? "Procurement data to " + when : "Loading"}</span>}
+          />
+          {!data ? (
+            <div className="faint" style={{ fontSize: 13, padding: "10px 0" }}>Counting...</div>
+          ) : live.length === 0 ? (
+            <div className="faint" style={{ fontSize: 13, padding: "10px 0", lineHeight: 1.6 }}>
+              No activity mapped yet. Regions appear here as procurement notices and decision-makers are matched to them.
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>{live.map((x) => (
+              <div key={x.region} onClick={() => go && go("feed")} className="lift" style={{ cursor: "pointer", padding: "12px 14px", border: "1px solid var(--line)", borderRadius: 12 }}>
+                <div className="row" style={{ justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
+                  <span style={{ fontWeight: 600, fontSize: 14.5 }}>{x.region}</span>
+                  <span className="faint" style={{ fontSize: 12.5 }}>
+                    {x.opportunities} {x.opportunities === 1 ? "opportunity" : "opportunities"} · {x.decisionMakers} decision-{x.decisionMakers === 1 ? "maker" : "makers"}
+                  </span>
+                </div>
+                <div className="row" style={{ gap: 10, alignItems: "center" }}>
+                  <div style={{ flex: 1, height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}>
+                    <div style={{ width: Math.round((x.opportunities / maxOpps) * 100) + "%", height: "100%", background: "var(--teal)", borderRadius: 999 }} />
+                  </div>
+                </div>
+              </div>
+            ))}</div>
+          )}
+        </div>
+      )}
+
+      <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.6 }}>
+        Opportunities are counted from procurement notices published on {(data && (data.sources || []).join(", ")) || "Find a Tender, Contracts Finder, the EU notice board and SAM.gov"}, refreshed every morning, plus demand posted by suppliers on Qura. Decision-makers are counted from our own register and placed by organisation, so some sit under "Not mapped" until we can place them. Open vacancy and supplier counts are not shown, because nothing computes them yet.
       </div>
-      <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>Qura maps the market continuously from live activity, so your team never spends hours mapping regions manually. Tap any region to jump to its live feed.</div>
     </div>
   );
 }
