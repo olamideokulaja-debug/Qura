@@ -1,3 +1,4 @@
+import { seedActive } from "./_seed.js";
 import { getUser } from "./_auth.js";
 
 // GET /api/opportunities?country=&profession=&market=
@@ -16,7 +17,8 @@ export default async function handler(req, res) {
   const user = await getUser(req);
   if (!user) return res.status(401).json({ error: "Sign in required" });
   const { country, profession, market } = req.query || {};
-  let items = SOURCE.slice();
+  // Illustrative roles only until launch, and flagged so the app can label them.
+  let items = seedActive() ? SOURCE.map((o) => ({ ...o, seeded: true })) : [];
   if (country && country !== "All") items = items.filter((o) => o.country === country);
   if (profession && profession !== "All") items = items.filter((o) => o.profession === profession);
   if (market && market !== "All") items = items.filter((o) => o.market === market);

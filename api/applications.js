@@ -1,3 +1,4 @@
+import { isSeededId, refuseSeeded } from "./_seed.js";
 import { getUser, kvGet, kvSet } from "./_auth.js";
 
 // GET  /api/applications          -> the clinician's applications
@@ -16,6 +17,9 @@ export default async function handler(req, res) {
   if (req.method === "POST") {
     const { opportunityId, role, employer } = req.body || {};
     if (!opportunityId) return res.status(400).json({ error: "opportunityId required" });
+    // An illustrative role has no employer at the other end, so an application
+    // to one would sit in the clinician's list forever going nowhere.
+    if (isSeededId(opportunityId)) return refuseSeeded(res);
     const list = (await kvGet(user.id, KEY)) || [];
     const arr = Array.isArray(list) ? list : [];
     if (arr.some((a) => a.opportunityId === opportunityId)) {

@@ -1,3 +1,4 @@
+import { seedActive } from "./_seed.js";
 import { getUser, kvGet, kvSet, kvListByKey } from "./_auth.js";
 import { ENTITLEMENTS } from "./_entitlements.js";
 
@@ -66,7 +67,9 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     let talent = await loadVerifiedTalent();
-    if (talent.length === 0) talent = SAMPLE;   // nothing verified yet -> show sample
+    // Sample profiles only while there is nothing real and only before launch.
+    const usingSample = talent.length === 0 && seedActive();
+    if (usingSample) talent = SAMPLE.map((c) => ({ ...c, seeded: true }));
 
     if (req.query && req.query.shortlist) {
       return res.status(200).json({ items: talent.filter((c) => ids.includes(c.id)), shortlistIds: ids });
@@ -75,7 +78,7 @@ export default async function handler(req, res) {
     let items = talent;
     if (profession && profession !== "All") items = items.filter((c) => c.profession === profession);
     if (country && country !== "All") items = items.filter((c) => c.country === country);
-    return res.status(200).json({ items, shortlistIds: ids, live: talent !== SAMPLE });
+    return res.status(200).json({ items, shortlistIds: ids, live: !usingSample });
   }
 
   if (req.method === "POST") {

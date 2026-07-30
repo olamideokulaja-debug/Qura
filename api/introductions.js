@@ -1,3 +1,4 @@
+import { isSeededId, refuseSeeded } from "./_seed.js";
 import { getUser, kvGet, kvSet } from "./_auth.js";
 
 // GET  /api/introductions        -> this supplier's introduction requests
@@ -17,6 +18,7 @@ export default async function handler(req, res) {
   if (req.method === "POST") {
     const { clinicianId, handle } = req.body || {};
     if (!clinicianId) return res.status(400).json({ error: "clinicianId required" });
+    if (isSeededId(clinicianId)) return refuseSeeded(res);
     const list = (await kvGet(user.id, KEY)) || [];
     const arr = Array.isArray(list) ? list : [];
     if (arr.some((i) => i.clinicianId === clinicianId)) {

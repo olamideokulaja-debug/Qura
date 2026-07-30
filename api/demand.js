@@ -1,3 +1,4 @@
+import { seedActive } from "./_seed.js";
 import { getUser, kvGet, kvSet } from "./_auth.js";
 import { planOf, ENTITLEMENTS } from "./_entitlements.js";
 
@@ -18,7 +19,10 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     const posted = (await kvGet("shared", "demand_posted")) || [];
     const { market, profession } = req.query || {};
-    let items = [...(Array.isArray(posted) ? posted : []), ...SEED];
+    // Real posted demand always shows. The illustrative set only fills the gap
+    // before launch, and is flagged so it can be labelled.
+    const filler = seedActive() ? SEED.map((d) => ({ ...d, seeded: true })) : [];
+    let items = [...(Array.isArray(posted) ? posted : []), ...filler];
     // Plan gate: only Growth/Intelligence and above see International markets.
     const plan = await planOf(user.id);
     const canInternational = ENTITLEMENTS.internationalMarkets(plan);
