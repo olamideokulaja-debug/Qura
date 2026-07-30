@@ -141,12 +141,13 @@ async function euTenders(sinceIso) {
     if (!r.ok) return [];
     const d = await r.json();
     return ((d && d.notices) || []).map((n) => {
+      // EU fields arrive in 24 languages keyed by code. Without asking for
+      // English, an Irish notice came back with a Hungarian title.
       const pick = (v) => {
         if (!v) return null;
         if (typeof v === "string") return v;
-        const vals = Object.values(v);
-        const first = vals[0];
-        return Array.isArray(first) ? first[0] : first;
+        const val = v.eng || Object.values(v)[0];
+        return Array.isArray(val) ? val[0] : val;
       };
       const num = n["publication-number"];
       const country = ((n["place-of-performance"] || [])[1]) || ((n["place-of-performance"] || [])[0]) || "EU";
@@ -237,8 +238,15 @@ export default async function handler(req, res) {
       usTenders(since.toISOString()),
     ]);
 
-    // EU notices are already normalised; the UK ones still need mapping.
-    const items = [...(Array.isArray(eu) ? eu : []), ...(Array.isArray(us) ? us : [])];
+    // Per-source caps. The EU board carries roughly a hundred times the volume
+    // of the UK sources, so without a cap it swallows the feed and an NHS
+    // supplier sees mostly Polish and Spanish notices. UK first, since that is
+    // the primary market.
+    const CAP = { eu: 20, us: 15 };
+    const items = [
+      ...(Array.isArray(eu) ? eu : []).slice(0, CAP.eu),
+      ...(Array.isArray(us) ? us : []).slice(0, CAP.us),
+    ];
     for (const [pkg, source, base] of [
       [fts, "Find a Tender", "https://www.find-tender.service.gov.uk/Notice/"],
       [cf, "Contracts Finder", "https://www.contractsfinder.service.gov.uk/Notice/"],
@@ -252,16 +260,18 @@ export default async function handler(req, res) {
 
     // newest first, and never the same notice twice
     const seen = new Set();
+    const homeFirst = (x) => (x.source === "Find a Tender" || x.source === "Contracts Finder") ? 0 : 1;
     const unique = items
       .filter((i) => (seen.has(i.id) ? false : (seen.add(i.id), true)))
-      .sort((a, b) => String(b.publishedAt || "").localeCompare(String(a.publishedAt || "")))
+      .sort((a, b) => (homeFirst(a) - homeFirst(b)) ||
+        String(b.publishedAt || "").localeCompare(String(a.publishedAt || "")))
       .slice(0, 80);
 
     const sb = createClient(sbUrl, service, { auth: { persistSession: false } });
     const payload = { items: unique, refreshedAt: new Date().toISOString(), sources: ["Find a Tender", "Contracts Finder", "TED (EU)", "SAM.gov (US)"] };
     await sb.from("kv").upsert({ owner: "shared", key: "tenders", value: payload }, { onConflict: "owner,key" });
 
-    return res.status(200).json({ ok: true, count: unique.length, scanned: ((fts && fts.releases) || []).length + ((cf && cf.releases) || []).length });
+    return res.status(200).json({ ok: true, count: unique.length, scanned: { uk: ((fts && fts.releases) || []).length + ((cf && cf.releases) || []).length, eu: (eu || []).length, us: (us || []).length } });
   } catch (e) {
     await alertFounders("cron-tenders", "Tender refresh failed", String((e && e.message) || e));
     return res.status(500).json({ error: String((e && e.message) || e) });
