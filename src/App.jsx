@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, lazy, Suspense } from "react";
 import {
   LayoutDashboard, Target, Users, Send, FileText, Calendar, GitBranch, Radar,
   BarChart3, Stethoscope, CreditCard, Search, Bell, Menu, X, ChevronRight,
@@ -8,10 +8,17 @@ import {
   Trophy, Link2, AlertCircle, Gauge, Activity, Ticket, Truck, BadgeCheck, ClipboardList, CalendarClock, Smartphone, Instagram, Twitter, Music2, Upload, Settings, Pencil, Trash2, Rss, Package, Inbox, ArrowUp, ArrowDown, ChevronDown, Lock,
   Play, GraduationCap,
 } from "lucide-react";
-import {
-  ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip
-} from "recharts";
+// Charts live in their own file and are loaded only when a signed-in screen
+// needs them, so visitors to the public site never download the charting
+// library. See src/components/charts.jsx.
+const Charts = lazy(() => import("./components/charts.jsx"));
+function Chart({ height, ...props }) {
+  return (
+    <Suspense fallback={<div style={{ height: height || 210 }} />}>
+      <Charts {...props} />
+    </Suspense>
+  );
+}
 import { billingEnabled, startCheckout } from "./billing.js";
 import { supabase, supabaseEnabled } from "./supabase.js";
 import { PrivacyContent, RefundContent, CookieContent, CookieConsent } from "./pages/policies.jsx";
@@ -446,9 +453,7 @@ const Dashboard = ({ go, sentN = 0, bookedN = 0, name }) => (
     <div className="grid-2" style={{ marginBottom: 18 }}>
       <div className="card" style={{ padding: 20 }}>
         <SectionHead title="Pipeline value trend" action={<span className="chip chip-blue">£M</span>} />
-        <ResponsiveContainer width="100%" height={210}>
-          <AreaChart data={PIPE_DATA}><defs><linearGradient id="d1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#00C2B8" stopOpacity={.26} /><stop offset="100%" stopColor="#0E8C7E" stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#EDF1F8" vertical={false} /><XAxis dataKey="m" tick={{ fontSize: 12, fill: "#69768F" }} axisLine={false} tickLine={false} /><YAxis tick={{ fontSize: 12, fill: "#69768F" }} axisLine={false} tickLine={false} /><Tooltip /><Area type="monotone" dataKey="v" stroke="#0E8C7E" strokeWidth={2.5} fill="url(#d1)" /></AreaChart>
-        </ResponsiveContainer>
+        <Chart kind="pipeline" data={PIPE_DATA} height={210} />
       </div>
       <div className="card" style={{ padding: 20 }}>
         <SectionHead title="Top opportunities" action={<button className="btn btn-ghost" style={{ padding: "7px 12px", fontSize: 13 }} onClick={() => go("opportunities")}>View all</button>} />
@@ -681,8 +686,8 @@ function LiveFeedScreen({ onBook, onToast, role = "operator", market = "all", on
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12, marginBottom: 16 }}>{[["Live now", liveN, "var(--cyan)"], ["Fulfilled", fulfN, "var(--teal)"], ["Avg time to fill", avgFill ? avgFill + "d" : "—", "var(--blue)"], ["Total responses", totalResp, "var(--navy)"]].map(([l, v, c]) => (<div key={l} className="card" style={{ padding: 16 }}><div className="num disp" style={{ fontSize: 24, fontWeight: 700, color: c }}>{v}</div><div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>{l}</div></div>))}</div>
       <button className="btn btn-light" style={{ marginBottom: 16 }} onClick={() => setShowAn((v) => !v)}><BarChart3 size={15} /> Marketplace analytics <ChevronRight size={14} style={{ transform: showAn ? "rotate(90deg)" : "none", transition: ".15s" }} /></button>
       {showAn && (<div className="g2" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14, marginBottom: 16 }}>
-        <div className="card" style={{ padding: 18 }}><SectionHead title="Opportunities by status" /><div style={{ height: 190 }}><ResponsiveContainer width="100%" height="100%"><BarChart data={statusData} margin={{ top: 6, right: 6, left: -18, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E6ECF5" /><XAxis dataKey="name" tick={{ fontSize: 9.5, fill: "#6B7A93" }} interval={0} angle={-14} textAnchor="end" height={48} /><YAxis allowDecimals={false} tick={{ fontSize: 11, fill: "#6B7A93" }} /><Tooltip /><Bar dataKey="v" radius={[6, 6, 0, 0]} style={{ cursor: "pointer" }} onClick={(_d, i) => setStatusFilter((f) => f === i ? null : i)}>{statusData.map((d, i) => (<Cell key={i} fill={d.c} opacity={statusFilter == null || statusFilter === i ? 1 : 0.35} />))}</Bar></BarChart></ResponsiveContainer></div></div>
-        <div className="card" style={{ padding: 18 }}><SectionHead title="Time to fill trend (days)" /><div style={{ height: 190 }}><ResponsiveContainer width="100%" height="100%"><AreaChart data={trend} margin={{ top: 6, right: 6, left: -18, bottom: 0 }}><defs><linearGradient id="ttf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#0E8C7E" stopOpacity={0.5} /><stop offset="100%" stopColor="#0E8C7E" stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E6ECF5" /><XAxis dataKey="w" tick={{ fontSize: 11, fill: "#6B7A93" }} /><YAxis tick={{ fontSize: 11, fill: "#6B7A93" }} /><Tooltip /><Area type="monotone" dataKey="d" stroke="#0E8C7E" strokeWidth={2.5} fill="url(#ttf)" /></AreaChart></ResponsiveContainer></div></div>
+        <div className="card" style={{ padding: 18 }}><SectionHead title="Opportunities by status" /><div style={{ height: 190 }}><Chart kind="status" data={statusData} statusFilter={statusFilter} onSelect={(i) => setStatusFilter((f) => f === i ? null : i)} height="100%" /></div></div>
+        <div className="card" style={{ padding: 18 }}><SectionHead title="Time to fill trend (days)" /><div style={{ height: 190 }}><Chart kind="timeToFill" data={trend} height="100%" /></div></div>
         <div className="card" style={{ padding: 18 }}><SectionHead title="Demand by market" /><div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>{regionData.map((r) => { const total = feed.length || 1; const pct = Math.round((r.v / total) * 100); return (<div key={r.name}><div className="row" style={{ justifyContent: "space-between", fontSize: 12.5, marginBottom: 5 }}><span style={{ fontWeight: 600 }}>{r.name}</span><span className="muted num">{r.v} · {pct}%</span></div><div style={{ height: 8, borderRadius: 6, background: "#EDF1F8", overflow: "hidden" }}><div style={{ height: "100%", width: pct + "%", background: r.c, borderRadius: 6 }} /></div></div>); })}</div></div>
       </div>)}
       <div className="card" style={{ padding: 18, marginBottom: 16 }}>
@@ -893,8 +898,8 @@ const Analytics = () => (
     <IllustrativeBanner />
     <div className="grid-stats" style={{ marginBottom: 18 }}><Stat label="Win rate" value="34%" delta="5pt vs 30d" icon={Award} accent="cyan" /><Stat label="Avg deal size" value="£412K" delta="8% vs 30d" icon={TrendingUp} /><Stat label="Sales cycle" value="38 days" icon={Clock} /><Stat label="Active markets" value="5" icon={Globe} accent="cyan" /></div>
     <div className="grid-2">
-      <div className="card" style={{ padding: 20 }}><SectionHead title="Pipeline by region (£M)" action={<DemoTag />} /><ResponsiveContainer width="100%" height={240}><BarChart data={REGION_DATA} layout="vertical" margin={{ left: 20 }}><CartesianGrid strokeDasharray="3 3" stroke="#EDF1F8" horizontal={false} /><XAxis type="number" tick={{ fontSize: 12, fill: "#69768F" }} axisLine={false} tickLine={false} /><YAxis type="category" dataKey="r" tick={{ fontSize: 12, fill: "#69768F" }} width={90} axisLine={false} tickLine={false} /><Tooltip /><Bar dataKey="v" fill="#0E8C7E" radius={[0, 6, 6, 0]} barSize={18} /></BarChart></ResponsiveContainer></div>
-      <div className="card" style={{ padding: 20 }}><SectionHead title="Opportunities by specialty" action={<DemoTag />} /><ResponsiveContainer width="100%" height={240}><PieChart><Pie data={SPEC_DATA} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2}>{SPEC_DATA.map((s, i) => <Cell key={i} fill={s.c} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer><div className="row" style={{ flexWrap: "wrap", gap: 10, justifyContent: "center" }}>{SPEC_DATA.map((s, i) => <span key={i} className="row" style={{ fontSize: 12.5, gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: s.c }} />{s.name} {s.value}%</span>)}</div></div>
+      <div className="card" style={{ padding: 20 }}><SectionHead title="Pipeline by region (£M)" action={<DemoTag />} /><Chart kind="region" data={REGION_DATA} height={240} /></div>
+      <div className="card" style={{ padding: 20 }}><SectionHead title="Opportunities by specialty" action={<DemoTag />} /><Chart kind="specialty" data={SPEC_DATA} height={240} /><div className="row" style={{ flexWrap: "wrap", gap: 10, justifyContent: "center" }}>{SPEC_DATA.map((s, i) => <span key={i} className="row" style={{ fontSize: 12.5, gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: s.c }} />{s.name} {s.value}%</span>)}</div></div>
     </div>
   </div>
 );
@@ -2036,7 +2041,7 @@ const CommandCenter = ({ go, name }) => {
       <div className="grid main" style={{ marginBottom: 16, alignItems: "start" }}>
         <div className="grid" style={{ gap: 16 }}>
           <Balance />
-          <div className="card" style={{ padding: 18 }}><SectionHead title="Marketplace pipeline value (£M)" action={<span className="chip chip-cyan"><TrendingUp size={12} /> 28% MoM</span>} /><ResponsiveContainer width="100%" height={220}><AreaChart data={GMV_TREND}><defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#00C2B8" stopOpacity={.26} /><stop offset="100%" stopColor="#0E8C7E" stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#EDF1F8" vertical={false} /><XAxis dataKey="m" tick={{ fontSize: 12, fill: "#69768F" }} axisLine={false} tickLine={false} /><YAxis tick={{ fontSize: 12, fill: "#69768F" }} axisLine={false} tickLine={false} /><Tooltip /><Area type="monotone" dataKey="v" stroke="#0E8C7E" strokeWidth={2.6} fill="url(#pg)" /></AreaChart></ResponsiveContainer></div>
+          <div className="card" style={{ padding: 18 }}><SectionHead title="Marketplace pipeline value (£M)" action={<span className="chip chip-cyan"><TrendingUp size={12} /> 28% MoM</span>} /><Chart kind="gmv" data={GMV_TREND} height={220} /></div>
           <div className="grid g2">
             <div className="card" style={{ padding: 18 }}><SectionHead title="Pipeline by region (£M)" action={<DemoTag />} />{REGIONS.map((r) => (<div key={r.r} style={{ marginBottom: 12 }}><div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span>{r.r}</span><span style={{ fontWeight: 600 }}>£{r.v}M</span></div><div style={{ height: 7, borderRadius: 6, background: "#EDF1F8" }}><div style={{ height: "100%", borderRadius: 6, width: `${(r.v / 10.3) * 100}%`, background: r.c }} /></div></div>))}</div>
             <div className="card" style={{ padding: 18 }}><SectionHead title="Conversion funnel" action={<DemoTag />} />{FUNNEL.map((f, i) => (<div key={f.s} style={{ marginBottom: 11 }}><div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span>{f.s}</span><span className="muted">{f.n.toLocaleString()} · {f.pct}%</span></div><div style={{ height: 7, borderRadius: 6, background: "#EDF1F8" }}><div style={{ height: "100%", borderRadius: 6, width: `${f.pct}%`, background: i === 4 ? "var(--ok)" : "var(--blue)" }} /></div></div>))}</div>
