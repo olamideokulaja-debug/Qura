@@ -218,6 +218,24 @@ async function usTenders(sinceIso) {
   });
 }
 
+// Both UK sources return one page at a time with a "next" link. Only reading
+// the first page meant scanning 200 notices when there were thousands, so most
+// UK opportunities were never seen. Neither source needs a key or rate limits
+// us, so following a few pages is free.
+async function getPaged(url, maxPages = 5) {
+  const out = [];
+  let next = url;
+  for (let i = 0; i < maxPages && next; i++) {
+    const d = await getJson(next);
+    if (!d) break;
+    const rel = d.releases || [];
+    out.push(...rel);
+    next = (d.links && d.links.next) || null;
+    if (!rel.length) break;
+  }
+  return { releases: out };
+}
+
 export default async function handler(req, res) {
   // Scheduled job. Cron fires once a day, so a tight limit costs nothing and
   // stops anyone else triggering it repeatedly.
@@ -232,8 +250,8 @@ export default async function handler(req, res) {
     const isoDay = since.toISOString().slice(0, 10);
 
     const [fts, cf, eu, us] = await Promise.all([
-      getJson(FTS + "?updatedFrom=" + encodeURIComponent(since.toISOString().replace(/\.\d+Z$/, "Z")) + "&limit=100"),
-      getJson(CF + "?publishedFrom=" + isoDay + "&size=100"),
+      getPaged(FTS + "?updatedFrom=" + encodeURIComponent(since.toISOString().replace(/\.\d+Z$/, "Z")) + "&limit=100"),
+      getPaged(CF + "?publishedFrom=" + isoDay + "&size=100"),
       euTenders(since.toISOString()),
       usTenders(since.toISOString()),
     ]);
