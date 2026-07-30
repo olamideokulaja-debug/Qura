@@ -91,3 +91,22 @@ export const PulseLine = ({ w = 320, color = "var(--cyan)" }) => (
     <path className="draw" d="M0 20 H232 l16 -15 14 28 18 -34 12 21 H600" stroke={color} strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+
+// A small label for any figure that is illustrative rather than measured.
+export const DemoTag = () => (
+  <span style={{ background: "#FFF4E0", border: "1px solid #F0D9A8", color: "#9A5E00", fontSize: 10.5,
+    fontWeight: 700, letterSpacing: ".06em", padding: "3px 8px", borderRadius: 6, whiteSpace: "nowrap" }}>
+    ILLUSTRATIVE
+  </span>
+);
+
+// A banner for a whole screen of illustrative figures.
+export const IllustrativeBanner = ({ note }) => (
+  <div style={{ background: "#FFF8EC", border: "1px solid #F0D9A8", borderRadius: 12, padding: "12px 16px",
+    marginBottom: 16, display: "flex", gap: 10, alignItems: "flex-start" }}>
+    <span style={{ fontSize: 15, lineHeight: "20px" }}>{"\u26A0"}</span>
+    <div style={{ fontSize: 13, lineHeight: 1.55, color: "#7A4B00" }}>
+      <strong>Illustrative figures.</strong> {note || "The numbers on this screen are example data used to demonstrate the reporting. They are not Qura's trading position and must not be quoted or screenshotted as such."}
+    </div>
+  </div>
+);

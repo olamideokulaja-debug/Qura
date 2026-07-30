@@ -21,7 +21,7 @@ import { PlatformContent, WhySwitch, MarketMap } from "./pages/sections.jsx";
 import { CLIN_TAGLINES, CLIN_UNIVERSAL, CLIN_TABS, CLIN_COUNTRIES, ClinicianSection } from "./pages/clinician.jsx";
 import { APP_NAME } from "./constants.js";
 import { initAnalytics, trackPage, setMarketingMode } from "./lib/analytics.js";
-import { QuraLogo, Wordmark, Avatar, useCountUp, Stat, Kpi, SectionHead, PageHead, Toggle, Stars, Reveal, PulseLine } from "./components/ui.jsx";
+import { QuraLogo, Wordmark, Avatar, useCountUp, Stat, Kpi, SectionHead, PageHead, Toggle, Stars, Reveal, PulseLine, DemoTag, IllustrativeBanner } from "./components/ui.jsx";
 import { REGISTER, SPECIALTIES, REAL_OPPS, CLIENTS, INTL_OPPS, OPPS, CLINICIANS, AGENCIES, MEETINGS, INTEL, STAGES, PIPE_DATA, REGION_DATA, SPEC_DATA, GMV_TREND, REGIONS, FUNNEL, TOP_AGENCIES, TOP_OPPS, FEED_POOL, ALERTS } from "./data/marketplace.js";
 import { PRIORITY, PROTECTED_LIST, REG_BODY, NURSE_TYPES, AHP_TYPES, SCIENCE_TYPES, DOCTOR_SPECIALTIES, RESIDENCE_LIST } from "./data/clinical.js";
 import { MARKETS, CURRENCY, PLAN_LABEL, PREMIUM_FEATURES, ALL_PREMIUM, CREDIT_TIERS, PLAN_ACCESS, FEED_STAGES, STATUS_STAGES, MARKET_TREND, SUP_PERF, SUPPLIERS, FEED_STATUS } from "./data/plans.js";
@@ -434,6 +434,7 @@ function OnboardingChecklist({ go, sentN = 0, bookedN = 0 }) {
 }
 const Dashboard = ({ go, sentN = 0, bookedN = 0, name }) => (
   <div>
+    <IllustrativeBanner />
     <PageHead title={"Welcome back" + (name ? ", " + name : "")} sub="Here is what is moving across your markets today." right={<button className="btn btn-ai" onClick={() => go("proposals")}><Sparkles size={16} /> New proposal</button>} />
     <OnboardingChecklist go={go} sentN={sentN} bookedN={bookedN} />
     <div className="grid-stats" style={{ marginBottom: 18 }}>
@@ -889,10 +890,11 @@ const Intel = () => (
 const Analytics = () => (
   <div>
     <PageHead title="Analytics" sub="Performance across markets, specialties and stages" />
+    <IllustrativeBanner />
     <div className="grid-stats" style={{ marginBottom: 18 }}><Stat label="Win rate" value="34%" delta="5pt vs 30d" icon={Award} accent="cyan" /><Stat label="Avg deal size" value="£412K" delta="8% vs 30d" icon={TrendingUp} /><Stat label="Sales cycle" value="38 days" icon={Clock} /><Stat label="Active markets" value="5" icon={Globe} accent="cyan" /></div>
     <div className="grid-2">
-      <div className="card" style={{ padding: 20 }}><SectionHead title="Pipeline by region (£M)" /><ResponsiveContainer width="100%" height={240}><BarChart data={REGION_DATA} layout="vertical" margin={{ left: 20 }}><CartesianGrid strokeDasharray="3 3" stroke="#EDF1F8" horizontal={false} /><XAxis type="number" tick={{ fontSize: 12, fill: "#69768F" }} axisLine={false} tickLine={false} /><YAxis type="category" dataKey="r" tick={{ fontSize: 12, fill: "#69768F" }} width={90} axisLine={false} tickLine={false} /><Tooltip /><Bar dataKey="v" fill="#0E8C7E" radius={[0, 6, 6, 0]} barSize={18} /></BarChart></ResponsiveContainer></div>
-      <div className="card" style={{ padding: 20 }}><SectionHead title="Opportunities by specialty" /><ResponsiveContainer width="100%" height={240}><PieChart><Pie data={SPEC_DATA} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2}>{SPEC_DATA.map((s, i) => <Cell key={i} fill={s.c} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer><div className="row" style={{ flexWrap: "wrap", gap: 10, justifyContent: "center" }}>{SPEC_DATA.map((s, i) => <span key={i} className="row" style={{ fontSize: 12.5, gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: s.c }} />{s.name} {s.value}%</span>)}</div></div>
+      <div className="card" style={{ padding: 20 }}><SectionHead title="Pipeline by region (£M)" action={<DemoTag />} /><ResponsiveContainer width="100%" height={240}><BarChart data={REGION_DATA} layout="vertical" margin={{ left: 20 }}><CartesianGrid strokeDasharray="3 3" stroke="#EDF1F8" horizontal={false} /><XAxis type="number" tick={{ fontSize: 12, fill: "#69768F" }} axisLine={false} tickLine={false} /><YAxis type="category" dataKey="r" tick={{ fontSize: 12, fill: "#69768F" }} width={90} axisLine={false} tickLine={false} /><Tooltip /><Bar dataKey="v" fill="#0E8C7E" radius={[0, 6, 6, 0]} barSize={18} /></BarChart></ResponsiveContainer></div>
+      <div className="card" style={{ padding: 20 }}><SectionHead title="Opportunities by specialty" action={<DemoTag />} /><ResponsiveContainer width="100%" height={240}><PieChart><Pie data={SPEC_DATA} dataKey="value" nameKey="name" innerRadius={55} outerRadius={90} paddingAngle={2}>{SPEC_DATA.map((s, i) => <Cell key={i} fill={s.c} />)}</Pie><Tooltip /></PieChart></ResponsiveContainer><div className="row" style={{ flexWrap: "wrap", gap: 10, justifyContent: "center" }}>{SPEC_DATA.map((s, i) => <span key={i} className="row" style={{ fontSize: 12.5, gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: s.c }} />{s.name} {s.value}%</span>)}</div></div>
     </div>
   </div>
 );
@@ -2020,6 +2022,7 @@ const CommandCenter = ({ go, name }) => {
   const [period, setPeriod] = useState("30d");
   return (
     <div>
+      <IllustrativeBanner />
       <div className="row" style={{ justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
         <div><div className="ph-accent" /><h1 className="disp" style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-.025em" }}>Marketplace Command Centre (MCC)</h1><div className="muted row" style={{ fontSize: 14.5, marginTop: 8, gap: 8 }}><span className="live" /> Everything happening across {APP_NAME}, live</div></div>
         <div className="row" style={{ gap: 4, background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 12, padding: 4 }}>{["7d", "30d", "QTD"].map((p) => (<button key={p} onClick={() => setPeriod(p)} style={{ padding: "7px 15px", fontSize: 13, fontWeight: 600, border: "none", borderRadius: 9, cursor: "pointer", transition: ".15s", background: period === p ? "var(--blue)" : "#fff", color: period === p ? "#fff" : "var(--navy)", boxShadow: period === p ? "0 1px 3px rgba(45,107,255,.35)" : "var(--sh-xs)" }}>{p}</button>))}</div>
@@ -2035,8 +2038,8 @@ const CommandCenter = ({ go, name }) => {
           <Balance />
           <div className="card" style={{ padding: 18 }}><SectionHead title="Marketplace pipeline value (£M)" action={<span className="chip chip-cyan"><TrendingUp size={12} /> 28% MoM</span>} /><ResponsiveContainer width="100%" height={220}><AreaChart data={GMV_TREND}><defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#00C2B8" stopOpacity={.26} /><stop offset="100%" stopColor="#0E8C7E" stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#EDF1F8" vertical={false} /><XAxis dataKey="m" tick={{ fontSize: 12, fill: "#69768F" }} axisLine={false} tickLine={false} /><YAxis tick={{ fontSize: 12, fill: "#69768F" }} axisLine={false} tickLine={false} /><Tooltip /><Area type="monotone" dataKey="v" stroke="#0E8C7E" strokeWidth={2.6} fill="url(#pg)" /></AreaChart></ResponsiveContainer></div>
           <div className="grid g2">
-            <div className="card" style={{ padding: 18 }}><SectionHead title="Pipeline by region (£M)" />{REGIONS.map((r) => (<div key={r.r} style={{ marginBottom: 12 }}><div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span>{r.r}</span><span style={{ fontWeight: 600 }}>£{r.v}M</span></div><div style={{ height: 7, borderRadius: 6, background: "#EDF1F8" }}><div style={{ height: "100%", borderRadius: 6, width: `${(r.v / 10.3) * 100}%`, background: r.c }} /></div></div>))}</div>
-            <div className="card" style={{ padding: 18 }}><SectionHead title="Conversion funnel" />{FUNNEL.map((f, i) => (<div key={f.s} style={{ marginBottom: 11 }}><div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span>{f.s}</span><span className="muted">{f.n.toLocaleString()} · {f.pct}%</span></div><div style={{ height: 7, borderRadius: 6, background: "#EDF1F8" }}><div style={{ height: "100%", borderRadius: 6, width: `${f.pct}%`, background: i === 4 ? "var(--ok)" : "var(--blue)" }} /></div></div>))}</div>
+            <div className="card" style={{ padding: 18 }}><SectionHead title="Pipeline by region (£M)" action={<DemoTag />} />{REGIONS.map((r) => (<div key={r.r} style={{ marginBottom: 12 }}><div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span>{r.r}</span><span style={{ fontWeight: 600 }}>£{r.v}M</span></div><div style={{ height: 7, borderRadius: 6, background: "#EDF1F8" }}><div style={{ height: "100%", borderRadius: 6, width: `${(r.v / 10.3) * 100}%`, background: r.c }} /></div></div>))}</div>
+            <div className="card" style={{ padding: 18 }}><SectionHead title="Conversion funnel" action={<DemoTag />} />{FUNNEL.map((f, i) => (<div key={f.s} style={{ marginBottom: 11 }}><div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span>{f.s}</span><span className="muted">{f.n.toLocaleString()} · {f.pct}%</span></div><div style={{ height: 7, borderRadius: 6, background: "#EDF1F8" }}><div style={{ height: "100%", borderRadius: 6, width: `${f.pct}%`, background: i === 4 ? "var(--ok)" : "var(--blue)" }} /></div></div>))}</div>
           </div>
         </div>
         <div className="grid" style={{ gap: 16 }}>
