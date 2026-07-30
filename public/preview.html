@@ -7,7 +7,7 @@
 <style>
 :root{--navy:#0A1A30;--navy2:#102A4F;--blue:#2D6BFF;--blueInk:#1E54E6;--teal:#0E8C7E;--cyan:#00C2B8;--cyanSoft:#E6F4F2;--violet:#7C5CFF;--amber:#FBAE40;--text:#1A2233;--muted:#5A6783;--faint:#8A97AE;--line:#E4EAF3;--bg:#F4F7FB;--bg2:#EEF1F7;--white:#fff;--red:#E11D48}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
-body{background:#0c1524;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+body{background:#0c1524;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px;padding-top:64px}
 .phone{width:100%;max-width:390px;height:calc(100vh - 32px);max-height:844px;background:var(--bg);border-radius:44px;overflow:hidden;position:relative;box-shadow:0 30px 80px rgba(0,0,0,.5);border:11px solid #050a12}
 .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:150px;height:30px;background:#050a12;border-radius:0 0 20px 20px;z-index:60}
 .screen{position:absolute;inset:0;overflow-y:auto;display:none;padding-bottom:96px;animation:fade .35s ease}
@@ -58,6 +58,10 @@ input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;paddin
 </style>
 </head>
 <body>
+<div id="preview-illustrative" style="position:fixed;top:0;left:0;right:0;z-index:99999;box-sizing:border-box;background:#FFF8EC;border-bottom:1px solid #F0D9A8;color:#7A4B00;font:13px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;padding:10px 16px;text-align:center;box-shadow:0 2px 10px rgba(0,0,0,.18)">
+  <strong>Walkthrough with example data.</strong> This is a preview of the Qura app. The roles, requirements, clinicians and figures shown are illustrative, not real listings or trading data.
+</div>
+
 <div class="phone" id="phone">
   <div class="notch"></div>
 
@@ -87,8 +91,8 @@ input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;paddin
       <div class="small" style="margin-bottom:6px">Your name</div>
       <input id="firstField" placeholder="First name" value="Ola"><input placeholder="Last name" value="Folawiyo">
       <div class="small" style="margin:8px 0 6px">How will you use Qura?</div>
-      <div class="selbtn" id="pickClin" onclick="pickRole('clinician')"><div class="h2">I'm a healthcare professional</div><div class="muted" style="margin-top:4px">Get verified, get matched to roles, and manage applications.</div></div>
-      <div class="selbtn" id="pickSup" onclick="pickRole('supplier')"><div class="h2">I'm a supplier or employer</div><div class="muted" style="margin-top:4px">See live demand, shortlist verified clinicians, and build your pipeline.</div></div>
+      <div class="selbtn" id="pickClin" onclick="pickRole('clinician')"><div class="h2">I'm a healthcare professional</div><div class="muted" style="margin-top:4px">Register, get matched to roles, and manage applications.</div></div>
+      <div class="selbtn" id="pickSup" onclick="pickRole('supplier')"><div class="h2">I'm a supplier or employer</div><div class="muted" style="margin-top:4px">See live demand, shortlist registered clinicians, and build your pipeline.</div></div>
       <div class="btn" id="roleContinue" style="opacity:.5" onclick="roleGo()">Continue</div>
     </div>
   </div>
@@ -100,7 +104,7 @@ input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;paddin
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px"><span class="logo"><svg width="20" height="20" viewBox="0 0 30 30"><circle cx="12" cy="12" r="8" stroke="#fff" stroke-width="2.2" fill="none"/><path d="M17.5 17.5 L22 22" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><rect x="7.5" y="13" width="2" height="4" rx="1" fill="#3DD6C8"/><rect x="10.5" y="10" width="2" height="7" rx="1" fill="#22C7CE"/><rect x="13.5" y="7" width="2" height="10" rx="1" fill="#1AA6D6"/></svg></span><span class="small" style="letter-spacing:2px;font-weight:700">QURA</span></div>
       <h1 id="homeGreeting">Hi, Ola</h1>
       <div class="banner" id="verifyBanner">
-        <div class="between"><div style="flex:1"><div style="font-weight:800;font-size:15px" id="bannerTitle">Get verified to be seen</div><div style="color:#AEBED6;font-size:12.5px;margin-top:4px">Hospitals and suppliers can only see verified profiles.</div></div>
+        <div class="between"><div style="flex:1"><div style="font-weight:800;font-size:15px" id="bannerTitle">Complete your registration to be seen</div><div style="color:#AEBED6;font-size:12.5px;margin-top:4px">Hospitals and suppliers can only see complete profiles.</div></div>
         <div class="ring" style="background:var(--navy2);position:relative" id="homeRing"><span id="homeRingPct">0%</span></div></div>
         <div class="btn" style="margin-top:14px" onclick="go('verify')" id="verifyCta">Start verification</div>
       </div>
@@ -123,7 +127,7 @@ input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;paddin
     <div class="status"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
     <div class="pad">
       <span class="back" onclick="go('home')">‹ Back</span>
-      <h1 style="font-size:22px">Get verified</h1>
+      <h1 style="font-size:22px">Register with Qura</h1>
       <div class="stepbar" id="stepbar"></div>
       <div class="small" id="stepLabel">Step 1 of 7</div>
       <div class="h2" style="font-size:20px;margin:4px 0 14px" id="stepTitle"></div>
@@ -186,8 +190,8 @@ input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;paddin
   <!-- SUPPLIER TALENT -->
   <div class="screen" id="talent">
     <div class="status"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
-    <div class="pad"><h1>Talent</h1><div class="sub">Verified clinicians you can shortlist for your roles.</div>
-      <div class="row" style="margin:12px 0"><div style="flex:1;text-align:center;padding:9px;border-radius:999px;background:var(--navy);color:#fff;font-weight:700;font-size:13px">All verified</div><div style="flex:1;text-align:center;padding:9px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--muted);font-weight:700;font-size:13px">Shortlist (1)</div></div>
+    <div class="pad"><h1>Talent</h1><div class="sub">Registered clinicians you can shortlist. Qura checks a clinician's registration directly before an introduction is made.</div>
+      <div class="row" style="margin:12px 0"><div style="flex:1;text-align:center;padding:9px;border-radius:999px;background:var(--navy);color:#fff;font-weight:700;font-size:13px">All registered</div><div style="flex:1;text-align:center;padding:9px;border-radius:999px;background:#fff;border:1px solid var(--line);color:var(--muted);font-weight:700;font-size:13px">Shortlist (1)</div></div>
       <div class="card"><div class="between"><div style="flex:1"><div style="display:flex;align-items:center;gap:6px"><div class="h2">Radiographer, MRI</div><span style="width:16px;height:16px;border-radius:99px;background:var(--teal);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center">✓</span></div><div class="muted" style="margin-top:2px">London · 6 to 10 years</div><div style="margin-top:6px"><span class="chip cyan">MRI</span><span class="chip blue">HCPC</span></div><div class="small" style="margin-top:8px;line-height:18px;color:var(--muted)">- 8 years across NHS trusts · cross-sectional imaging specialist</div></div><div class="ring" style="background:var(--cyanSoft);color:#06776F">✓</div></div>
         <div class="btn light" onclick="this.textContent='On shortlist ✓'">Add to shortlist</div>
         <div class="btn dark" onclick="aiIntro(this)">Request introduction</div></div>
@@ -208,7 +212,7 @@ input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;paddin
   <!-- celebrations -->
   <div id="celebrateOverlay" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(10,26,48,.96);z-index:100;align-items:center;justify-content:center;flex-direction:column">
     <div style="width:92px;height:92px;border-radius:99px;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:46px;color:#fff;font-weight:900;animation:pop .5s">✓</div>
-    <div id="celTitle" style="color:#fff;font-size:22px;font-weight:800;margin-top:22px">You're verified!</div>
+    <div id="celTitle" style="color:#fff;font-size:22px;font-weight:800;margin-top:22px">You're registered!</div>
     <div id="celSub" style="color:#AEBED6;font-size:14px;margin-top:8px;text-align:center;padding:0 40px">Your profile is complete and visible to hospitals and suppliers.</div>
   </div>
   <style>@keyframes pop{0%{transform:scale(0)}70%{transform:scale(1.2)}100%{transform:scale(1)}}</style>
@@ -285,7 +289,7 @@ function renderVerify(){
     b.innerHTML=`<div class="card" style="margin:0"><div class="muted">To work in ${sel.destination||'the UK'}, professionals register with ${body}.</div>
       <div class="small" style="margin:12px 0 6px">${body} registration number</div>
       <input id="regNum" placeholder="${body} number" oninput="regEntered=this.value.length>=3" value="GMC7461123">
-      <div class="small" style="margin-top:8px">We verify this against the official ${body} register before your profile goes live.</div>
+      <div class="small" style="margin-top:8px">Check your number on the official ${body} register. Qura checks it directly before any introduction is made.</div>
       <span class="link" onclick="checkRegister('${body}')">Check the official ${body} register ›</span></div>`;
     regEntered=true;
   } else if(s.cv){
@@ -301,8 +305,8 @@ function renderVerify(){
   document.getElementById("verifyNext").textContent=verifyStep===6?"Finish":"Continue";
 }
 function pickOpt(key,val,el){sel[key]=val;el.parentNode.querySelectorAll('.selbtn').forEach(x=>x.classList.remove('on'));el.classList.add('on');}
-function checkRegister(body){ if(!regEntered){alert("Enter your "+body+" number first");return;} celebrate("Verified for "+sel.destination+"!","Your registration checks out. You're recognised as eligible to work in "+sel.destination+"."); }
-function verifyNext(){ if(verifyStep<6){verifyStep++;renderVerify();} else celebrate("You're verified!","Your profile is complete and visible to hospitals and suppliers.",true); }
+function checkRegister(body){ if(!regEntered){alert("Enter your "+body+" number first");return;} celebrate("Eligible for "+sel.destination+"!","Based on what you have told us, you meet the core requirements to work in "+sel.destination+"."); }
+function verifyNext(){ if(verifyStep<6){verifyStep++;renderVerify();} else celebrate("You're registered!","Your profile is complete and visible to hospitals and suppliers.",true); }
 function genHighlights(btn){btn.textContent="Generating…";setTimeout(()=>{document.getElementById("cvHi").innerHTML=`<div style="margin-top:12px;background:var(--bg2);border-radius:12px;padding:12px"><div class="small" style="margin-bottom:4px">Your highlights</div><div class="muted" style="line-height:21px">- HCPC registered MRI radiographer<br>- 8 years across NHS trusts<br>- Cross-sectional imaging specialist</div></div>`;btn.textContent="Regenerate highlights";},900);}
 
 function renderDest(){
@@ -321,7 +325,7 @@ function renderDest(){
 function setDest(c){destCountry=c;destAns={};renderDest();}
 function setYn(i,v){destAns[i]=v;document.getElementById("yn"+i+"y").className="yn"+(v==='y'?' yes':'');document.getElementById("yn"+i+"n").className="yn"+(v==='n'?' no':'');
   if(Object.keys(destAns).length>=3){const all=Object.values(destAns).every(x=>x==='y');
-    document.getElementById("eligResult").innerHTML=`<div class="card" style="background:${all?'var(--cyanSoft)':'var(--bg2)'};border-color:${all?'var(--teal)':'var(--line)'}"><div class="h2" style="margin-bottom:6px">${all?"You look eligible for "+destCountry:"You may need a few more steps"}</div><div class="muted">${all?"You meet the core requirements. Get verified to be discovered by employers hiring for "+destCountry+".":"Some requirements aren't met yet. Qura will guide you on what's needed."}</div><div class="btn" onclick="go('verify')">Get verified</div></div>`;}
+    document.getElementById("eligResult").innerHTML=`<div class="card" style="background:${all?'var(--cyanSoft)':'var(--bg2)'};border-color:${all?'var(--teal)':'var(--line)'}"><div class="h2" style="margin-bottom:6px">${all?"You look eligible for "+destCountry:"You may need a few more steps"}</div><div class="muted">${all?"You meet the core requirements. Complete your registration to be discovered by employers hiring for "+destCountry+".":"Some requirements aren't met yet. Qura will guide you on what's needed."}</div><div class="btn" onclick="go('verify')">Register with Qura</div></div>`;}
 }
 
 function aiIntro(btn){const card=btn.closest(".card");btn.textContent="Requesting…";
