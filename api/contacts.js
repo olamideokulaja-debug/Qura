@@ -15,7 +15,7 @@
 // NOT included here. They are our commentary about these people, not data we
 // should be handing to subscribers.
 
-import { getUser } from "./_auth.js";
+import { getUser, kvGet } from "./_auth.js";
 import { ENTITLEMENTS, planOf } from "./_entitlements.js";
 import { limited } from "./_ratelimit.js";
 
@@ -42,12 +42,20 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: "Sign in to view the decision-maker register", contacts: [] });
   if (await limited(req, res, user, { bucket: "contacts", limit: 120, windowSec: 3600 })) return;
 
+  // Honour the removal log: anyone a founder has removed stays removed, even
+  // if a later import of the register brings the record back.
+  let removedNames = new Set();
+  try {
+    const log = (await kvGet("shared", "contact_removals")) || [];
+    removedNames = new Set((Array.isArray(log) ? log : []).map((r) => String(r.name || "").toLowerCase()));
+  } catch (e) {}
+
   const plan = await planOf(user.id);
   // Decision-maker contact details sit with the same tier as the rest of the
   // commercial intelligence.
   const unlocked = ENTITLEMENTS.intelligence(plan);
 
-  const contacts = CONTACTS.map((c) => ({
+  const contacts = CONTACTS.filter((c) => !removedNames.has(c.name.toLowerCase())).map((c) => ({
     name: c.name,
     org: c.org,
     role: c.role,
@@ -62,8 +70,9 @@ export default async function handler(req, res) {
   return res.status(200).json({
     contacts,
     total: contacts.length,
-    withContactDetails: CONTACTS.filter((c) => c.email || c.phone).length,
-    organisations: new Set(CONTACTS.map((c) => (c.org || "").toLowerCase())).size,
+    removed: removedNames.size,
+    withContactDetails: contacts.filter((c) => c.hasEmail || c.hasPhone).length,
+    organisations: new Set(contacts.map((c) => (c.org || "").toLowerCase())).size,
     unlocked,
   });
 }

@@ -35,6 +35,9 @@ function toCard(owner, p) {
     experience: p.experienceYears,
     regBody: p.regBody,
     verified: true,
+    // Availability and rate, the two things a supplier actually shortlists on.
+    availableFrom: p.availableFrom || null,
+    dayRate: p.dayRate || null,
   };
 }
 

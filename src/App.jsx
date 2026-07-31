@@ -1119,6 +1119,126 @@ const Pricing = ({ plan, onChoose, highlight, role = "agency", market = "all", i
   );
 };
 
+// The founder workbench: the introduction queue with the register check, and
+// the directory removal log. Lives beside the user list so running Qura stops
+// meaning living in an email inbox.
+function AdminOps() {
+  const [tab, setTab] = useState("intros");
+  const [queue, setQueue] = useState(null);
+  const [removals, setRemovals] = useState(null);
+  const [busy, setBusy] = useState("");
+  const [rmName, setRmName] = useState("");
+  const [rmReason, setRmReason] = useState("");
+  const [msg, setMsg] = useState("");
+  const token = async () => { try { const { data } = await supabase.auth.getSession(); return data?.session?.access_token; } catch (e) { return ""; } };
+
+  const load = async () => {
+    try {
+      const t = await token();
+      const h = { authorization: "Bearer " + t };
+      const [qi, qr] = await Promise.all([
+        fetch("/api/admin?view=intros", { headers: h }).then((r) => r.json()),
+        fetch("/api/admin?view=removals", { headers: h }).then((r) => r.json()),
+      ]);
+      setQueue(qi.queue || []);
+      setRemovals(qr.removals || []);
+    } catch (e) { setQueue([]); setRemovals([]); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const act = async (introId, status) => {
+    setBusy(introId + status);
+    try {
+      const t = await token();
+      await fetch("/api/admin", { method: "POST", headers: { authorization: "Bearer " + t, "content-type": "application/json" },
+        body: JSON.stringify({ action: "intro-update", introId, status }) });
+      await load();
+    } catch (e) {}
+    setBusy("");
+  };
+
+  const removeContact = async () => {
+    if (!rmName.trim()) return;
+    setBusy("rm");
+    try {
+      const t = await token();
+      const r = await fetch("/api/admin", { method: "POST", headers: { authorization: "Bearer " + t, "content-type": "application/json" },
+        body: JSON.stringify({ action: "contact-remove", name: rmName.trim(), reason: rmReason.trim() || "founder removal" }) });
+      const j = await r.json();
+      setMsg(r.ok ? "Removed and logged. They will not return on a future import." : (j.error || "Could not remove."));
+      setRmName(""); setRmReason("");
+      await load();
+    } catch (e) { setMsg("Could not remove."); }
+    setBusy("");
+  };
+
+  const norm = (v) => String(v || "pending").toLowerCase() === "requested" ? "pending" : String(v || "pending").toLowerCase();
+  const STATUS_NEXT = { pending: ["verified", "declined"], verified: ["completed"], completed: [], declined: [] };
+  const chipTone = { pending: "#9A5E00", verified: "#06776F", completed: "#1E5EDB", declined: "#B4433A" };
+
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <div className="row" style={{ gap: 8, marginBottom: 14 }}>
+        {[["intros", "Introduction queue"], ["removals", "Directory removals"]].map(([k, l]) => (
+          <button key={k} className={"btn " + (tab === k ? "btn-primary" : "btn-light")} onClick={() => setTab(k)}>{l}</button>
+        ))}
+      </div>
+
+      {tab === "intros" ? (
+        <div className="card" style={{ padding: 18 }}>
+          <SectionHead title="Introductions" action={<span className="faint" style={{ fontSize: 12 }}>{queue ? queue.length + " total" : "Loading"}</span>} />
+          <div className="faint" style={{ fontSize: 12.5, marginBottom: 12, lineHeight: 1.55 }}>
+            Verify means the registration number has been checked against the official public register. Only then complete the introduction.
+          </div>
+          {!queue ? <div className="faint">Loading...</div> : queue.length === 0 ? (
+            <div className="faint" style={{ fontSize: 13 }}>Nothing waiting. New requests appear here the moment a supplier asks.</div>
+          ) : queue.map((q) => (
+            <div key={q.id} style={{ padding: "12px 0", borderBottom: "1px solid var(--line)" }}>
+              <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{q.clinicianLabel || q.handle || q.clinicianId} <span className="faint">for</span> {q.supplierEmail}</div>
+                  <div className="faint" style={{ fontSize: 12, marginTop: 2 }}>{q.at ? new Date(q.at).toLocaleString("en-GB") : ""}{q.updatedBy ? " · last action " + q.updatedBy : ""}</div>
+                </div>
+                <div className="row" style={{ gap: 6, alignItems: "center" }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: chipTone[norm(q.status)], border: "1px solid " + chipTone[norm(q.status)], borderRadius: 999, padding: "3px 10px" }}>{norm(q.status).toUpperCase()}</span>
+                  {(STATUS_NEXT[norm(q.status)] || []).map((next) => (
+                    <button key={next} className="btn btn-light" style={{ fontSize: 12 }} disabled={busy === q.id + next} onClick={() => act(q.id, next)}>
+                      {busy === q.id + next ? "..." : next === "verified" ? "Mark verified" : next === "completed" ? "Complete" : "Decline"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="card" style={{ padding: 18 }}>
+          <SectionHead title="Remove someone from the directory" />
+          <div className="faint" style={{ fontSize: 12.5, marginBottom: 12, lineHeight: 1.55 }}>
+            Removals are logged and permanent: a removed person does not come back when the register is next updated. Use the name exactly as it appears in the directory.
+          </div>
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <input className="in" style={{ flex: 2, minWidth: 200 }} placeholder="Full name" value={rmName} onChange={(e) => setRmName(e.target.value)} />
+            <input className="in" style={{ flex: 3, minWidth: 220 }} placeholder="Reason (asked to be removed, left role, duplicate...)" value={rmReason} onChange={(e) => setRmReason(e.target.value)} />
+            <button className="btn btn-primary" disabled={busy === "rm" || !rmName.trim()} onClick={removeContact}>{busy === "rm" ? "Removing..." : "Remove"}</button>
+          </div>
+          {msg ? <div style={{ fontSize: 12.5, marginTop: 10, color: "#06776F" }}>{msg}</div> : null}
+          <div style={{ marginTop: 18 }}>
+            <SectionHead title="Removal log" action={<span className="faint" style={{ fontSize: 12 }}>{removals ? removals.length + " removed" : ""}</span>} />
+            {!removals ? <div className="faint">Loading...</div> : removals.length === 0 ? (
+              <div className="faint" style={{ fontSize: 13 }}>No removals yet.</div>
+            ) : removals.map((r, i) => (
+              <div key={i} className="faint" style={{ fontSize: 12.5, padding: "6px 0", borderBottom: "1px solid var(--line)" }}>
+                <strong style={{ color: "var(--text)" }}>{r.name}</strong>{r.org ? " · " + r.org : ""} · {r.reason} · {new Date(r.at).toLocaleDateString("en-GB")} · {r.by}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AdminScreen({ ownerEmail }) {
   const [users, setUsers] = useState(null);
   const [err, setErr] = useState("");
@@ -1147,6 +1267,7 @@ function AdminScreen({ ownerEmail }) {
   };
   return (
     <div>
+      <AdminOps />
       <PageHead title="Admin" sub="Manage users and the role each account sees" right={<button className="btn btn-light" onClick={load}><RefreshCw size={15} /> Refresh</button>} />
       {err && <div className="card" style={{ padding: 16, marginBottom: 14, background: "var(--red-bg)", border: "1px solid var(--red)", color: "var(--red)", fontSize: 13.5, lineHeight: 1.5 }}>{err}</div>}
       {users === null && <div className="muted" style={{ padding: 20 }}>Loading users...</div>}
