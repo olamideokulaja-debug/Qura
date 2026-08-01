@@ -3452,6 +3452,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   const [aOpen, setAOpen] = useState(false);
   const closeTour = () => { setTour(false); try { window.storage?.set("qura_tour_done", "1"); } catch (e) {} };
   useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_tour_done"); if (!r?.value) setTour(true); } catch (e) {} })(); }, []);
+  const { contacts: searchContacts } = useContacts();
   const ql = q.trim().toLowerCase();
   const sResults = [];
   if (ql) {
@@ -3465,7 +3466,6 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   useEffect(() => { if (!NAVS[role].some((n) => n.k === active)) setActive(NAVS[role][0].k); }, [role]);
   useEffect(() => { try { window.storage?.set("cura_active_" + role, JSON.stringify(active)); } catch (e) {} }, [active, role]);
   const go = (k) => { setActive(k); setOpen(false); window.scrollTo(0, 0); };
-  const { contacts: searchContacts } = useContacts();
   const [propOpp, setPropOpp] = useState(null);
   const [sent, setSent] = useState([]);
   const [booked, setBooked] = useState([]);
