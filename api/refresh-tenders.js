@@ -237,9 +237,12 @@ async function getPaged(url, maxPages = 5) {
 }
 
 export default async function handler(req, res) {
-  // Scheduled job. Cron fires once a day, so a tight limit costs nothing and
-  // stops anyone else triggering it repeatedly.
-  if (await limited(req, res, null, { bucket: "cron-tenders", limit: 4, windowSec: 86400 })) return;
+  // Scheduled job. The cron fires once a day, but founders need to re-run it
+  // by hand after any change to how notices are fetched or shaped, since the
+  // stored feed is what the product reads. A 4-a-day cap locked us out for 23
+  // hours mid-fix, so the window is now hourly: still cheap, still protected
+  // against anyone hammering it, but a rebuild is never more than an hour away.
+  if (await limited(req, res, null, { bucket: "cron-tenders", limit: 6, windowSec: 3600 })) return;
 
   const sbUrl = process.env.SUPABASE_URL;
   const service = process.env.SUPABASE_SERVICE_ROLE_KEY;
