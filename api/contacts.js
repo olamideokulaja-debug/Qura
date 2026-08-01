@@ -60,6 +60,7 @@ export default async function handler(req, res) {
     org: c.org,
     role: c.role,
     spec: c.spec,
+    initials: c.initials,
     hasEmail: !!c.email,
     hasPhone: !!c.phone,
     email: unlocked ? c.email : maskEmail(c.email),
