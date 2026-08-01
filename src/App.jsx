@@ -473,10 +473,39 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
   const mapMkt = { all: "All", nhs: "NHS UK", private: "Private UK", international: "International" };
   useEffect(() => { setF(mapMkt[market] || "All"); }, [market]);
   const markets = ["All", "NHS UK", "Private UK", "International", "Africa", "Middle East"];
-  const list = OPPS.filter((o) => (f === "All" || o.market === f || (f === "International" && ["Middle East", "Africa"].includes(o.market))) && o.org.toLowerCase().includes(q.toLowerCase()));
+  // Real procurement notices from the daily feed, shown above the illustrative
+  // set. Until this, the web Clinical Demand page showed only examples while
+  // the live notices sat in the API unread.
+  const [live, setLive] = useState([]);
+  useEffect(() => {
+    let dead = false;
+    (async () => {
+      try {
+        let token = "";
+        if (supabase) {
+          const { data } = await supabase.auth.getSession();
+          token = (data && data.session && data.session.access_token) || "";
+        }
+        const r = await fetch("/api/demand", { headers: token ? { Authorization: "Bearer " + token } : {} });
+        const j = await r.json();
+        if (dead || !Array.isArray(j.items)) return;
+        setLive(j.items.filter((n) => n.live && !n.seeded).map((n) => ({
+          org: n.buyer, role: n.title, spec: n.profession || "Healthcare services",
+          val: n.rate || "Value not stated",
+          market: n.market === "NHS" ? "NHS UK" : n.market === "Private" ? "Private UK" : "International",
+          loc: n.region || "UK", close: n.closes || "",
+          pr: null, score: null, status: "Live", source: n.source, url: n.url || null,
+        })));
+      } catch (e) {}
+    })();
+    return () => { dead = true; };
+  }, []);
+  const ALL_OPPS = [...live, ...OPPS];
+
+  const list = ALL_OPPS.filter((o) => (f === "All" || o.market === f || (f === "International" && ["Middle East", "Africa"].includes(o.market))) && o.org.toLowerCase().includes(q.toLowerCase()));
   return (
     <div>
-      <PageHead title="Opportunities" sub={`${OPPS.length} live opportunities across your markets`} right={CURRENCY[market].rate !== 1 ? <span className="chip" style={{ background: "var(--cyan-soft)", color: "#06776F" }}>Converted at {CURRENCY[market].sym}{CURRENCY[market].rate}/£</span> : null} />
+      <PageHead title="Opportunities" sub={live.length ? `${live.length} live procurement notices, refreshed daily, plus ${OPPS.length} illustrative examples` : `${OPPS.length} opportunities across your markets`} right={CURRENCY[market].rate !== 1 ? <span className="chip" style={{ background: "var(--cyan-soft)", color: "#06776F" }}>Converted at {CURRENCY[market].sym}{CURRENCY[market].rate}/£</span> : null} />
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
         <div className="row" style={{ gap: 10, marginBottom: 12, flexWrap: "wrap" }}><div className="row" style={{ flex: 1, minWidth: 220, gap: 8, border: "1px solid var(--line)", borderRadius: 999, padding: "0 14px", background: "var(--bg2)" }}><Search size={16} className="faint" /><input className="in" style={{ border: "none", boxShadow: "none", padding: "10px 0" }} placeholder="Search organisations" value={q} onChange={(e) => setQ(e.target.value)} /></div></div>
         <div className="row scrollx" style={{ gap: 8, overflowX: "auto", paddingBottom: 4 }}>{markets.map((m) => (<button key={m} onClick={() => setF(m)} className="chip" style={{ padding: "7px 14px", whiteSpace: "nowrap", background: f === m ? "var(--blue)" : "#EEF1F7", color: f === m ? "#fff" : "#5A6783" }}>{m}</button>))}</div>
@@ -485,8 +514,8 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
         {list.map((o, i) => (
           <div key={i} className="card lift" style={{ padding: 18 }}>
             <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-              <div className="row" style={{ gap: 14 }}><div style={{ width: 46, height: 46, borderRadius: 12, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><Building2 size={20} color="#1E54E6" /></div><div><div className="row" style={{ gap: 9 }}><span style={{ fontWeight: 600, fontSize: 15.5 }}>{o.org}</span><span className="chip chip-cyan"><Sparkles size={11} /> {o.score}</span><span className="chip chip-grey" style={{ fontSize: 11 }}>{o.market}</span></div><div className="muted row hsm" style={{ fontSize: 13, gap: 14, marginTop: 4 }}><span>{o.role}</span><span className="row" style={{ gap: 4 }}><MapPin size={12} />{o.loc}</span><span className="row" style={{ gap: 4 }}><Radar size={12} />{o.source}</span></div></div></div>
-              <div className="row" style={{ gap: 16 }}><div style={{ textAlign: "right" }}><div className="disp" style={{ fontWeight: 700, fontSize: 17 }}>{convMoney(o.val, market)}</div><span className="row faint" style={{ fontSize: 12, gap: 4, justifyContent: "flex-end" }}><Clock size={11} />Closes {o.close}</span></div><span className={"chip " + prChip(o.pr)}>{prLabel(o.pr)}</span><button className={"btn hsm " + (savedIds.includes(o.org + "|" + o.role) ? "btn-light" : "btn-ghost")} onClick={() => saveOpp(o)} disabled={savedIds.includes(o.org + "|" + o.role)}>{savedIds.includes(o.org + "|" + o.role) ? <><Star size={14} fill="currentColor" /> Saved</> : <><Star size={14} /> Save</>}</button><button className="btn btn-ai hsm" onClick={() => onPropose(o)}><Sparkles size={14} /> Propose</button></div>
+              <div className="row" style={{ gap: 14 }}><div style={{ width: 46, height: 46, borderRadius: 12, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><Building2 size={20} color="#1E54E6" /></div><div><div className="row" style={{ gap: 9 }}><span style={{ fontWeight: 600, fontSize: 15.5 }}>{o.org}</span>{o.score ? <span className="chip chip-cyan"><Sparkles size={11} /> {o.score}</span> : null}<span className="chip chip-grey" style={{ fontSize: 11 }}>{o.market}</span></div><div className="muted row hsm" style={{ fontSize: 13, gap: 14, marginTop: 4 }}><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 430, display: "inline-block", verticalAlign: "bottom" }} title={o.role}>{o.role}</span><span className="row" style={{ gap: 4 }}><MapPin size={12} />{o.loc}</span><span className="row" style={{ gap: 4 }}><Radar size={12} />{o.source}</span>{o.url ? <a href={o.url} target="_blank" rel="noreferrer" style={{ color: "var(--teal)", fontSize: 12.5 }}>Open notice</a> : null}{!o.url ? <DemoTag /> : null}</div></div></div>
+              <div className="row" style={{ gap: 16 }}><div style={{ textAlign: "right" }}><div className="disp" style={{ fontWeight: 700, fontSize: 17 }}>{/^[£$€]/.test(String(o.val)) ? convMoney(o.val, market) : o.val}</div><span className="row faint" style={{ fontSize: 12, gap: 4, justifyContent: "flex-end" }}><Clock size={11} />{o.close ? "Closes " + o.close : "See notice for dates"}</span></div>{o.pr ? <span className={"chip " + prChip(o.pr)}>{prLabel(o.pr)}</span> : null}<button className={"btn hsm " + (savedIds.includes(o.org + "|" + o.role) ? "btn-light" : "btn-ghost")} onClick={() => saveOpp(o)} disabled={savedIds.includes(o.org + "|" + o.role)}>{savedIds.includes(o.org + "|" + o.role) ? <><Star size={14} fill="currentColor" /> Saved</> : <><Star size={14} /> Save</>}</button><button className="btn btn-ai hsm" onClick={() => onPropose(o)}><Sparkles size={14} /> Propose</button></div>
             </div>
           </div>
         ))}
