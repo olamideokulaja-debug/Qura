@@ -536,7 +536,7 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
   const spendDM = (n) => { if (used.dm + n > tier.dm) { if (onToast) onToast("Out of message credits today. Upgrade for more."); return false; } persist({ date: today, dm: used.dm + n, invite: used.invite }); return true; };
   const spendInvite = (n) => { if (used.invite + n > tier.invite) { if (onToast) onToast("Out of follow-invite credits today. Upgrade for more."); return false; } persist({ date: today, dm: used.dm, invite: used.invite + n }); return true; };
   const [shot, setShot] = useState(false); const [pick, setPick] = useState([]);
-  const list = DMS.filter((d) => (sp === "All" || d.spec === sp) && (d.name.toLowerCase().includes(q.toLowerCase()) || d.org.toLowerCase().includes(q.toLowerCase())));
+  const list = DMS.filter((d) => (sp === "All" || (sp === "__none" ? !d.spec : d.spec === sp)) && (d.name.toLowerCase().includes(q.toLowerCase()) || d.org.toLowerCase().includes(q.toLowerCase())));
   const specChip = (x) => { const i = SPECIALTIES.indexOf(x); return SPEC_DATA[i] ? SPEC_DATA[i].c : "#1E54E6"; };
   const keyOf = (d) => d.name + "|" + d.org;
   const toggle = (k) => setPick((p) => p.includes(k) ? p.filter((x) => x !== k) : [...p, k]);
@@ -574,7 +574,38 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
       </div>
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
         <div className="row" style={{ gap: 8, border: "1px solid var(--line)", borderRadius: 999, padding: "0 14px", background: "var(--bg2)", marginBottom: 12 }}><Search size={16} className="faint" /><input className="in" style={{ border: "none", boxShadow: "none", padding: "10px 0" }} placeholder="Search name or organisation" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-        <div className="row scrollx" style={{ gap: 8, overflowX: "auto", paddingBottom: 4 }}>{["All", ...Array.from(new Set(DMS.map((d) => d.spec).filter(Boolean))).sort()].map((m) => (<button key={m} onClick={() => setSp(m)} className="chip" style={{ padding: "7px 14px", whiteSpace: "nowrap", background: sp === m ? "var(--blue)" : "#EEF1F7", color: sp === m ? "#fff" : "#5A6783" }}>{m}</button>))}</div>
+        <div className="row scrollx" style={{ gap: 8, overflowX: "auto", paddingBottom: 4 }}>{(() => {
+          // Grouped filters: a heading per group with its specialties beneath,
+          // rather than one long row of every label. Groups and counts come
+          // from the register itself, so this can never drift from the data.
+          const ORDER = ["Clinical", "Non-clinical", "Executive", "Independent"];
+          const byGroup = {};
+          for (const d of DMS) {
+            if (!d.spec) continue;
+            (byGroup[d.group || "Other"] = byGroup[d.group || "Other"] || {});
+            byGroup[d.group || "Other"][d.spec] = (byGroup[d.group || "Other"][d.spec] || 0) + 1;
+          }
+          const groups = ORDER.filter((g) => byGroup[g]);
+          const unlabelled = DMS.filter((d) => !d.spec).length;
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                <button onClick={() => setSp("All")} className={"chip " + (sp === "All" ? "chip-blue" : "")} style={{ cursor: "pointer", border: "1px solid var(--line)" }}>All ({DMS.length})</button>
+                {unlabelled ? <button onClick={() => setSp("__none")} className={"chip " + (sp === "__none" ? "chip-blue" : "")} style={{ cursor: "pointer", border: "1px solid var(--line)" }}>Not yet categorised ({unlabelled})</button> : null}
+              </div>
+              {groups.map((g) => (
+                <div key={g} className="row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <span className="faint" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", minWidth: 96 }}>{g}</span>
+                  {Object.keys(byGroup[g]).sort().map((m) => (
+                    <button key={m} onClick={() => setSp(m)} className={"chip " + (sp === m ? "chip-blue" : "")} style={{ cursor: "pointer", border: "1px solid var(--line)" }}>
+                      {m} ({byGroup[g][m]})
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          );
+        })()}</div>
       </div>
       <div className="muted" style={{ fontSize: 13, marginBottom: 12 }}>{list.length} contacts shown{shot ? " · tap cards to select, then send" : ""}</div>
       <div className="grid-3">{list.map((d, i) => { const k = keyOf(d); const on = pick.includes(k); return (
