@@ -317,7 +317,16 @@ export default async function handler(req, res) {
           }));
           if (!hits.length) continue;
           const reg = await kvRead(uid, "push_registration");
-          if (!reg || !reg.token) continue;
+          // Respect the user's push preferences and quiet hours. Duplicated
+          // from push-register.shouldPush because this cron builds its own
+          // client; keep the two in step.
+          const prefs = (reg && reg.prefs) || {};
+          if (!reg || !reg.token || prefs.tenders === false) continue;
+          if (prefs.quiet) {
+            const from = prefs.quietFrom || "22:00", to = prefs.quietTo || "07:00";
+            const now = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/London" });
+            if (from <= to ? (now >= from && now < to) : (now >= from || now < to)) continue;
+          }
           const first = hits[0];
           await fetch("https://exp.host/--/api/v2/push/send", {
             method: "POST",
