@@ -481,7 +481,12 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
     let dead = false;
     (async () => {
       try {
-        const r = await fetch("/api/demand");
+        let token = "";
+        if (supabase) {
+          const { data } = await supabase.auth.getSession();
+          token = (data && data.session && data.session.access_token) || "";
+        }
+        const r = await fetch("/api/demand", { headers: token ? { Authorization: "Bearer " + token } : {} });
         const j = await r.json();
         if (dead || !Array.isArray(j.items)) return;
         setLive(j.items.filter((n) => n.live && !n.seeded).map((n) => ({
