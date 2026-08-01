@@ -113,6 +113,17 @@ input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;paddin
         <div class="stat"><div class="statnum" style="color:var(--blueInk)" data-count="2">0</div><div class="small">Applications</div></div>
       </div>
       <div class="card"><div class="between"><div class="h2">Live market</div><span class="chip cyan">Live</span></div>
+      <div class="card" style="margin-top:12px">
+        <div class="h2">Availability and rate</div>
+        <div class="small muted" style="margin-top:3px">Shown to suppliers when they shortlist. Keep it current and the right roles find you.</div>
+        <div class="row" style="gap:8px;margin-top:12px;flex-wrap:wrap">
+          <span class="chip blue">Available now</span><span class="chip">From a date</span><span class="chip">Not looking</span>
+        </div>
+        <div class="row" style="gap:10px;margin-top:12px;align-items:center">
+          <div class="small muted">Expected day rate</div>
+          <div style="flex:1;border:1px solid #E1E8F2;border-radius:8px;padding:9px 12px;font-size:14px">&pound; 450 <span class="small muted">per day</span></div>
+        </div>
+      </div>
         <div style="margin-top:12px">
           <div class="between" style="margin-bottom:8px"><span class="muted">NHS</span><span class="small">12 live</span></div><div class="progress"><i style="width:70%"></i></div>
           <div class="between" style="margin:10px 0 8px"><span class="muted">Private</span><span class="small">8 live</span></div><div class="progress"><i style="width:48%;background:var(--blue)"></i></div>
@@ -181,6 +192,22 @@ input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;paddin
   <div class="screen" id="demand">
     <div class="status"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
     <div class="pad"><h1>Live demand</h1><div class="sub">Open roles and tenders across the network, ready to pursue.</div>
+      <div class="row" style="gap:6px;margin-top:10px;flex-wrap:wrap">
+        <span class="chip" style="background:#FFF4E0;color:#9A5E00;border:1px solid #F0D9A8">Radiography &middot; NHS</span>
+        <span class="chip" style="background:#FFF4E0;color:#9A5E00;border:1px solid #F0D9A8">Sonography</span>
+        <span class="chip">+ New alert</span>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="h2">Resilience and Prevention Service</div>
+        <div class="small muted" style="margin-top:3px">NHS Lancashire and South Cumbria ICB &middot; Preston &middot; Find a Tender</div>
+        <div class="btn light" style="margin-top:10px;display:inline-block;padding:7px 14px;background:var(--cyanSoft);color:#06776F;font-size:12.5px;font-weight:700" onclick="showSummary(this)">Summarise with AI</div>
+        <div class="aiSum" style="display:none;background:var(--bg2);border-radius:10px;padding:12px;margin-top:10px;font-size:13px;line-height:19px">
+          <b>WHAT:</b> A contract for a resilience and prevention service.<br>
+          <b>WHO:</b> NHS Lancashire and South Cumbria Integrated Care Board.<br>
+          <b>WHEN:</b> See the notice for dates.<br>
+          <b>FIT:</b> Community health service delivery, likely allied health and nursing staffing.
+        </div>
+      </div>
       <div style="margin:12px 0"><span class="chip" style="background:var(--navy);color:#fff">All</span><span class="chip grey">NHS</span><span class="chip grey">International</span></div>
       <div class="card"><div class="between"><div class="h2" style="flex:1">MRI Radiographers x3</div><span class="chip cyan">3 needed</span></div><div class="muted" style="margin-top:2px">Community Diagnostic Centre · London</div><div style="margin:4px 0 8px"><span class="chip blue">NHS</span><span class="chip grey">Band 7</span></div><div class="muted">Insourcing programme across three imaging sites.</div></div>
       <div class="card"><div class="between"><div class="h2" style="flex:1">ICU Nurses x8</div><span class="chip cyan">8 placements</span></div><div class="muted" style="margin-top:2px">Private hospital group · Dubai</div><div style="margin:4px 0 8px"><span class="chip blue">International</span><span class="chip grey">Tax-free</span></div></div>
@@ -198,14 +225,157 @@ input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;paddin
     </div>
   </div>
 
-  <!-- ALERTS -->
+  <!-- ALERTS / ACCOUNT -->
   <div class="screen" id="alerts">
-    <div class="status"><span>9:41</span><span>✦ 5G ▪▪▪</span></div>
-    <div class="pad"><h1>Alerts</h1><div class="sub">Notifications and your account.</div>
-      <div class="card" style="margin-top:14px"><div class="h2">🔔 A matching role went live</div><div class="muted" style="margin-top:4px">Consultant Radiologist at Royal London Hospital fits your profile.</div></div>
+    <div class="status"><span>9:41</span><span>5G</span></div>
+    <div class="pad"><h1>Account</h1><div class="sub">Everything that is yours, in one place.</div>
+      <div class="card" style="margin-top:14px"><div class="h2">A matching role went live</div><div class="muted" style="margin-top:4px">Consultant Radiologist at Royal London Hospital fits your profile.</div></div>
+
+      <div class="card row" style="margin-top:12px;cursor:pointer" onclick="go('messages')">
+        <div class="ring" style="background:var(--cyanSoft);color:#06776F">M</div>
+        <div style="flex:1"><div class="h2">Messages</div><div class="small muted">One thread per verified introduction</div></div>
+        <div class="muted">&rsaquo;</div>
+      </div>
+
+      <div class="card row clinOnly" style="margin-top:12px;cursor:pointer" onclick="go('vault')">
+        <div class="ring" style="background:var(--cyanSoft);color:#06776F">D</div>
+        <div style="flex:1"><div class="h2">Document vault</div><div class="small muted">Right to work, DBS, certificates, uploaded once</div></div>
+        <div class="muted">&rsaquo;</div>
+      </div>
+
+      <div class="card row supOnly" style="margin-top:12px;cursor:pointer" onclick="go('orgpage')">
+        <div class="ring" style="background:var(--cyanSoft);color:#06776F">O</div>
+        <div style="flex:1"><div class="h2">Organisation page</div><div class="small muted">What clinicians see before accepting your introduction</div></div>
+        <div class="muted">&rsaquo;</div>
+      </div>
+
+      <div class="card row" style="margin-top:12px;cursor:pointer" onclick="go('pushprefs')">
+        <div class="ring" style="background:var(--cyanSoft);color:#06776F">N</div>
+        <div style="flex:1"><div class="h2">Notifications</div><div class="small muted">What reaches you, and quiet hours</div></div>
+        <div class="muted">&rsaquo;</div>
+      </div>
+
+      <div class="card row" style="margin-top:12px;cursor:pointer" onclick="go('mfa')">
+        <div class="ring" style="background:var(--cyanSoft);color:#06776F">2FA</div>
+        <div style="flex:1"><div class="h2">Two-factor authentication</div><div class="small muted">An extra lock on your account</div></div>
+        <div class="muted">&rsaquo;</div>
+      </div>
+
+      <div class="card clinOnly" style="margin-top:12px">
+        <div class="h2">Invite a colleague</div>
+        <div class="small muted" style="margin-top:3px">Share your code. When a colleague joins with it, you both get Career+ free for a month.</div>
+        <div class="row" style="margin-top:12px;gap:10px;align-items:center">
+          <div style="background:var(--bg2);border-radius:10px;padding:8px 16px;font-weight:800;letter-spacing:2px;color:var(--navy)">K7M4QP</div>
+          <div class="btn dark" style="margin:0;padding:9px 18px" onclick="this.textContent='Shared'">Share</div>
+        </div>
+      </div>
+
       <div class="btn light" id="switchBtn" onclick="switchSide()">Switch to supplier view</div>
       <div class="btn light" onclick="resetToSignin()">Sign out</div>
-      <div class="small" style="text-align:center;margin-top:16px">Founder account · role switching enabled</div>
+      <div class="small" style="text-align:center;margin-top:16px">Founder account, role switching enabled</div>
+    </div>
+  </div>
+
+  <!-- VAULT -->
+  <div class="screen" id="vault">
+    <div class="status"><span>9:41</span><span>5G</span></div>
+    <div class="pad"><div class="small" style="cursor:pointer" onclick="go('alerts')">&lsaquo; Account</div>
+      <h1 style="margin-top:8px">Document vault</h1>
+      <div class="sub">Upload once, stop hunting for the same paperwork before every placement.</div>
+      <div style="background:var(--cyanSoft);border-radius:12px;padding:12px;margin-top:12px;color:#06776F;font-size:12.5px;line-height:18px">
+        3/6 documents in your vault. Only you can see them. Nothing is shared unless you choose to share it.
+      </div>
+      <div class="card row" style="margin-top:10px"><div class="ring" style="background:var(--teal);color:#fff">&check;</div><div style="flex:1"><div class="h2">Right to work</div><div class="small muted">passport-2026.pdf</div></div></div>
+      <div class="card row" style="margin-top:10px"><div class="ring" style="background:var(--teal);color:#fff">&check;</div><div style="flex:1"><div class="h2">DBS certificate</div><div class="small muted">dbs-enhanced.pdf</div></div></div>
+      <div class="card row" style="margin-top:10px"><div class="ring" style="background:var(--teal);color:#fff">&check;</div><div style="flex:1"><div class="h2">Professional registration</div><div class="small muted">hcpc-certificate.pdf</div></div></div>
+      <div class="card row" style="margin-top:10px"><div class="ring" style="background:var(--bg2);color:var(--muted)">+</div><div style="flex:1"><div class="h2">Training certificates</div><div class="small muted">Mandatory and role-specific training</div></div></div>
+      <div class="card row" style="margin-top:10px"><div class="ring" style="background:var(--bg2);color:var(--muted)">+</div><div style="flex:1"><div class="h2">Revalidation</div><div class="small muted">Most recent revalidation confirmation</div></div></div>
+      <div class="card row" style="margin-top:10px"><div class="ring" style="background:var(--bg2);color:var(--muted)">+</div><div style="flex:1"><div class="h2">Other</div><div class="small muted">Anything else a placement usually asks for</div></div></div>
+    </div>
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="screen" id="messages">
+    <div class="status"><span>9:41</span><span>5G</span></div>
+    <div class="pad"><div class="small" style="cursor:pointer" onclick="go('alerts')">&lsaquo; Account</div>
+      <h1 style="margin-top:8px">Messages</h1>
+      <div class="sub">A thread opens for every verified introduction.</div>
+      <div class="card" style="margin-top:12px;cursor:pointer" onclick="go('thread')">
+        <div class="h2">Meridian Health Partners</div>
+        <div class="small muted" style="margin-top:4px">Thanks for coming back to me, are you free for a call Thursday?</div>
+      </div>
+      <div class="card" style="margin-top:10px;cursor:pointer" onclick="go('thread')">
+        <div class="h2">Northern Locums</div>
+        <div class="small muted" style="margin-top:4px">No messages yet. Say hello.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- THREAD -->
+  <div class="screen" id="thread">
+    <div class="status"><span>9:41</span><span>5G</span></div>
+    <div class="pad"><div class="small" style="cursor:pointer" onclick="go('messages')">&lsaquo; Messages</div>
+      <h1 style="margin-top:8px;font-size:20px">Meridian Health Partners</h1>
+      <div style="margin-top:16px">
+        <div style="max-width:82%;background:#fff;border:1px solid #E6ECF5;border-radius:14px;border-bottom-left-radius:4px;padding:9px 13px;margin-bottom:8px;font-size:14px;line-height:20px">Hello, we have an MRI block at Royal Preston starting in March. Interested?</div>
+        <div style="max-width:82%;margin-left:auto;background:var(--navy);color:#fff;border-radius:14px;border-bottom-right-radius:4px;padding:9px 13px;margin-bottom:8px;font-size:14px;line-height:20px">Yes, I am available from 2 March. What are the sessions?</div>
+        <div style="max-width:82%;background:#fff;border:1px solid #E6ECF5;border-radius:14px;border-bottom-left-radius:4px;padding:9px 13px;margin-bottom:8px;font-size:14px;line-height:20px">Thanks for coming back to me, are you free for a call Thursday?</div>
+      </div>
+      <div class="small muted" style="margin-top:14px;text-align:center">Report or block from the menu at any time</div>
+    </div>
+  </div>
+
+  <!-- ORG PAGE -->
+  <div class="screen" id="orgpage">
+    <div class="status"><span>9:41</span><span>5G</span></div>
+    <div class="pad"><div class="small" style="cursor:pointer" onclick="go('alerts')">&lsaquo; Account</div>
+      <h1 style="margin-top:8px">Your organisation page</h1>
+      <div class="sub">What a clinician sees before accepting your introduction.</div>
+      <div class="card" style="margin-top:12px"><div class="small muted">ORGANISATION NAME</div><div class="h2" style="margin-top:4px">Meridian Health Partners</div></div>
+      <div class="card" style="margin-top:10px"><div class="small muted">ABOUT</div><div style="margin-top:4px;font-size:14px;line-height:21px">We place diagnostic and therapy clinicians into NHS trusts and independent providers across the North West. Small team, long relationships, no bulk mailing.</div></div>
+      <div class="card" style="margin-top:10px"><div class="small muted">SPECIALTIES</div><div style="margin-top:4px;font-size:14px">Radiography, Sonography, Audiology</div></div>
+      <div class="card" style="margin-top:10px"><div class="small muted">REGIONS</div><div style="margin-top:4px;font-size:14px">North West, Yorkshire, North East</div></div>
+    </div>
+  </div>
+
+  <!-- PUSH PREFS -->
+  <div class="screen" id="pushprefs">
+    <div class="status"><span>9:41</span><span>5G</span></div>
+    <div class="pad"><div class="small" style="cursor:pointer" onclick="go('alerts')">&lsaquo; Account</div>
+      <h1 style="margin-top:8px">Notifications</h1>
+      <div class="sub">Choose what reaches your lock screen, and when nothing should.</div>
+      <div class="card" style="margin-top:12px">
+        <div class="row" style="padding:10px 0"><div style="flex:1"><div class="h2">New tender alerts</div><div class="small muted">When a notice matches your saved alerts</div></div><div style="width:44px;height:26px;border-radius:99px;background:var(--teal)"></div></div>
+        <div class="row" style="padding:10px 0;border-top:1px solid #EDF1F8"><div style="flex:1"><div class="h2">Matches</div><div class="small muted">When a role matches your profile</div></div><div style="width:44px;height:26px;border-radius:99px;background:var(--teal)"></div></div>
+        <div class="row" style="padding:10px 0;border-top:1px solid #EDF1F8"><div style="flex:1"><div class="h2">Introductions</div><div class="small muted">Progress on your introductions</div></div><div style="width:44px;height:26px;border-radius:99px;background:var(--teal)"></div></div>
+        <div class="row" style="padding:10px 0;border-top:1px solid #EDF1F8"><div style="flex:1"><div class="h2">Updates from Qura</div><div class="small muted">Occasional product news</div></div><div style="width:44px;height:26px;border-radius:99px;background:#D6DEEA"></div></div>
+      </div>
+      <div class="card" style="margin-top:10px">
+        <div class="row"><div style="flex:1"><div class="h2">Quiet hours</div><div class="small muted">No pushes overnight. Dropped, not delayed.</div></div><div style="width:44px;height:26px;border-radius:99px;background:var(--teal)"></div></div>
+        <div class="small muted" style="margin-top:10px">From</div>
+        <div class="row" style="gap:6px;margin-top:6px"><span class="chip">20:00</span><span class="chip blue">22:00</span><span class="chip">23:00</span></div>
+        <div class="small muted" style="margin-top:10px">Until</div>
+        <div class="row" style="gap:6px;margin-top:6px"><span class="chip">06:00</span><span class="chip blue">07:00</span><span class="chip">08:00</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MFA -->
+  <div class="screen" id="mfa">
+    <div class="status"><span>9:41</span><span>5G</span></div>
+    <div class="pad"><div class="small" style="cursor:pointer" onclick="go('alerts')">&lsaquo; Account</div>
+      <h1 style="margin-top:8px">Two-factor authentication</h1>
+      <div class="sub">A 6-digit code from an authenticator app, asked for at sign in.</div>
+      <div class="card" style="margin-top:12px">
+        <div class="h2">1. Add Qura to your authenticator</div>
+        <div class="small muted" style="margin-top:4px">In Google Authenticator, Microsoft Authenticator or 1Password, choose "enter a setup key" and paste this:</div>
+        <div style="background:var(--bg2);border-radius:10px;padding:12px;margin-top:10px;font-family:monospace;font-size:13px;color:var(--navy)">JBSW Y3DP EHPK 3PXP</div>
+        <div class="h2" style="margin-top:16px">2. Enter the 6-digit code it shows</div>
+        <div class="row" style="gap:8px;margin-top:8px">
+          <div style="flex:1;border:1px solid #E1E8F2;border-radius:10px;padding:10px 12px;font-size:16px;letter-spacing:4px;color:var(--muted)">123456</div>
+          <div class="btn dark" style="margin:0;padding:10px 18px">Verify</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -224,7 +394,7 @@ input,textarea{width:100%;border:1px solid var(--line);border-radius:12px;paddin
 let side="clinician",chosenRole=null,current="signin",mode="up",verifyStep=0,verified=false,destCountry="United Kingdom",regEntered=false;
 const tabsClinician=[["home","Home"],["opps","Opportunities"],["destinations","Destinations"],["apps","Applications"],["alerts","Alerts"]];
 const tabsSupplier=[["demand","Demand"],["talent","Talent"],["alerts","Alerts"]];
-const noTabScreens=["signin","rolepick","verify","detail"];
+const noTabScreens=["signin","rolepick","verify","detail","vault","messages","thread","orgpage","pushprefs","mfa"];
 
 const REG={"United Kingdom":"GMC","Australia":"AHPRA","United States":"State board / ECFMG","Dubai (UAE)":"DHA / DOH / MOHAP","Nigeria":"MDCN","Ireland":"IMC","Canada":"Provincial college"};
 const DEST=["United Kingdom","Australia","United States","Ireland","Canada","Nigeria"];
@@ -262,6 +432,7 @@ function renderTabs(){
   bar.innerHTML=tabs.map(([id,l])=>`<div class="tab ${current===id?'on':''}" onclick="go('${id}')"><div class="dot"></div>${l}</div>`).join("");
 }
 function go(id){
+  applyRoleRows();
   document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
   const el=document.getElementById(id); if(el){el.classList.add("active");current=id;el.scrollTop=0;}
   document.querySelectorAll(".status").forEach(s=>s.classList.remove("light"));
@@ -337,7 +508,9 @@ function payIntro(btn){btn.textContent="Opening secure checkout…";setTimeout((
 function celebrate(title,sub,goHome){const o=document.getElementById("celebrateOverlay");document.getElementById("celTitle").textContent=title;document.getElementById("celSub").textContent=sub;o.style.display="flex";
   if(goHome)verified=true;
   setTimeout(()=>{o.style.display="none";if(goHome){verifyStep=0;updateBanner();go("home");}},2400);}
-function switchSide(){side=side==="clinician"?"supplier":"clinician";document.getElementById("switchBtn").textContent="Switch to "+(side==="clinician"?"supplier":"clinician")+" view";go(side==="clinician"?"home":"demand");}
+function applyRoleRows(){document.querySelectorAll(".clinOnly").forEach(e=>e.style.display=side==="clinician"?"":"none");document.querySelectorAll(".supOnly").forEach(e=>e.style.display=side==="supplier"?"":"none");}
+function showSummary(el){el.parentNode.querySelector(".aiSum").style.display="block";el.style.display="none";}
+function switchSide(){side=side==="clinician"?"supplier":"clinician";applyRoleRows();document.getElementById("switchBtn").textContent="Switch to "+(side==="clinician"?"supplier":"clinician")+" view";go(side==="clinician"?"home":"demand");}
 function resetToSignin(){side="clinician";chosenRole=null;verifyStep=0;verified=false;mode="up";Object.keys(sel).forEach(k=>delete sel[k]);document.getElementById("signinBtn").textContent="Create account";go("signin");}
 function animateCounts(){document.querySelectorAll(".screen.active [data-count]").forEach(el=>{const t=+el.getAttribute("data-count");let n=0;const st=Math.max(1,Math.round(t/18));clearInterval(el._t);el._t=setInterval(()=>{n+=st;if(n>=t){n=t;clearInterval(el._t);}el.textContent=n;},45);});}
 go("signin");
