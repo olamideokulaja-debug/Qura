@@ -286,10 +286,64 @@ export default async function handler(req, res) {
       .slice(0, 80);
 
     const sb = createClient(sbUrl, service, { auth: { persistSession: false } });
-    const payload = { items: unique, refreshedAt: new Date().toISOString(), sources: ["Find a Tender", "Contracts Finder", "TED (EU)", "SAM.gov (US)"] };
-    await sb.from("kv").upsert({ owner: "shared", key: "tenders", value: payload }, { onConflict: "owner,key" });
+    const kvRead = async (owner, key) => {
+      const { data } = await sb.from("kv").select("value").eq("owner", owner).eq("key", key).maybeSingle();
+      if (!data) return null;
+      try { return JSON.parse(data.value); } catch { return data.value; }
+    };
 
-    return res.status(200).json({ ok: true, count: unique.length, scanned: { uk: ((fts && fts.releases) || []).length + ((cf && cf.releases) || []).length, eu: (eu || []).length, us: (us || []).length } });
+    // Which of today's notices are actually NEW? Alerts fire on those only,
+    // or a supplier would be pinged daily about the same notice.
+    const prev = (await kvRead("shared", "tenders")) || {};
+    const prevIds = new Set(((prev && prev.items) || []).map((i) => i.id));
+    const fresh = unique.filter((i) => !prevIds.has(i.id));
+
+    const payload = { items: unique, refreshedAt: new Date().toISOString(), sources: ["Find a Tender", "Contracts Finder", "TED (EU)", "SAM.gov (US)"] };
+    await sb.from("kv").upsert({ owner: "shared", key: "tenders", value: JSON.stringify(payload) }, { onConflict: "owner,key" });
+
+    // Saved alerts: match new notices against each subscriber's saved searches
+    // and push at most ONE notification per person per day, naming the count.
+    let alerted = 0;
+    if (fresh.length) {
+      const users = (await kvRead("shared", "tender_alert_users")) || [];
+      for (const uid of (Array.isArray(users) ? users : []).slice(0, 500)) {
+        try {
+          const alerts = (await kvRead(uid, "tender_alerts")) || [];
+          const hits = fresh.filter((n) => (Array.isArray(alerts) ? alerts : []).some((a) => {
+            const mOk = a.market === "All" || n.market === a.market;
+            const q = String(a.query || "").toLowerCase();
+            const qOk = !q || (n.title + " " + n.buyer + " " + n.profession + " " + n.note).toLowerCase().includes(q);
+            return mOk && qOk;
+          }));
+          if (!hits.length) continue;
+          const reg = await kvRead(uid, "push_registration");
+          // Respect the user's push preferences and quiet hours. Duplicated
+          // from push-register.shouldPush because this cron builds its own
+          // client; keep the two in step.
+          const prefs = (reg && reg.prefs) || {};
+          if (!reg || !reg.token || prefs.tenders === false) continue;
+          if (prefs.quiet) {
+            const from = prefs.quietFrom || "22:00", to = prefs.quietTo || "07:00";
+            const now = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/London" });
+            if (from <= to ? (now >= from && now < to) : (now >= from || now < to)) continue;
+          }
+          const first = hits[0];
+          await fetch("https://exp.host/--/api/v2/push/send", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              to: reg.token,
+              title: hits.length === 1 ? "New tender matches your alert" : hits.length + " new tenders match your alerts",
+              body: first.title.slice(0, 120) + (hits.length > 1 ? " and more" : ""),
+              data: { screen: "Demand" },
+            }),
+          });
+          alerted++;
+        } catch (e) {}
+      }
+    }
+
+    return res.status(200).json({ ok: true, count: unique.length, fresh: fresh.length, alerted, scanned: { uk: ((fts && fts.releases) || []).length + ((cf && cf.releases) || []).length, eu: (eu || []).length, us: (us || []).length } });
   } catch (e) {
     await alertFounders("cron-tenders", "Tender refresh failed", String((e && e.message) || e));
     return res.status(500).json({ error: String((e && e.message) || e) });

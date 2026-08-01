@@ -2,6 +2,26 @@ import { getUser, kvGet, kvSet } from "./_auth.js";
 
 // POST /api/push-register {token, platform, prefs}
 // Stores the device's Expo push token and notification preferences for this user.
+//
+// prefs now also carries: tenders (saved-alert pushes), general (founder
+// broadcasts), quiet (true/false), quietFrom and quietTo ("HH:MM", 24h, UK
+// time). Senders check these via shouldPush() below.
+
+// Is this user accepting this kind of push right now?
+export function shouldPush(reg, kind) {
+  if (!reg || !reg.token) return false;
+  const prefs = reg.prefs || {};
+  if (kind && prefs[kind] === false) return false;
+  if (prefs.quiet) {
+    const from = prefs.quietFrom || "22:00";
+    const to = prefs.quietTo || "07:00";
+    const now = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Europe/London" });
+    // window may wrap midnight
+    const inWindow = from <= to ? (now >= from && now < to) : (now >= from || now < to);
+    if (inWindow) return false;
+  }
+  return true;
+}
 const KEY = "push_registration";
 
 export default async function handler(req, res) {

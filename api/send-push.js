@@ -1,4 +1,5 @@
 import { getUser, kvGet, kvListByKey } from "./_auth.js";
+import { shouldPush } from "./push-register.js";
 
 // POST /api/send-push {toUserId?, title, body, data?}
 // Sends an Expo push notification. If toUserId is given, notifies that user;
@@ -30,12 +31,13 @@ export default async function handler(req, res) {
   if (!title || !body) return res.status(400).json({ error: "title and body required" });
 
   const tokens = [];
+  const kind = (req.body || {}).kind || "general";
   if (toUserId) {
     const reg = await kvGet(toUserId, "push_registration");
-    if (reg && reg.token) tokens.push(reg.token);
+    if (shouldPush(reg, kind)) tokens.push(reg.token);
   } else {
     const rows = await kvListByKey("push_registration");
-    for (const { value } of rows) if (value && value.token) tokens.push(value.token);
+    for (const { value } of rows) if (shouldPush(value, kind)) tokens.push(value.token);
   }
 
   const messages = tokens.map((to) => ({
