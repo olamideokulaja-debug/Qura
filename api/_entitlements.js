@@ -36,8 +36,19 @@ export const ENTITLEMENTS = {
 };
 
 // Convenience: read a user's stored plan.
+//
+// Complimentary access (a referral month) lives in its own key, qura_comp,
+// and is only honoured when the user has no paid plan of their own. A real
+// purchase always wins, and the comp simply expires by date, so the Stripe
+// webhook and the referral scheme can never fight over qura_plan.
 export async function planOf(userId) {
-  try { return await kvGet(userId, "qura_plan"); } catch (e) { return null; }
+  try {
+    const plan = await kvGet(userId, "qura_plan");
+    if (plan) return plan;
+    const comp = await kvGet(userId, "qura_comp");
+    if (comp && comp.plan && comp.until && Date.parse(comp.until) > Date.now()) return comp.plan;
+    return plan;
+  } catch (e) { return null; }
 }
 
 // Standard 402-style block payload the app understands as "upgrade to unlock".
