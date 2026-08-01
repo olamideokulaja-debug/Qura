@@ -95,10 +95,10 @@ function normalise(rel, source, url) {
     rate: money(t) || "Value not stated",
     need: (t.mainProcurementCategory || "services"),
     start: ((t.contractPeriod || {}).startDate || "").slice(0, 10) || "Not stated",
-    closes: daysLeft(t) || "See notice",
+    closes: daysLeft(t) || "",
     note: (t.description || "").replace(/\s+/g, " ").slice(0, 260),
     source,
-    url,
+    url: url || null,
     publishedAt: rel.date || null,
     live: true,
   };
@@ -161,7 +161,7 @@ async function euTenders(sinceIso) {
         rate: "Value not stated",
         need: "services",
         start: "Not stated",
-        closes: "See notice",
+        closes: "",
         note: "Published on the EU notice board. Open the notice for full detail.",
         source: "TED (EU)",
         url: "https://ted.europa.eu/en/notice/" + num,
@@ -208,7 +208,7 @@ async function usTenders(sinceIso) {
       rate: "Value not stated",
       need: (o.type || "services"),
       start: (o.postedDate || "").slice(0, 10) || "Not stated",
-      closes: o.responseDeadLine ? String(o.responseDeadLine).slice(0, 10) : "See notice",
+      closes: o.responseDeadLine ? String(o.responseDeadLine).slice(0, 10) : "",
       note: "US federal notice. Open the original for full detail.",
       source: "SAM.gov (US)",
       url: o.uiLink || "https://sam.gov/opp/" + (o.noticeId || ""),
@@ -261,22 +261,41 @@ export default async function handler(req, res) {
     // supplier sees mostly Polish and Spanish notices. UK first, since that is
     // the primary market.
     const CAP = { eu: 20, us: 15 };
-    const items = [
+    let items = [
       ...(Array.isArray(eu) ? eu : []).slice(0, CAP.eu),
       ...(Array.isArray(us) ? us : []).slice(0, CAP.us),
     ];
-    for (const [pkg, source, base] of [
-      [fts, "Find a Tender", "https://www.find-tender.service.gov.uk/Notice/"],
-      [cf, "Contracts Finder", "https://www.contractsfinder.service.gov.uk/Notice/"],
-    ]) {
+    // Notice URLs, verified against the live sites. The identifier differs by
+    // source and neither is the ocid: Find a Tender uses the release id
+    // ("072957-2026"), Contracts Finder uses the uuid embedded in its ocid.
+    // An earlier version derived the reference from the ocid's last segment
+    // and produced 404s on every link.
+    for (const [pkg, source] of [[fts, "Find a Tender"], [cf, "Contracts Finder"]]) {
       for (const rel of ((pkg && pkg.releases) || [])) {
         if (!relevant(rel)) continue;
-        const ref = String(rel.ocid || rel.id || "").split("-").pop();
-        items.push(normalise(rel, source, base + ref));
+        let url = null;
+        if (source === "Find a Tender") {
+          const id = String(rel.id || "").trim();
+          if (id) url = "https://www.find-tender.service.gov.uk/Notice/" + id;
+        } else {
+          const m = String(rel.ocid || "").match(/^ocds-[a-z0-9]+-(.+)$/i);
+          if (m) url = "https://www.contractsfinder.service.gov.uk/notice/" + m[1];
+        }
+        items.push(normalise(rel, source, url));
       }
     }
 
     // newest first, and never the same notice twice
+    // Portals republish amendments as separate notices, so the same contract
+    // arrives several times. Collapse on buyer + title, keeping the newest.
+    const byContract = new Map();
+    for (const it of items) {
+      const k = (it.buyer + "|" + it.title).toLowerCase().replace(/\s+/g, " ").trim();
+      const prev = byContract.get(k);
+      if (!prev || String(it.publishedAt || "") > String(prev.publishedAt || "")) byContract.set(k, it);
+    }
+    items = [...byContract.values()];
+
     const seen = new Set();
     const homeFirst = (x) => (x.source === "Find a Tender" || x.source === "Contracts Finder") ? 0 : 1;
     const unique = items
