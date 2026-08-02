@@ -578,7 +578,7 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
           // Grouped filters: a heading per group with its specialties beneath,
           // rather than one long row of every label. Groups and counts come
           // from the register itself, so this can never drift from the data.
-          const ORDER = ["Clinical", "Non-clinical", "Executive", "Independent"];
+          const ORDER = ["Clinical", "Non-clinical", "Executive", "Governance", "Independent"];
           const byGroup = {};
           for (const d of DMS) {
             if (!d.spec) continue;
