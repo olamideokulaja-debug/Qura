@@ -20,6 +20,8 @@ import { ENTITLEMENTS, planOf } from "./_entitlements.js";
 import { limited } from "./_ratelimit.js";
 
 import { CONTACTS } from "./_contacts.js";
+import { regionOf } from "./_regions.js";
+import { categorise, orgTypeOf, initialsOf } from "./_categorise.js";
 
 function maskEmail(e) {
   if (!e || e.indexOf("@") < 0) return "";
@@ -50,18 +52,39 @@ export default async function handler(req, res) {
     removedNames = new Set((Array.isArray(log) ? log : []).map((r) => String(r.name || "").toLowerCase()));
   } catch (e) {}
 
+  // Contacts added through the admin panel live in storage rather than in the
+  // register file, so the directory can grow without a deploy. Merge them here,
+  // and categorise anything that somehow arrived without a category.
+  let added = [];
+  try {
+    const rows = (await kvGet("shared", "contact_additions")) || [];
+    added = (Array.isArray(rows) ? rows : []).map((c) => {
+      if (c.spec) return c;
+      const cat = categorise(c.role, c.org);
+      return { ...c, spec: cat.category, group: cat.group, orgType: c.orgType || orgTypeOf(c.org), initials: c.initials || initialsOf(c.name) };
+    });
+  } catch (e) {}
+
   const plan = await planOf(user.id);
   // Decision-maker contact details sit with the same tier as the rest of the
   // commercial intelligence.
   const unlocked = ENTITLEMENTS.intelligence(plan);
 
-  const contacts = CONTACTS.filter((c) => !removedNames.has(c.name.toLowerCase())).map((c) => ({
+  // Newest additions first, then the register.
+  const ALL = [...added, ...CONTACTS];
+  const contacts = ALL.filter((c) => !removedNames.has(c.name.toLowerCase())).map((c) => ({
     name: c.name,
     org: c.org,
     role: c.role,
     spec: c.spec,
     group: c.group,
     initials: c.initials,
+    orgType: c.orgType || "",
+    addedAt: c.addedAt || "",
+    // Region is derived from the organisation name rather than stored, so it
+    // stays correct if an organisation is renamed and never has to be
+    // maintained by hand.
+    region: regionOf(c.org + " " + (c.role || "")) || "",
     hasEmail: !!c.email,
     hasPhone: !!c.phone,
     email: unlocked ? c.email : maskEmail(c.email),
