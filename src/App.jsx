@@ -3703,15 +3703,24 @@ function RoleChoiceScreen({ onPick, onHome }) {
 function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSignIn }) {
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
+  const [first, setFirst] = useState("");
+  const [last, setLast] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const submit = async () => {
     if (!supabase) { setMsg("Accounts are not switched on yet."); return; }
     if (!email || !pw) { setMsg("Enter your email and password."); return; }
+    if (mode === "up" && (!first.trim() || !last.trim())) { setMsg("Please enter your first name and surname so we know how to address you."); return; }
     setBusy(true); setMsg("");
     try {
       if (mode === "up") {
-        const { error } = await supabase.auth.signUp({ email, password: pw });
+        // Store the name on the account so the first screen after sign-up can
+        // greet the person by name rather than falling back to anything else.
+        const fullName = (first.trim() + " " + last.trim()).replace(/\s+/g, " ");
+        const { error } = await supabase.auth.signUp({
+          email, password: pw,
+          options: { data: { full_name: fullName, first_name: first.trim(), last_name: last.trim() } },
+        });
         if (error) setMsg(error.message); else setMsg("Account created. If asked, check your email to confirm, then sign in.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
