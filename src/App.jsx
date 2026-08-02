@@ -3719,7 +3719,12 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
         const fullName = (first.trim() + " " + last.trim()).replace(/\s+/g, " ");
         const { error } = await supabase.auth.signUp({
           email, password: pw,
-          options: { data: { full_name: fullName, first_name: first.trim(), last_name: last.trim() } },
+          options: {
+            // Set here rather than relying on the dashboard Site URL, which is
+            // one setting away from silently sending people to the wrong page.
+            emailRedirectTo: window.location.origin + "/confirmed.html",
+            data: { full_name: fullName, first_name: first.trim(), last_name: last.trim() },
+          },
         });
         if (error) setMsg(error.message); else setMsg("Account created. If asked, check your email to confirm, then sign in.");
       } else {
