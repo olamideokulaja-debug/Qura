@@ -3472,7 +3472,7 @@ const NOTIFS = [
   { t: "Round-table seat confirmed", b: "Community Diagnostics forum", time: "3h", i: Ticket, dot: false },
   { t: "Clinician shortlisted", b: "Matched to 2 new roles", time: "1d", i: Stethoscope, dot: false },
 ];
-function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan, onExtend, isOwner, ownerEmail, profileName, onProfileName, founder }) {
+function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan, onExtend, isOwner, ownerEmail, profileName, onProfileName, founder, authUser }) {
   const nav = NAVS[role];
   const [active, setActive] = useState(nav[0].k);
   const [market, setMarket] = useState(role === "hospital" ? "nhs" : "all");
@@ -3499,11 +3499,20 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const meta = ROLE_META[role];
-  const displayName = (profileName && profileName.trim()) || (founder && founder.who) || meta.who;
+  // A signed-in person must never be shown an illustrative persona's name.
+  // Prefer the name on their own account, then the founder identity, and fall
+  // back to a neutral label rather than "Dr. Sarah Ahmed" from the demo data.
+  const accountName = (() => {
+    try {
+      const m = (authUser && authUser.user_metadata) || {};
+      return (m.full_name || [m.first_name, m.last_name].filter(Boolean).join(" ") || "").trim();
+    } catch (e) { return ""; }
+  })();
+  const displayName = (profileName && profileName.trim()) || accountName || (founder && founder.who) || "Your account";
   const displayLabel = (founder && founder.label) || meta.label;
-  const displayImg = (profileName && profileName.trim()) ? undefined : (founder ? founder.img : meta.img);
+  const displayImg = ((profileName && profileName.trim()) || accountName) ? undefined : (founder ? founder.img : meta.img);
   const displayInit = displayName.split(" ").filter(Boolean).slice(-2).map((x) => x[0]).join("").toUpperCase();
-  const firstName = displayName.replace(/^Dr\.?\s+/i, "").split(" ")[0];
+  const firstName = displayName === "Your account" ? "" : displayName.replace(/^Dr\.?\s+/i, "").split(" ")[0];
   const [tour, setTour] = useState(false);
   const [q, setQ] = useState("");
   const [sOpen, setSOpen] = useState(false);
@@ -3736,6 +3745,18 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
         <div className="ph-accent" />
         <h2 className="disp" style={{ fontSize: 26, fontWeight: 700, margin: "0 0 6px" }}>{up ? "Create your account" : ("Sign in to " + APP_NAME)}</h2>
         <p className="muted" style={{ marginTop: 0, fontSize: 14 }}>{up ? (roleLabel ? ("Creating your " + roleLabel + " account") : "Join Qura in a few seconds.") : "Welcome back. Let us find your next opportunity."}</p>
+        {up && (
+          <div className="row" style={{ gap: 10 }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>First name</label>
+              <div className="login-field"><input value={first} onChange={(e) => setFirst(e.target.value)} placeholder="Sam" /></div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>Surname</label>
+              <div className="login-field"><input value={last} onChange={(e) => setLast(e.target.value)} placeholder="Okafor" /></div>
+            </div>
+          </div>
+        )}
         <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>Work email</label>
         <div className="login-field"><Mail size={16} className="faint" /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@qurahealth.org" /></div>
         <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "16px 0 0" }}>Password</label>
@@ -3842,10 +3863,13 @@ export default function App() {
       (async () => {
         let existing = null;
         try { const r = await window.storage?.get("qura_role"); existing = r && r.value ? JSON.parse(r.value) : null; } catch (e) {}
+        let stored = null;
+        try { const r = await window.storage?.get("qura_pending_role"); stored = r && r.value ? JSON.parse(r.value) : null; } catch (e) {}
         if (existing) { setRole(existing); setStage("app"); }
-        else if (pendingRole) { await saveRole(pendingRole); setStage("app"); }
+        else if (pendingRole || stored) { await saveRole(pendingRole || stored); setStage("app"); }
         else { setStage("roleChoice"); }
         setPendingRole(null);
+        try { await window.storage?.delete("qura_pending_role"); } catch (e) {}
       })();
     }
   }, [session, stage]);
@@ -3858,7 +3882,13 @@ export default function App() {
   const enterApp = () => { if (role) setStage("app"); else setStage("roleChoice"); };
   const getStarted = () => { if (supabaseEnabled && session) enterApp(); else setStage("roleChoice"); };
   const goSignIn = () => { if (supabaseEnabled && session) enterApp(); else if (supabaseEnabled) { setPendingRole(null); setAuthMode("in"); setStage("auth"); } else enterApp(); };
-  const pickRole = async (r) => { if (supabaseEnabled && !session) { setPendingRole(r); setAuthMode("up"); setStage("auth"); } else { await saveRole(r); setStage("app"); } };
+  const pickRole = async (r) => {
+    // Persist the choice immediately. Confirming an email opens a new page, so
+    // anything held only in memory is lost and the person gets asked twice.
+    try { await window.storage?.set("qura_pending_role", JSON.stringify(r)); } catch (e) {}
+    if (supabaseEnabled && !session) { setPendingRole(r); setAuthMode("up"); setStage("auth"); }
+    else { await saveRole(r); setStage("app"); }
+  };
   const switchRole = (rk) => { setRole(rk); };
   const logout = async () => { try { if (supabase) await supabase.auth.signOut(); } catch (e) {} setStage("landing"); if (!supabaseEnabled) setRole(null); };
   const home = () => setStage("landing");
@@ -3875,7 +3905,7 @@ export default function App() {
       {stage === "roleChoice" && <RoleChoiceScreen onPick={pickRole} onHome={home} />}
       {stage === "auth" && <AuthPanel mode={authMode} roleLabel={authMode === "up" && pendingRole ? roleLabelOf(pendingRole) : null} onHome={home} onCreateAccount={() => setStage("roleChoice")} onBackToSignIn={() => { setPendingRole(null); setAuthMode("in"); }} />}
       {stage === "signup" && <Signup onHome={home} onSignIn={goSignIn} onChoose={(pl, annual) => { choosePlan(pl, annual); setStage("app"); }} />}
-      {stage === "app" && role && <Shell role={role} trial={trial} plan={plan} onPlan={choosePlan} onExtend={extendTrial} onSignup={() => setStage("signup")} onLogout={logout} onHome={home} onSwitch={switchRole} isOwner={isOwner} ownerEmail={email} profileName={profileName} onProfileName={setProfileName} founder={founder} />}
+      {stage === "app" && role && <Shell authUser={session && session.user} role={role} trial={trial} plan={plan} onPlan={choosePlan} onExtend={extendTrial} onSignup={() => setStage("signup")} onLogout={logout} onHome={home} onSwitch={switchRole} isOwner={isOwner} ownerEmail={email} profileName={profileName} onProfileName={setProfileName} founder={founder} />}
     </div>
   );
 }
