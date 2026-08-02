@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { categorise, orgTypeOf, initialsOf } from "./_categorise.js";
 
 export default async function handler(req, res) {
   const sbUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -46,6 +47,35 @@ export default async function handler(req, res) {
         item.updatedBy = email;
         await kvWrite("shared", "intro_queue", queue);
         return res.status(200).json({ ok: true, item });
+      }
+
+      // ---- add a contact, categorised automatically from the job title ----
+      // Added contacts live in storage, not in the register file, so growing
+      // the directory no longer needs a deploy. The reading endpoint merges
+      // the two.
+      if (action === "contact-add") {
+        const { name, org, role, email, phone } = req.body || {};
+        if (!name || !String(name).trim()) return res.status(400).json({ error: "A name is required." });
+        if (!org || !String(org).trim()) return res.status(400).json({ error: "An organisation is required, or the contact cannot be categorised or filtered." });
+        const clean = (v, n) => String(v || "").replace(/\s+/g, " ").trim().slice(0, n);
+        const nm = clean(name, 60), og = clean(org, 120), rl = clean(role, 120) || "Decision Maker";
+        const em = clean(email, 120).toLowerCase();
+        if (em && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return res.status(400).json({ error: "That email address does not look right." });
+
+        const added = (await kvRead("shared", "contact_additions")) || [];
+        const list = Array.isArray(added) ? added : [];
+        if (list.some((c) => c.name.toLowerCase() === nm.toLowerCase() && c.org.toLowerCase() === og.toLowerCase())) {
+          return res.status(409).json({ error: "That person is already in the directory at that organisation." });
+        }
+        const cat = categorise(rl, og);
+        const rec = {
+          name: nm, org: og, role: rl, email: em, phone: clean(phone, 40),
+          spec: cat.category, group: cat.group, orgType: orgTypeOf(og),
+          initials: initialsOf(nm), addedAt: new Date().toISOString().slice(0, 10),
+          addedBy: email,
+        };
+        await kvWrite("shared", "contact_additions", [rec, ...list]);
+        return res.status(200).json({ ok: true, contact: rec, reason: cat.reason });
       }
 
       // ---- directory removals, with the log that makes them stick ----
