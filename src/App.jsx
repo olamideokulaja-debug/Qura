@@ -3844,7 +3844,23 @@ export default function App() {
   const isOwner = OWNER_EMAILS.length === 0 || OWNER_EMAILS.includes(email) || Boolean(FOUNDER_IDENTITY[email]);
 
   const loadAccount = async () => {
-    try { const r = await window.storage?.get("qura_role"); setRole(r && r.value ? JSON.parse(r.value) : null); } catch (e) {}
+    // Confirming an email lands the person on the home page, not the sign-in
+    // page, so the role they chose before signing up has to be promoted here
+    // too. Without this they are asked which best describes them a second time.
+    try {
+      const r = await window.storage?.get("qura_role");
+      let existing = r && r.value ? JSON.parse(r.value) : null;
+      if (!existing) {
+        const pr = await window.storage?.get("qura_pending_role");
+        const stored = pr && pr.value ? JSON.parse(pr.value) : null;
+        if (stored) {
+          existing = stored;
+          try { await window.storage?.set("qura_role", JSON.stringify(stored)); } catch (e) {}
+          try { await window.storage?.delete("qura_pending_role"); } catch (e) {}
+        }
+      }
+      setRole(existing);
+    } catch (e) {}
     try { const t = await window.storage?.get("qura_trial"); if (t?.value) setTrial(JSON.parse(t.value)); } catch (e) {}
     try { const pl = await window.storage?.get("qura_plan"); if (pl?.value) setPlan(JSON.parse(pl.value)); } catch (e) {}
   };
