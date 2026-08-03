@@ -525,13 +525,21 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
 };
 const DecisionMakers = ({ plan = "starter", onToast }) => {
   const { contacts: DMS, loading: dmsLoading, denied: dmsDenied } = useContacts();
-  const [q, setQ] = useState(""); const [sp, setSp] = useState("All");
+
+  const [q, setQ] = useState("");
+  const [sp, setSp] = useState("All");
   const [org, setOrg] = useState("All");
   const [reg, setReg] = useState("All");
   const [otype, setOtype] = useState("All");
   const [recent, setRecent] = useState(false);
   const [favOnly, setFavOnly] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [openContact, setOpenContact] = useState(null);
+  const [revealed, setRevealed] = useState({});
+  const [pick, setPick] = useState([]);
+  const [shot, setShot] = useState(false);
   const [favs, setFavs] = useState({});
+
   // Favourites live on the account, so they follow a subscriber between devices.
   useEffect(() => {
     let dead = false;
@@ -540,8 +548,9 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
     })();
     return () => { dead = true; };
   }, []);
+  const keyOf = (d) => d.name + "|" + d.org;
   const toggleFav = (d) => {
-    const k = d.name + "|" + d.org;
+    const k = keyOf(d);
     setFavs((prev) => {
       const next = { ...prev };
       if (next[k]) delete next[k]; else next[k] = 1;
@@ -549,34 +558,42 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
       return next;
     });
   };
-  // How many other named people we hold at each organisation. Counted once
-  // here rather than per card, so a 348-row list does not do 348 scans.
-  const [similarFor, setSimilarFor] = useState(null);
+
+  // Colour by category name, so a category is the same colour everywhere and
+  // adding one never reshuffles the palette.
+  const CAT_COLOUR = {
+    "Audiology": "#1E54E6", "Radiology & Imaging": "#0E8C7E", "Diagnostics": "#7A3FD4",
+    "Medical Leadership": "#C2410C", "Executive Leadership": "#0A1A30", "Chairs": "#8A6D1F",
+    "Procurement": "#1D7A5F", "Workforce & Staffing": "#B4433A", "Strategy & Transformation": "#2563A8",
+    "Operations": "#6B5B95", "NHS Managers": "#5A6783", "NHS Contacts": "#8A97AE",
+    "Independent Contacts": "#9A5E00",
+  };
+  const catColour = (x) => CAT_COLOUR[x] || "#1E54E6";
+
   // Scored rather than matched on one field: same category counts most, then
-  // the same organisation type, then the same region. A saved contact is
-  // nudged up, so the more a subscriber saves the better this gets.
+  // organisation type, then region. A saved contact is nudged up, so the more
+  // a subscriber saves the better this gets.
   const similarTo = (d) => DMS
-    .filter((x) => (x.name + x.org) !== (d.name + d.org))
+    .filter((x) => keyOf(x) !== keyOf(d))
     .map((x) => {
       let sc = 0;
       if (x.spec && x.spec === d.spec) sc += 4;
       if (x.orgType && x.orgType === d.orgType) sc += 2;
       if (x.region && x.region === d.region) sc += 2;
       if (x.org === d.org) sc += 1;
-      if (favs[x.name + "|" + x.org]) sc += 1;
+      if (favs[keyOf(x)]) sc += 1;
       if (x.email) sc += 1;
       return { x, sc };
     })
-    .filter((r) => r.sc >= 4)
-    .sort((a2, b2) => b2.sc - a2.sc)
-    .slice(0, 5)
-    .map((r) => r.x);
+    .filter((r) => r.sc >= 4).sort((a2, b2) => b2.sc - a2.sc).slice(0, 5).map((r) => r.x);
 
   const orgTally = React.useMemo(() => {
     const t = {};
     for (const d of DMS) if (d.org) t[d.org] = (t[d.org] || 0) + 1;
     return t;
   }, [DMS]);
+  const colleaguesOf = (d) => DMS.filter((x) => x.org === d.org && keyOf(x) !== keyOf(d)).slice(0, 6);
+
   const tier = CREDIT_TIERS[plan] || CREDIT_TIERS.starter;
   const today = new Date().toISOString().slice(0, 10);
   const [used, setUsed] = useState({ date: today, dm: 0, invite: 0 });
@@ -586,186 +603,304 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
   const inviteLeft = Math.max(0, tier.invite - used.invite);
   const spendDM = (n) => { if (used.dm + n > tier.dm) { if (onToast) onToast("Out of message credits today. Upgrade for more."); return false; } persist({ date: today, dm: used.dm + n, invite: used.invite }); return true; };
   const spendInvite = (n) => { if (used.invite + n > tier.invite) { if (onToast) onToast("Out of follow-invite credits today. Upgrade for more."); return false; } persist({ date: today, dm: used.dm, invite: used.invite + n }); return true; };
-  const [shot, setShot] = useState(false); const [pick, setPick] = useState([]);
-  const list = DMS.filter((d) => (sp === "All" || (sp === "__none" ? !d.spec : d.spec === sp)) && (org === "All" || d.org === org) && (reg === "All" || (reg === "__none" ? !d.region : d.region === reg)) && (otype === "All" || d.orgType === otype) && (!recent || d.addedAt >= "2026-08-01") && (!favOnly || favs[d.name + "|" + d.org]) && (d.name.toLowerCase().includes(q.toLowerCase()) || d.org.toLowerCase().includes(q.toLowerCase())));
-  // Colour by category name, so every chip for a category is the same colour
-  // everywhere and adding a category never reshuffles the palette.
-  const CAT_COLOUR = {
-    "Audiology": "#1E54E6", "Radiology & Imaging": "#0E8C7E", "Diagnostics": "#7A3FD4",
-    "Medical Leadership": "#C2410C", "Executive Leadership": "#0A1A30", "Chairs": "#8A6D1F",
-    "Procurement": "#1D7A5F", "Workforce & Staffing": "#B4433A", "Strategy & Transformation": "#2563A8",
-    "Operations": "#6B5B95", "NHS Managers": "#5A6783", "NHS Contacts": "#8A97AE",
-    "Independent Contacts": "#9A5E00",
-  };
-  const specChip = (x) => CAT_COLOUR[x] || "#1E54E6";
-  const keyOf = (d) => d.name + "|" + d.org;
-  const toggle = (k) => setPick((p) => p.includes(k) ? p.filter((x) => x !== k) : [...p, k]);
-  const reveal = (d) => { if (spendDM(1) && onToast) onToast("Contact revealed for " + d.name + " · 1 credit used"); };
+  const reveal = (d) => { if (spendDM(1)) { setRevealed((p) => ({ ...p, [keyOf(d)]: true })); if (onToast) onToast("Contact revealed for " + d.name + " · 1 credit used"); } };
   const invite = (d) => { if (spendInvite(1) && onToast) onToast("Follow invite sent to " + d.name); };
-  const sendShot = () => { if (!pick.length) return; if (spendDM(pick.length) && onToast) { onToast("Mailshot sent to " + pick.length + " decision-makers · " + pick.length + " credits used"); setPick([]); setShot(false); } };
+  const toggle = (k) => setPick((p) => p.includes(k) ? p.filter((x) => x !== k) : [...p, k]);
+
+  // ---- filtering ----
+  const ql = q.trim().toLowerCase();
+  const list = DMS.filter((d) =>
+    (sp === "All" || (sp === "__none" ? !d.spec : d.spec === sp)) &&
+    (org === "All" || d.org === org) &&
+    (reg === "All" || (reg === "__none" ? !d.region : d.region === reg)) &&
+    (otype === "All" || d.orgType === otype) &&
+    (!recent || d.addedAt >= "2026-08-01") &&
+    (!favOnly || favs[keyOf(d)]) &&
+    (!ql || (d.name + " " + d.org + " " + (d.role || "") + " " + (d.spec || "")).toLowerCase().includes(ql))
+  );
+
+  const cats = Array.from(new Set(DMS.map((d) => d.spec).filter(Boolean))).sort();
+  const orgs = Array.from(new Set(DMS.map((d) => d.org).filter(Boolean))).sort();
+  const regs = Array.from(new Set(DMS.map((d) => d.region).filter(Boolean))).sort();
+  const types = Array.from(new Set(DMS.map((d) => d.orgType).filter(Boolean))).sort();
+  const favCount = Object.keys(favs).length;
+  const clearAll = () => { setSp("All"); setOrg("All"); setReg("All"); setOtype("All"); setRecent(false); setFavOnly(false); setQ(""); };
+
+  // Active filters shown as removable pills, so what is applied is never a mystery.
+  const active = [
+    sp !== "All" && { label: sp === "__none" ? "Not categorised" : sp, clear: () => setSp("All") },
+    org !== "All" && { label: org, clear: () => setOrg("All") },
+    reg !== "All" && { label: reg === "__none" ? "No region" : reg, clear: () => setReg("All") },
+    otype !== "All" && { label: otype, clear: () => setOtype("All") },
+    recent && { label: "Recently added", clear: () => setRecent(false) },
+    favOnly && { label: "Saved only", clear: () => setFavOnly(false) },
+    ql && { label: '"' + q.trim() + '"', clear: () => setQ("") },
+  ].filter(Boolean);
+
+  const sel = { border: "1px solid var(--line)", borderRadius: 10, padding: "9px 12px", fontSize: 13.5, background: "#fff", color: "var(--text)", maxWidth: 260 };
+  const masked = (v, kind) => {
+    if (!v) return "";
+    return kind === "email" ? v.replace(/^(.).*(@.).*(\..+)$/, "$1•••••$2•••$3") : v;
+  };
+
+  if (dmsDenied) return <div className="card" style={{ padding: 24 }}>Sign in to view the decision-maker directory.</div>;
+
   return (
     <div>
-      <PageHead title="Decision makers" sub={"Named healthcare decision-makers across " + REGISTER.orgs + " NHS and independent organisations, researched and maintained by the founders. Contact details are held back until you choose to reveal them."} right={<><button className="btn btn-light" style={{ marginRight: 8 }} onClick={async () => {
-        try {
-          const { data } = await supabase.auth.getSession();
-          const t = (data && data.session && data.session.access_token) || "";
-          const r = await fetch("/api/contacts-export", { headers: t ? { Authorization: "Bearer " + t } : {} });
-          if (!r.ok) { const j = await r.json().catch(() => ({})); alert(j.error || "Export is not available on your plan."); return; }
-          const blob = await r.blob();
-          const a = document.createElement("a");
-          a.href = URL.createObjectURL(blob);
-          a.download = "qura-decision-makers.csv";
-          a.click();
-          URL.revokeObjectURL(a.href);
-        } catch (e) { alert("Could not export just now. Please try again."); }
-      }}>Export CSV</button><button className={"btn " + (shot ? "btn-primary" : "btn-light")} onClick={() => { setShot((v) => !v); setPick([]); }}><Send size={14} /> {shot ? "Cancel mailshot" : "Mailshot"}</button></>} />
-      <div className="grid-stats" style={{ marginBottom: 14 }}><Stat label="NHS trusts & ICBs in England" value="250+" icon={Building2} /><Stat label="Founder community" value="13,000+" icon={Users} accent="cyan" /><Stat label="Researched contacts" value={String(REGISTER.deduped)} icon={ShieldCheck} /></div>
-      <div className="card" style={{ padding: "14px 16px", marginBottom: 14, background: "#F4F7FB", border: "1px solid var(--line)" }}>
-        <div style={{ fontSize: 12.5, lineHeight: 1.65, color: "var(--muted)" }}>
-          <strong style={{ color: "var(--navy)" }}>How this directory was built.</strong> This is a founder-populated
-          directory, compiled over many years from publicly available business information: official organisation
-          websites, publicly accessible professional profiles, conference and event speaker listings, published
-          papers, board papers and other legitimate public sources. It has been independently researched, verified
-          and maintained by Qura's founders so that you do not have to repeat that work.
-          {" "}Qura claims no ownership of any individual's contact information, and the directory is provided solely
-          to support legitimate business communication between healthcare organisations, suppliers and professionals.
-          Records are reviewed and updated regularly, and any individual can ask to be removed at
-          {" "}<a href="mailto:privacy@qurahealth.org" style={{ color: "var(--teal)" }}>privacy@qurahealth.org</a>,
-          which we action promptly. Please use these details professionally and in line with our
-          {" "}<a href="/terms.html" style={{ color: "var(--teal)" }}>terms</a>.
-        </div>
-      </div>
+      <PageHead
+        title="Decision makers"
+        sub={REGISTER.deduped + " named healthcare decision-makers across " + REGISTER.orgs + " organisations, researched and maintained by the founders."}
+        right={<div className="row" style={{ gap: 8 }}>
+          <button className="btn btn-light" onClick={async () => {
+            try {
+              const { data } = await supabase.auth.getSession();
+              const t = (data && data.session && data.session.access_token) || "";
+              const r = await fetch("/api/contacts-export", { headers: t ? { Authorization: "Bearer " + t } : {} });
+              if (!r.ok) { const j = await r.json().catch(() => ({})); alert(j.error || "Export is not available on your plan."); return; }
+              const blob = await r.blob();
+              const a = document.createElement("a");
+              a.href = URL.createObjectURL(blob); a.download = "qura-decision-makers.csv"; a.click();
+              URL.revokeObjectURL(a.href);
+            } catch (e) { alert("Could not export just now. Please try again."); }
+          }}>Export</button>
+          <button className={"btn " + (shot ? "btn-primary" : "btn-light")} onClick={() => { setShot((v) => !v); setPick([]); }}>
+            <Send size={14} /> {shot ? "Done" : "Mailshot"}
+          </button>
+        </div>}
+      />
 
-      <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--navy)", color: "#fff", border: "none" }}>
-        <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-          <div className="row" style={{ gap: 20 }}>
-            <div><div className="disp" style={{ fontSize: 22, fontWeight: 700 }}>{dmLeft}<span style={{ fontSize: 13, color: "#8295B6" }}> / {tier.dm}</span></div><div style={{ fontSize: 12, color: "#9FB0D0" }}>Message credits today</div></div>
-            <div><div className="disp" style={{ fontSize: 22, fontWeight: 700 }}>{inviteLeft}<span style={{ fontSize: 13, color: "#8295B6" }}> / {tier.invite}</span></div><div style={{ fontSize: 12, color: "#9FB0D0" }}>Follow-invites today</div></div>
-          </div>
-          <div className="hsm" style={{ maxWidth: 330, fontSize: 12, color: "#9FB0D0", lineHeight: 1.5 }}>Credits keep Qura specialist, not spam. They reset daily and scale with your plan, so every message to a hospital is a considered one.</div>
+      {/* Provenance, kept but quietened: one line, expandable. It has to be here,
+          it does not have to shout over the contacts. */}
+      <details style={{ marginBottom: 14 }}>
+        <summary style={{ cursor: "pointer", fontSize: 12.5, color: "var(--muted)", listStyle: "none" }}>
+          How this directory was built, and how to be removed
+        </summary>
+        <div style={{ fontSize: 12.5, lineHeight: 1.65, color: "var(--muted)", marginTop: 8, background: "#F4F7FB", borderRadius: 12, padding: "12px 14px" }}>
+          A founder-populated directory, compiled over many years from publicly available business information: official organisation
+          websites, publicly accessible professional profiles, conference and event speaker listings, published papers and board papers.
+          Independently researched, verified and maintained by Qura's founders. Qura claims no ownership of any individual's contact
+          information, and the directory supports legitimate business communication only. Anyone can ask to be removed at{" "}
+          <a href="mailto:privacy@qurahealth.org" style={{ color: "var(--teal)" }}>privacy@qurahealth.org</a>, which we action promptly.
         </div>
-      </div>
-      <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-        <div className="row" style={{ gap: 8, border: "1px solid var(--line)", borderRadius: 999, padding: "0 14px", background: "var(--bg2)", marginBottom: 12 }}><Search size={16} className="faint" /><input className="in" style={{ border: "none", boxShadow: "none", padding: "10px 0" }} placeholder="Search name or organisation" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-        <div className="row scrollx" style={{ gap: 8, overflowX: "auto", paddingBottom: 4 }}>{(() => {
-          // Organisation and region narrow the list before the category chips
-          // do. Both are built from the register itself and only offer values
-          // that actually exist, so a filter can never return nothing.
-          const orgs = Array.from(new Set(DMS.map((d) => d.org).filter(Boolean))).sort();
-          const regs = Array.from(new Set(DMS.map((d) => d.region).filter(Boolean))).sort();
-          const unplaced = DMS.filter((d) => !d.region).length;
-          const types = Array.from(new Set(DMS.map((d) => d.orgType).filter(Boolean))).sort();
-          const favCount = Object.keys(favs).length;
-          const sel = { border: "1px solid var(--line)", borderRadius: 10, padding: "8px 12px", fontSize: 13.5, background: "#fff", color: "var(--text)", maxWidth: 300 };
-          return (
-            <div className="row" style={{ gap: 10, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
-              <select value={org} onChange={(e) => setOrg(e.target.value)} style={sel} aria-label="Filter by organisation">
-                <option value="All">All organisations ({orgs.length})</option>
-                {orgs.map((o) => <option key={o} value={o}>{o}</option>)}
-              </select>
-              <select value={reg} onChange={(e) => setReg(e.target.value)} style={sel} aria-label="Filter by region">
-                <option value="All">All regions</option>
-                {regs.map((r) => <option key={r} value={r}>{r}</option>)}
-                {unplaced ? <option value="__none">Not mapped to a region ({unplaced})</option> : null}
-              </select>
-              <select value={otype} onChange={(e) => setOtype(e.target.value)} style={sel} aria-label="Filter by organisation type">
-                <option value="All">All organisation types</option>
-                {types.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-              <button onClick={() => setRecent((v) => !v)} className={"chip " + (recent ? "chip-blue" : "")}
-                style={{ cursor: "pointer", border: "1px solid var(--line)" }}>Recently added</button>
-              <button onClick={() => setFavOnly((v) => !v)} className={"chip " + (favOnly ? "chip-blue" : "")}
-                style={{ cursor: "pointer", border: "1px solid var(--line)" }}>
-                {"\u2605"} Saved{favCount ? " (" + favCount + ")" : ""}
+      </details>
+
+      {/* Search leads, because people arrive knowing a trust or a discipline. */}
+      <div className="card" style={{ padding: 14, marginBottom: 14 }}>
+        <div className="row" style={{ gap: 10, alignItems: "center", border: "1px solid var(--line)", borderRadius: 12, padding: "11px 14px", background: "var(--bg)" }}>
+          <Search size={17} color="var(--muted)" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search a name, organisation or job title"
+            style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 15, color: "var(--text)" }} />
+          {q ? <button onClick={() => setQ("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 18, lineHeight: 1 }}>×</button> : null}
+        </div>
+
+        <div className="row" style={{ gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <select value={sp} onChange={(e) => setSp(e.target.value)} style={sel} aria-label="Filter by category">
+            <option value="All">All categories</option>
+            {cats.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+          <select value={reg} onChange={(e) => setReg(e.target.value)} style={sel} aria-label="Filter by region">
+            <option value="All">All regions</option>
+            {regs.map((r) => <option key={r} value={r}>{r}</option>)}
+            <option value="__none">No region recorded</option>
+          </select>
+          <select value={otype} onChange={(e) => setOtype(e.target.value)} style={sel} aria-label="Filter by organisation type">
+            <option value="All">All organisation types</option>
+            {types.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+          <button className="btn btn-light" style={{ fontSize: 13 }} onClick={() => setMoreOpen((v) => !v)}>
+            {moreOpen ? "Fewer filters" : "More filters"}
+          </button>
+        </div>
+
+        {moreOpen ? (
+          <div className="row" style={{ gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <select value={org} onChange={(e) => setOrg(e.target.value)} style={{ ...sel, maxWidth: 340 }} aria-label="Filter by organisation">
+              <option value="All">All organisations ({orgs.length})</option>
+              {orgs.map((o) => <option key={o} value={o}>{o}</option>)}
+            </select>
+            <button onClick={() => setRecent((v) => !v)} className={"chip " + (recent ? "chip-blue" : "")} style={{ cursor: "pointer", border: "1px solid var(--line)" }}>Recently added</button>
+            <button onClick={() => setFavOnly((v) => !v)} className={"chip " + (favOnly ? "chip-blue" : "")} style={{ cursor: "pointer", border: "1px solid var(--line)" }}>
+              ★ Saved{favCount ? " (" + favCount + ")" : ""}
+            </button>
+          </div>
+        ) : null}
+
+        {active.length ? (
+          <div className="row" style={{ gap: 6, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
+            {active.map((a2, i) => (
+              <button key={i} onClick={a2.clear} className="chip" style={{ cursor: "pointer", background: "var(--cyan-soft)", color: "#06776F", border: "none" }}>
+                {a2.label} ×
               </button>
-              {(org !== "All" || reg !== "All" || sp !== "All" || otype !== "All" || recent || favOnly) ? (
-                <button className="btn btn-light" style={{ fontSize: 12.5 }} onClick={() => { setOrg("All"); setReg("All"); setSp("All"); setOtype("All"); setRecent(false); setFavOnly(false); }}>Clear filters</button>
-              ) : null}
-            </div>
-          );
-        })()}
-
-        {(() => {
-          // Grouped filters: a heading per group with its specialties beneath,
-          // rather than one long row of every label. Groups and counts come
-          // from the register itself, so this can never drift from the data.
-          const ORDER = ["Clinical", "Non-clinical", "Executive", "Governance", "Independent"];
-          const byGroup = {};
-          for (const d of DMS) {
-            if (!d.spec) continue;
-            (byGroup[d.group || "Other"] = byGroup[d.group || "Other"] || {});
-            byGroup[d.group || "Other"][d.spec] = (byGroup[d.group || "Other"][d.spec] || 0) + 1;
-          }
-          const groups = ORDER.filter((g) => byGroup[g]);
-          const unlabelled = DMS.filter((d) => !d.spec).length;
-          return (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-                <button onClick={() => setSp("All")} className={"chip " + (sp === "All" ? "chip-blue" : "")} style={{ cursor: "pointer", border: "1px solid var(--line)" }}>All ({DMS.length})</button>
-                {unlabelled ? <button onClick={() => setSp("__none")} className={"chip " + (sp === "__none" ? "chip-blue" : "")} style={{ cursor: "pointer", border: "1px solid var(--line)" }}>Not yet categorised ({unlabelled})</button> : null}
-              </div>
-              {groups.map((g) => (
-                <div key={g} className="row" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <span className="faint" style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", minWidth: 96 }}>{g}</span>
-                  {Object.keys(byGroup[g]).sort().map((m) => (
-                    <button key={m} onClick={() => setSp(m)} className={"chip " + (sp === m ? "chip-blue" : "")} style={{ cursor: "pointer", border: "1px solid var(--line)" }}>
-                      {m} ({byGroup[g][m]})
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </div>
-          );
-        })()}</div>
-      </div>
-      <div className="muted" style={{ fontSize: 13, marginBottom: 12 }}>{list.length} contacts shown{shot ? " · tap cards to select, then send" : ""}</div>
-      <div className="grid-3">{list.map((d, i) => { const k = keyOf(d); const on = pick.includes(k); return (
-        <div key={i} className="card lift" style={{ padding: 18, border: on ? "2px solid var(--cyan)" : "1px solid var(--line)", cursor: shot ? "pointer" : "default" }} onClick={shot ? () => toggle(k) : undefined}>
-          <div className="row" style={{ justifyContent: "space-between" }}><Avatar initials={d.initials || d.name.split(" ").filter(Boolean).slice(-2).map((x) => x[0]).join("").toUpperCase()} size={44} />{shot ? <span style={{ width: 22, height: 22, borderRadius: 999, border: "2px solid " + (on ? "var(--cyan)" : "var(--line)"), background: on ? "var(--cyan)" : "#fff", display: "grid", placeItems: "center" }}>{on ? <Check size={13} color="#fff" /> : null}</span> : (d.spec ? <span className="chip" style={{ background: specChip(d.spec) + "1A", color: specChip(d.spec) }}>{d.spec}</span> : null)}</div>
-          <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start", marginTop: 12, gap: 8 }}>
-            <div style={{ fontWeight: 600, fontSize: 15 }}>{d.name}</div>
-            <button onClick={() => toggleFav(d)} title={favs[d.name + "|" + d.org] ? "Remove from saved" : "Save this contact"}
-              style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 16, lineHeight: 1, color: favs[d.name + "|" + d.org] ? "#E0A526" : "#C7D2E2" }}>
-              {favs[d.name + "|" + d.org] ? "\u2605" : "\u2606"}
-            </button>
+            ))}
+            <button onClick={clearAll} className="hsm" style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 12.5 }}>Clear all</button>
           </div>
-          <div className="muted" style={{ fontSize: 13 }}>{d.role}</div>
-          <div style={{ fontSize: 13, marginTop: 6 }}>{d.org}{d.region ? <span className="faint"> · {d.region}</span> : null}{d.orgType ? <span className="faint"> · {d.orgType}</span> : null}</div>
-          <div className="faint row" style={{ fontSize: 12, gap: 6, marginTop: 8 }}><Mail size={12} /><span style={{ letterSpacing: 1 }}>{"•••••@•••"}</span></div>
-          {similarTo(d).length ? (
-            <button onClick={() => setSimilarFor(similarFor && similarFor.name === d.name ? null : d)}
-              className="hsm"
-              style={{ display: "block", marginTop: 6, background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--muted)", fontSize: 12.5, textAlign: "left" }}>
-              People similar to this contact
-            </button>
-          ) : null}
-          {similarFor && similarFor.name === d.name && similarFor.org === d.org ? (
-            <div style={{ marginTop: 8, background: "var(--bg)", borderRadius: 10, padding: 10 }}>
-              {similarTo(d).map((x) => (
-                <div key={x.name + x.org} style={{ fontSize: 12.5, padding: "4px 0" }}>
-                  <span style={{ fontWeight: 600 }}>{x.name}</span>
-                  <span className="faint"> {"\u00b7"} {x.role !== "Decision Maker" ? x.role : x.spec}</span>
-                  <div className="faint" style={{ fontSize: 11.5 }}>{x.org}</div>
-                </div>
-              ))}
-            </div>
-          ) : null}
-                    {(orgTally[d.org] || 0) > 1 ? (
-            <button
-              onClick={() => { setOrg(d.org); setReg("All"); setSp("All"); setOtype("All"); }}
-              className="hsm"
-              style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", color: "var(--teal)", fontSize: 12.5, fontWeight: 600, textAlign: "left" }}
-              title={"Show everyone we hold at " + d.org}>
-              {(orgTally[d.org] - 1)} more at this organisation
-            </button>
-          ) : null}
-          {!shot && <div className="row" style={{ gap: 8, marginTop: 14 }}><button className="btn btn-ghost hsm" style={{ flex: 1, justifyContent: "center", padding: "9px", fontSize: 13 }} onClick={() => reveal(d)}><Mail size={14} /> Reveal (1)</button><button className="btn btn-light hsm" style={{ justifyContent: "center", padding: "9px 11px" }} onClick={() => invite(d)} title="Invite to follow your company"><Bell size={14} /></button></div>}
+        ) : null}
+      </div>
+
+      <div className="row" style={{ justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+        <div className="faint" style={{ fontSize: 13 }}>
+          {dmsLoading ? "Loading…" : list.length + (list.length === 1 ? " contact" : " contacts") + (active.length ? " matching" : "")}
         </div>
-      ); })}</div>
-      {shot && <div style={{ position: "sticky", bottom: 16, marginTop: 16 }}><div className="card" style={{ padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 8px 30px rgba(10,23,48,.18)" }}><div style={{ fontSize: 13.5 }}><b>{pick.length}</b> selected · costs <b>{pick.length}</b> credit{pick.length === 1 ? "" : "s"} ({dmLeft} left today)</div><button className="btn btn-primary" onClick={sendShot} disabled={!pick.length || pick.length > dmLeft}><Send size={15} /> Send mailshot</button></div></div>}
+        <div className="faint" style={{ fontSize: 12 }}>{dmLeft}/{tier.dm} reveals today</div>
+      </div>
+
+      {/* Compact rows. The row is a target that opens the profile; everything
+          else lives in the panel, so the list stays scannable. */}
+      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        {list.length === 0 && !dmsLoading ? (
+          <div style={{ padding: 28, textAlign: "center" }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Nothing matches those filters</div>
+            <div className="faint" style={{ fontSize: 13 }}>Try clearing one, or search by organisation instead.</div>
+          </div>
+        ) : null}
+        {list.map((d, i) => {
+          const k = keyOf(d);
+          const on = pick.includes(k);
+          return (
+            <div key={k} className="lift" onClick={() => (shot ? toggle(k) : setOpenContact(d))}
+              style={{ display: "flex", gap: 14, alignItems: "center", padding: "13px 16px", cursor: "pointer",
+                borderTop: i ? "1px solid var(--line)" : "none", background: on ? "var(--cyan-soft)" : "#fff" }}>
+              {shot ? (
+                <span style={{ width: 20, height: 20, borderRadius: 6, border: "2px solid " + (on ? "var(--teal)" : "var(--line)"), background: on ? "var(--teal)" : "#fff", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                  {on ? <Check size={12} color="#fff" /> : null}
+                </span>
+              ) : (
+                <span style={{ width: 38, height: 38, borderRadius: 999, background: "var(--navy)", color: "#fff", display: "grid", placeItems: "center", fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+                  {d.initials || d.name.slice(0, 2).toUpperCase()}
+                </span>
+              )}
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 14.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{d.name}</div>
+                <div className="faint" style={{ fontSize: 12.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {d.role && d.role !== "Decision Maker" ? d.role + " · " : ""}{d.org}
+                </div>
+              </div>
+
+              <div className="hsm" style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+                {d.region ? <span className="faint" style={{ fontSize: 12 }}>{d.region}</span> : null}
+                {d.spec ? (
+                  <span className="chip" style={{ background: catColour(d.spec) + "14", color: catColour(d.spec), fontSize: 11.5 }}>{d.spec}</span>
+                ) : null}
+              </div>
+
+              <button onClick={(e) => { e.stopPropagation(); toggleFav(d); }} title={favs[k] ? "Remove from saved" : "Save this contact"}
+                style={{ background: "none", border: "none", cursor: "pointer", padding: 4, fontSize: 15, lineHeight: 1, color: favs[k] ? "#E0A526" : "#C7D2E2", flexShrink: 0 }}>
+                {favs[k] ? "★" : "☆"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {shot && pick.length ? (
+        <div className="card" style={{ padding: 14, marginTop: 14, position: "sticky", bottom: 14, boxShadow: "0 8px 30px rgba(18,38,63,.14)" }}>
+          <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+            <div style={{ fontSize: 14 }}><strong>{pick.length}</strong> selected for a mailshot</div>
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn btn-light" onClick={() => setPick([])}>Clear</button>
+              <button className="btn btn-primary" onClick={() => { if (spendDM(pick.length) && onToast) { onToast("Mailshot queued to " + pick.length + " contacts"); setPick([]); setShot(false); } }}>
+                Send to {pick.length}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* The profile panel. This is the destination now, so everything about a
+          contact lives here rather than crowding the list. */}
+      {openContact ? (
+        <div onClick={() => setOpenContact(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(10,26,48,.42)", zIndex: 60, display: "flex", justifyContent: "flex-end" }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ width: "min(460px, 100%)", background: "#fff", height: "100%", overflowY: "auto", padding: 24, boxShadow: "-12px 0 40px rgba(10,26,48,.18)" }}>
+            <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
+              <span style={{ width: 52, height: 52, borderRadius: 999, background: "var(--navy)", color: "#fff", display: "grid", placeItems: "center", fontSize: 17, fontWeight: 700 }}>
+                {openContact.initials || openContact.name.slice(0, 2).toUpperCase()}
+              </span>
+              <button onClick={() => setOpenContact(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 22, color: "var(--muted)", lineHeight: 1 }}>×</button>
+            </div>
+
+            <div style={{ fontWeight: 700, fontSize: 20, marginTop: 14 }}>{openContact.name}</div>
+            {openContact.role && openContact.role !== "Decision Maker" ? (
+              <div className="muted" style={{ fontSize: 14, marginTop: 2 }}>{openContact.role}</div>
+            ) : null}
+            <div style={{ fontSize: 14, marginTop: 8 }}>{openContact.org}</div>
+            <div className="row" style={{ gap: 6, marginTop: 10, flexWrap: "wrap" }}>
+              {openContact.spec ? <span className="chip" style={{ background: catColour(openContact.spec) + "14", color: catColour(openContact.spec) }}>{openContact.spec}</span> : null}
+              {openContact.orgType ? <span className="chip">{openContact.orgType}</span> : null}
+              {openContact.region ? <span className="chip">{openContact.region}</span> : null}
+            </div>
+
+            <div style={{ borderTop: "1px solid var(--line)", margin: "18px 0" }} />
+
+            <div className="faint" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: .6, textTransform: "uppercase" }}>Contact</div>
+            <div style={{ marginTop: 8, fontSize: 14 }}>
+              {revealed[keyOf(openContact)] ? (
+                <>
+                  {openContact.email ? <div><a href={"mailto:" + openContact.email} style={{ color: "var(--teal)" }}>{openContact.email}</a></div> : <div className="faint">No email on file</div>}
+                  {openContact.phone ? <div style={{ marginTop: 4 }}>{openContact.phone}</div> : null}
+                </>
+              ) : (
+                <>
+                  <div className="faint" style={{ letterSpacing: 1 }}>{openContact.email ? masked(openContact.email, "email") : "No email on file"}</div>
+                  {openContact.hasPhone || openContact.phone ? <div className="faint" style={{ marginTop: 4, letterSpacing: 1 }}>•••••• •••</div> : null}
+                </>
+              )}
+            </div>
+
+            <div className="row" style={{ gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+              {!revealed[keyOf(openContact)] ? (
+                <button className="btn btn-primary" onClick={() => reveal(openContact)}><Mail size={14} /> Reveal contact (1 credit)</button>
+              ) : null}
+              <button className="btn btn-light" onClick={() => toggleFav(openContact)}>
+                {favs[keyOf(openContact)] ? "★ Saved" : "☆ Save"}
+              </button>
+              <button className="btn btn-light" onClick={() => invite(openContact)} title="Invite to follow your company">Invite to follow</button>
+            </div>
+
+            {colleaguesOf(openContact).length ? (
+              <>
+                <div style={{ borderTop: "1px solid var(--line)", margin: "20px 0 14px" }} />
+                <div className="row" style={{ justifyContent: "space-between", alignItems: "baseline" }}>
+                  <div className="faint" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: .6, textTransform: "uppercase" }}>
+                    Also at {openContact.org.length > 26 ? openContact.org.slice(0, 26) + "…" : openContact.org}
+                  </div>
+                  <button className="hsm" onClick={() => { setOrg(openContact.org); setSp("All"); setReg("All"); setOtype("All"); setOpenContact(null); }}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--teal)", fontSize: 12.5, fontWeight: 600 }}>
+                    See all {orgTally[openContact.org]}
+                  </button>
+                </div>
+                {colleaguesOf(openContact).map((x) => (
+                  <div key={keyOf(x)} onClick={() => setOpenContact(x)} className="lift"
+                    style={{ padding: "9px 0", cursor: "pointer", borderBottom: "1px solid var(--line)" }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600 }}>{x.name}</div>
+                    <div className="faint" style={{ fontSize: 12 }}>{x.role !== "Decision Maker" ? x.role : x.spec}</div>
+                  </div>
+                ))}
+              </>
+            ) : null}
+
+            {similarTo(openContact).length ? (
+              <>
+                <div style={{ borderTop: "1px solid var(--line)", margin: "20px 0 14px" }} />
+                <div className="faint" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: .6, textTransform: "uppercase" }}>People similar to this contact</div>
+                {similarTo(openContact).map((x) => (
+                  <div key={keyOf(x)} onClick={() => setOpenContact(x)} className="lift"
+                    style={{ padding: "9px 0", cursor: "pointer", borderBottom: "1px solid var(--line)" }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600 }}>{x.name}</div>
+                    <div className="faint" style={{ fontSize: 12 }}>{x.org}</div>
+                  </div>
+                ))}
+              </>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
+
 const Outreach = () => {
   const seq = [{ ch: "Email", to: "Sarah Whitfield", subj: "Theatre staffing partnership", status: "Opened", icon: Mail }, { ch: "LinkedIn", to: "Khalid Al-Mansoori", subj: "Connection + intro note", status: "Replied", icon: Users }, { ch: "Email", to: "Dr. Amara Okeke", subj: "Follow-up: radiographers", status: "Sent", icon: Mail }, { ch: "Call task", to: "James Patterson", subj: "Discovery call prep", status: "Scheduled", icon: Calendar }];
   return (
