@@ -3320,60 +3320,9 @@ function Landing({ onEnter, onDemo }) {
       </div>
 
       <div className="wrap sec home" style={{ padding: "22px 24px" }}>
-                <Reveal>
-          <div style={{ maxWidth: 900, margin: "44px auto 0" }}>
-            <video
-              controls
-              preload="none"
-              playsInline
-              poster="/qura-video-poster.jpg"
-              style={{ width: "100%", display: "block", borderRadius: 16, background: "#0A1730", boxShadow: "0 18px 50px rgba(10,23,48,.18)" }}
-              onPlay={(ev) => {
-                const v = ev.currentTarget;
-                if (document.fullscreenElement || document.webkitFullscreenElement) return;
-                const go = v.requestFullscreen || v.webkitRequestFullscreen || v.webkitEnterFullscreen || v.msRequestFullscreen;
-                try { const r = go && go.call(v); if (r && r.catch) r.catch(() => {}); } catch (e) {}
-              }}
-              onEnded={() => {
-                try {
-                  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
-                  else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
-                } catch (e) {}
-              }}
-            >
-              <source src="/qura-launch-62s.mp4" type="video/mp4" />
-              <track kind="captions" srcLang="en" label="English" default src="/qura-launch-62s-subtitles.vtt" />
-            </video>
-
-            <div className="row" style={{ justifyContent: "center", gap: 12, marginTop: 20, flexWrap: "wrap" }}>
-              <button
-                className="btn lift"
-                style={{ background: "#00C2B8", color: "#04231F", fontWeight: 800, padding: "12px 22px" }}
-                onClick={() => {
-                  const mail = document.querySelector('input[placeholder="you@organisation.com"]');
-                  if (mail) {
-                    mail.scrollIntoView({ behavior: "smooth", block: "center" });
-                    setTimeout(() => mail.focus(), 500);
-                    return;
-                  }
-                  const cta = Array.from(document.querySelectorAll("button, a"))
-                    .find((el) => /get started|sign in/i.test((el.innerText || "").trim()));
-                  if (cta) cta.click();
-                  else window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-              >
-                {new Date() < new Date("2026-09-22T00:00:00") ? "Get early access" : "Get started"}
-              </button>
-            </div>
-
-            <div className="muted" style={{ fontSize: 14, marginTop: 12, textAlign: "center" }}>
-              60 seconds on what Qura does and who it is for.
-            </div>
-          </div>
-        </Reveal>
+        <Reveal><QuraFilmBlock /></Reveal>
         <Reveal><div className="grid g4">{stats.map((s) => (<div key={s.l} style={{ textAlign: "center" }}><div className="num" style={{ fontSize: 40, fontWeight: 600, color: "var(--navy)" }}><CountUp v={s.n} /></div><div className="muted" style={{ fontSize: 14, marginTop: 2 }}>{s.l}</div></div>))}</div></Reveal>
       </div>
-
       <div className="wrap sec fragile" style={{ padding: "8px 24px 8px" }}>
         <Reveal>
           <div className="card" style={{ padding: "40px 40px", background: "linear-gradient(160deg, var(--cyan-soft), #fff 75%)", border: "1px solid var(--line)" }}>
@@ -4176,6 +4125,112 @@ function BillingResult({ result, onSignIn, onClose }) {
             <button className="btn btn-light" onClick={onClose}>Back to the website</button>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+function QuraFilmBlock() {
+  const LAUNCH = new Date("2026-09-22T00:00:00");
+  const [left, setLeft] = useState(LAUNCH - new Date());
+  const [email, setEmail] = useState("");
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    const t = setInterval(() => setLeft(LAUNCH - new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const live = left <= 0;
+  const s = Math.max(0, Math.floor(left / 1000));
+  const unit = (n, l) => (
+    <div key={l} style={{ textAlign: "center", minWidth: 46 }}>
+      <div className="disp" style={{ fontSize: 26, fontWeight: 800, color: "var(--navy)", lineHeight: 1 }}>
+        {String(n).padStart(2, "0")}
+      </div>
+      <div style={{ fontSize: 9.5, letterSpacing: ".12em", textTransform: "uppercase", opacity: 0.55, marginTop: 4 }}>{l}</div>
+    </div>
+  );
+
+  const join = async () => {
+    if (!email || !email.includes("@")) return;
+    try {
+      let list = [];
+      const r = await window.storage?.get("qura_waitlist");
+      if (r && r.value) list = JSON.parse(r.value);
+      if (!Array.isArray(list)) list = [];
+      if (!list.includes(email)) {
+        list.push(email);
+        await window.storage?.set("qura_waitlist", JSON.stringify(list));
+      }
+    } catch (e) {}
+    setDone(true);
+  };
+
+  const goFull = (ev) => {
+    const v = ev.currentTarget;
+    if (document.fullscreenElement || document.webkitFullscreenElement) return;
+    const go = v.requestFullscreen || v.webkitRequestFullscreen || v.webkitEnterFullscreen || v.msRequestFullscreen;
+    try { const r = go && go.call(v); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+  };
+
+  const leaveFull = () => {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+    } catch (e) {}
+  };
+
+  return (
+    <div style={{ maxWidth: 900, margin: "40px auto 0" }}>
+      <video
+        controls
+        preload="none"
+        playsInline
+        poster="/qura-video-poster.jpg"
+        onPlay={goFull}
+        onEnded={leaveFull}
+        style={{ width: "100%", display: "block", borderRadius: 16, background: "#0A1730", boxShadow: "0 18px 50px rgba(10,23,48,.18)" }}
+      >
+        <source src="/qura-launch-62s.mp4" type="video/mp4" />
+        <track kind="captions" srcLang="en" label="English" default src="/qura-launch-62s-subtitles.vtt" />
+      </video>
+
+      {done ? (
+        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 14.5, marginTop: 22 }}>
+          You are on the early-access list. See you at launch.
+        </div>
+      ) : (
+        <div className="row" style={{ justifyContent: "center", alignItems: "center", gap: 18, marginTop: 22, flexWrap: "wrap" }}>
+          {!live && (
+            <div className="row" style={{ gap: 10, alignItems: "center" }}>
+              {unit(Math.floor(s / 86400), "Days")}
+              {unit(Math.floor(s / 3600) % 24, "Hrs")}
+              {unit(Math.floor(s / 60) % 60, "Min")}
+              {unit(s % 60, "Sec")}
+            </div>
+          )}
+          <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && join()}
+              placeholder="you@organisation.com"
+              style={{ padding: "12px 16px", borderRadius: 999, border: "1px solid rgba(10,23,48,.16)", minWidth: 230, fontSize: 14, outline: "none" }}
+            />
+            <button
+              onClick={join}
+              className="btn lift"
+              style={{ background: "#00C2B8", color: "#04231F", fontWeight: 800, padding: "12px 22px" }}
+            >
+              {live ? "Get started" : "Get early access"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="muted" style={{ fontSize: 13.5, marginTop: 14, textAlign: "center" }}>
+        60 seconds on what Qura does and who it is for.
+        {!live && " Launching 22 September 2026."}
       </div>
     </div>
   );
