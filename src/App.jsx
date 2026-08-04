@@ -3311,7 +3311,16 @@ function Landing({ onEnter, onDemo }) {
           <div className="reveal"><span className="chip chip-cyan" style={{ padding: "7px 15px" }}><Sparkles size={14} /> Healthcare Growth CRM · 24/7 live, every market worldwide</span></div>
           <h1 className="disp heroh reveal" style={{ fontWeight: 700, margin: "26px auto 0", maxWidth: 880 }}>Stop rushing to the cheapest bidder. <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Start choosing the best.</span></h1>
           <div className="reveal" style={{ display: "flex", justifyContent: "center", margin: "14px 0 4px" }}><PulseLine /></div>
-          <p className="muted reveal" style={{ fontSize: 19, maxWidth: 620, margin: "14px auto 0", lineHeight: 1.6 }}>{APP_NAME} is the 24/7 live healthcare marketplace and growth CRM across the NHS, private and international markets. It turns the hours teams lose to manual client-mapping, decision-maker research and stale CRM data into one live platform, so you win work in the time others spend searching.</p>
+          <div className="reveal" style={{
+            background: "linear-gradient(100deg,#0A1730 0%,#0E8C7E 62%,#12A99A 100%)",
+            borderRadius: 16, padding: "22px 30px", margin: "22px auto 0", maxWidth: 900,
+            boxShadow: "0 12px 34px rgba(10,23,48,.16)",
+          }}>
+            <p style={{
+              fontSize: 18, lineHeight: 1.65, margin: 0, color: "rgba(255,255,255,.94)",
+              textAlign: "justify", textJustify: "inter-word", hyphens: "auto",
+            }}>{APP_NAME} is the 24/7 live healthcare marketplace and growth CRM across the NHS, private and international markets. It turns the hours teams lose to manual client-mapping, decision-maker research and stale CRM data into one live platform, so you win work in the time others spend searching.</p>
+          </div>
           
           <div className="row faint reveal" style={{ gap: 8, justifyContent: "center", marginTop: 18, fontSize: 13.5 }}><ShieldCheck size={15} /> For private clinics, GP practices, care providers, NHS trusts, workforce suppliers and international health systems</div>
         </div>
@@ -4204,12 +4213,16 @@ const QURA_PITCHES = [
 function QuraPitchBar() {
   const p = QURA_PITCHES[new Date().getDate() % QURA_PITCHES.length];
   return (
-    <div style={{ borderTop: "1px solid rgba(10,23,48,.08)", borderBottom: "1px solid rgba(10,23,48,.08)", padding: "14px 20px", marginBottom: 26 }}>
+    <div style={{
+      background: "linear-gradient(100deg,#0A1730 0%,#0E8C7E 62%,#12A99A 100%)",
+      borderRadius: 14, padding: "14px 22px", marginBottom: 28,
+      boxShadow: "0 10px 30px rgba(10,23,48,.16)",
+    }}>
       <div className="row" style={{ justifyContent: "center", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 11, letterSpacing: ".12em", textTransform: "uppercase", color: "#0E8C7E", fontWeight: 700 }}>{p.tag}</span>
-        <span className="disp" style={{ fontSize: 20, fontWeight: 700, color: "var(--navy)" }}>{p.title}</span>
+        <span style={{ fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.72)", fontWeight: 700 }}>{p.tag}</span>
+        <span className="disp" style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>{p.title}</span>
       </div>
-      <div className="muted" style={{ fontSize: 13.5, marginTop: 4 }}>{p.line}</div>
+      <div style={{ fontSize: 13.5, marginTop: 3, color: "rgba(255,255,255,.80)" }}>{p.line}</div>
     </div>
   );
 }
