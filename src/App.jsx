@@ -3320,6 +3320,23 @@ function Landing({ onEnter, onDemo }) {
       </div>
 
       <div className="wrap sec home" style={{ padding: "22px 24px" }}>
+                <Reveal>
+          <div style={{ maxWidth: 900, margin: "44px auto 0" }}>
+            <video
+              controls
+              preload="none"
+              playsInline
+              poster="/qura-video-poster-product.jpg"
+              style={{ width: "100%", display: "block", borderRadius: 16, background: "#0A1730", boxShadow: "0 18px 50px rgba(10,23,48,.18)" }}
+            >
+              <source src="/qura-launch-89s-720p.mp4" type="video/mp4" />
+              <track kind="captions" srcLang="en" label="English" default src="/qura-launch-89s-subtitles.vtt" />
+            </video>
+            <div className="muted" style={{ fontSize: 14, marginTop: 10, textAlign: "center" }}>
+              90 seconds on what Qura does and who it is for.
+            </div>
+          </div>
+        </Reveal>
         <Reveal><div className="grid g4">{stats.map((s) => (<div key={s.l} style={{ textAlign: "center" }}><div className="num" style={{ fontSize: 40, fontWeight: 600, color: "var(--navy)" }}><CountUp v={s.n} /></div><div className="muted" style={{ fontSize: 14, marginTop: 2 }}>{s.l}</div></div>))}</div></Reveal>
       </div>
 
