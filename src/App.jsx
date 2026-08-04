@@ -3312,9 +3312,8 @@ function Landing({ onEnter, onDemo }) {
           <h1 className="disp heroh reveal" style={{ fontWeight: 700, margin: "26px auto 0", maxWidth: 880 }}>Stop rushing to the cheapest bidder. <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Start choosing the best.</span></h1>
           <div className="reveal" style={{ display: "flex", justifyContent: "center", margin: "14px 0 4px" }}><PulseLine /></div>
           <div className="reveal" style={{
-            background: "linear-gradient(100deg,#0A1730 0%,#0E8C7E 62%,#12A99A 100%)",
-            borderRadius: 16, padding: "22px 30px", margin: "22px auto 0", maxWidth: 900,
-            boxShadow: "0 12px 34px rgba(10,23,48,.16)",
+            background: "#0E8C7E",
+            borderRadius: 16, padding: "22px 30px", margin: "22px auto 0", maxWidth: 760,
           }}>
             <p style={{
               fontSize: 18, lineHeight: 1.65, margin: 0, color: "rgba(255,255,255,.94)",
