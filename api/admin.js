@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { categorise, orgTypeOf, initialsOf } from "./_categorise.js";
+import { getQueue, approve, deny } from "./_waitlist.js";
 
 export default async function handler(req, res) {
   const sbUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -49,94 +50,20 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, item });
       }
 
-      // ---- early access: approve or deny a request from the landing page ----
-      // Approving is four steps in order: create the account, generate a
-      // set-password link, email it, then write the role they chose. If the
-      // email fails we still return the link so nothing is stranded.
+      // ---- early access: approve or deny (same logic as the email links) ----
       if (action === "waitlist-approve" || action === "waitlist-deny") {
         const addr = String((req.body || {}).email || "").trim().toLowerCase();
         if (!addr) return res.status(400).json({ error: "An email address is required." });
-
-        const list = (await kvRead("shared", "qura_waitlist_v2")) || [];
-        const queue = Array.isArray(list) ? list : [];
+        const queue = await getQueue(admin);
         const entry = queue.find((e) => e && e.email === addr);
         if (!entry) return res.status(404).json({ error: "That request is not in the queue." });
         if (entry.status && entry.status !== "pending") {
           return res.status(409).json({ error: "That request was already " + entry.status + "." });
         }
-
-        if (action === "waitlist-deny") {
-          entry.status = "denied";
-          entry.decidedAt = new Date().toISOString();
-          entry.decidedBy = email;
-          await kvWrite("shared", "qura_waitlist_v2", queue);
-          return res.status(200).json({ ok: true, status: "denied" });
-        }
-
-        const role = entry.role === "supplier" ? "supplier" : "clinician";
-        const site = "https://www.qurahealth.org";
-
-        // 1. the account. If it already exists, carry on and reset instead.
-        let userId = null;
-        const made = await admin.auth.admin.createUser({ email: addr, email_confirm: true });
-        if (made && made.data && made.data.user) userId = made.data.user.id;
-        if (!userId) {
-          const { data: found } = await admin.auth.admin.listUsers();
-          const hit = ((found && found.users) || []).find((u) => (u.email || "").toLowerCase() === addr);
-          if (hit) userId = hit.id;
-        }
-        if (!userId) return res.status(500).json({ error: "Could not create or find that account." });
-
-        // 2. the link. recovery works for a user that already exists, which
-        //    invite does not, so it is the safer of the two here.
-        const { data: link, error: linkErr } = await admin.auth.admin.generateLink({
-          type: "recovery",
-          email: addr,
-          options: { redirectTo: site + "/reset-password.html" },
-        });
-        if (linkErr) return res.status(500).json({ error: "Could not generate the link: " + linkErr.message });
-        const actionLink = link && link.properties && link.properties.action_link;
-
-        // 3. the role, before the email, so the account is never live without one
-        await kvWrite(userId, "qura_role", role);
-
-        // 4. the email. No qura_plan row is written: absence of one is the free plan.
-        let emailed = false, mailError = "";
-        try {
-          const key = process.env.RESEND_API_KEY;
-          const from = process.env.MAIL_FROM || "noreply@qurahealth.org";
-          if (key && actionLink) {
-            const r = await fetch("https://api.resend.com/emails", {
-              method: "POST",
-              headers: { authorization: "Bearer " + key, "content-type": "application/json" },
-              body: JSON.stringify({
-                from: "Qura <" + from + ">",
-                to: [addr],
-                subject: "Your Qura early access is approved",
-                html:
-                  '<div style="font-family:Inter,Arial,sans-serif;color:#0A1730;line-height:1.6">' +
-                  "<p>Your request for early access to Qura has been approved.</p>" +
-                  "<p>Set your password and sign in as a " + role + ":</p>" +
-                  '<p><a href="' + actionLink + '" style="background:#00C2B8;color:#04231F;font-weight:700;padding:12px 22px;border-radius:999px;text-decoration:none;display:inline-block">Set your password</a></p>' +
-                  "<p style=\"font-size:13px;color:#5A6783\">If the button does not work, paste this into your browser:<br>" + actionLink + "</p>" +
-                  "</div>",
-              }),
-            });
-            emailed = r.ok;
-            if (!r.ok) mailError = "Resend returned " + r.status;
-          } else {
-            mailError = key ? "No link was generated." : "RESEND_API_KEY is not set.";
-          }
-        } catch (e) { mailError = String(e.message || e); }
-
-        entry.status = "approved";
-        entry.decidedAt = new Date().toISOString();
-        entry.decidedBy = email;
-        entry.userId = userId;
-        entry.emailed = emailed;
+        const out = action === "waitlist-approve" ? await approve(admin, entry, email) : deny(entry, email);
+        if (!out.ok) return res.status(500).json({ error: out.error });
         await kvWrite("shared", "qura_waitlist_v2", queue);
-
-        return res.status(200).json({ ok: true, status: "approved", role, userId, emailed, mailError, link: emailed ? undefined : actionLink });
+        return res.status(200).json(out);
       }
 
       // ---- add a contact, categorised automatically from the job title ----
@@ -193,8 +120,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ queue: Array.isArray(queue) ? queue : [] });
     }
     if (req.query && req.query.view === "waitlist") {
-      const list = (await kvRead("shared", "qura_waitlist_v2")) || [];
-      const rows = Array.isArray(list) ? list : [];
+      const rows = await getQueue(admin);
       const order = { pending: 0, approved: 1, denied: 2 };
       rows.sort((a, b) => (order[a.status] ?? 0) - (order[b.status] ?? 0) || String(b.ts || "").localeCompare(String(a.ts || "")));
       return res.status(200).json({ waitlist: rows });
