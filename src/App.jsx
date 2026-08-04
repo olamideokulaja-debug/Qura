@@ -4273,27 +4273,19 @@ function QuraFilmBlock() {
     if (!email || !email.includes("@")) { setErr("Enter a valid email address."); return; }
     if (!role) { setErr("Choose clinician or supplier."); return; }
     const addr = email.trim().toLowerCase();
-    const entry = { email: addr, role, ts: new Date().toISOString(), status: "pending" };
+    setErr("");
     try {
-      let list = [];
-      const r = await window.storage?.get("qura_waitlist_v2");
-      if (r && r.value) list = JSON.parse(r.value);
-      if (!Array.isArray(list)) list = [];
-      if (!list.some((e) => e && e.email === addr)) {
-        list.push(entry);
-        await window.storage?.set("qura_waitlist_v2", JSON.stringify(list));
-      }
-    } catch (e) {}
-    try {
-      let old = [];
-      const r2 = await window.storage?.get("qura_waitlist");
-      if (r2 && r2.value) old = JSON.parse(r2.value);
-      if (!Array.isArray(old)) old = [];
-      if (!old.includes(addr)) {
-        old.push(addr);
-        await window.storage?.set("qura_waitlist", JSON.stringify(old));
-      }
-    } catch (e) {}
+      const r = await fetch("/api/waitlist-join", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: addr, role }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { setErr(j.error || "That did not work. Try again in a moment."); return; }
+    } catch (e) {
+      setErr("That did not work. Check your connection and try again.");
+      return;
+    }
     setDone(true);
   };
 
