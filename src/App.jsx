@@ -1465,6 +1465,7 @@ function AdminOps() {
   const [tab, setTab] = useState("intros");
   const [queue, setQueue] = useState(null);
   const [removals, setRemovals] = useState(null);
+  const [waitlist, setWaitlist] = useState(null);
   const [busy, setBusy] = useState("");
   const [nc, setNc] = useState({ name: "", org: "", role: "", email: "", phone: "" });
   const [ncMsg, setNcMsg] = useState("");
@@ -1477,13 +1478,15 @@ function AdminOps() {
     try {
       const t = await token();
       const h = { authorization: "Bearer " + t };
-      const [qi, qr] = await Promise.all([
+      const [qi, qr, qw] = await Promise.all([
         fetch("/api/admin?view=intros", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=removals", { headers: h }).then((r) => r.json()),
+        fetch("/api/admin?view=waitlist", { headers: h }).then((r) => r.json()),
       ]);
       setQueue(qi.queue || []);
       setRemovals(qr.removals || []);
-    } catch (e) { setQueue([]); setRemovals([]); }
+      setWaitlist(qw.waitlist || []);
+    } catch (e) { setQueue([]); setRemovals([]); setWaitlist([]); }
   };
   useEffect(() => { load(); }, []);
 
@@ -1515,12 +1518,32 @@ function AdminOps() {
 
   const norm = (v) => String(v || "pending").toLowerCase() === "requested" ? "pending" : String(v || "pending").toLowerCase();
   const STATUS_NEXT = { pending: ["verified", "declined"], verified: ["completed"], completed: [], declined: [] };
-  const chipTone = { pending: "#9A5E00", verified: "#06776F", completed: "#1E5EDB", declined: "#B4433A" };
+  const chipTone = { pending: "#9A5E00", verified: "#06776F", completed: "#1E5EDB", declined: "#B4433A", approved: "#06776F", denied: "#B4433A" };
+
+  // Approving creates the account, emails a set-password link and writes the
+  // role the person chose on the form. Denying only marks the record.
+  const decide = async (addr, decision) => {
+    setBusy(addr + decision);
+    setMsg("");
+    try {
+      const t = await token();
+      const r = await fetch("/api/admin", {
+        method: "POST",
+        headers: { authorization: "Bearer " + t, "content-type": "application/json" },
+        body: JSON.stringify({ action: decision === "approved" ? "waitlist-approve" : "waitlist-deny", email: addr }),
+      });
+      const j = await r.json();
+      if (!r.ok) setMsg(j.error || "That did not work.");
+      else setMsg(decision === "approved" ? "Approved. Invitation sent to " + addr + "." : "Denied " + addr + ".");
+      await load();
+    } catch (e) { setMsg("That did not work."); }
+    setBusy("");
+  };
 
   return (
     <div style={{ marginBottom: 28 }}>
       <div className="row" style={{ gap: 8, marginBottom: 14 }}>
-        {[["intros", "Introduction queue"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
+        {[["intros", "Introduction queue"], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
           <button key={k} className={"btn " + (tab === k ? "btn-primary" : "btn-light")} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -1551,6 +1574,45 @@ function AdminOps() {
               </div>
             </div>
           ))}
+        </div>
+      ) : tab === "waitlist" ? (
+        <div className="card" style={{ padding: 18 }}>
+          <SectionHead title="Early access requests" action={<span className="faint" style={{ fontSize: 12 }}>{waitlist ? waitlist.length + " total" : "Loading"}</span>} />
+          <div className="faint" style={{ fontSize: 12.5, marginBottom: 12, lineHeight: 1.55 }}>
+            Approving creates the account, emails a link to set a password, and puts the person on the free plan in the role they chose. Nobody gets both roles.
+          </div>
+          {msg ? <div className="faint" style={{ fontSize: 12.5, marginBottom: 10 }}>{msg}</div> : null}
+          {!waitlist ? (
+            <div className="faint" style={{ fontSize: 13 }}>Loading.</div>
+          ) : waitlist.length === 0 ? (
+            <div className="faint" style={{ fontSize: 13 }}>No requests yet.</div>
+          ) : (
+            waitlist.map((w) => (
+              <div key={w.email} className="row" style={{ justifyContent: "space-between", alignItems: "center", gap: 12, padding: "10px 0", borderTop: "1px solid var(--line)", flexWrap: "wrap" }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>{w.email}</div>
+                  <div className="faint" style={{ fontSize: 12 }}>
+                    {w.role === "supplier" ? "Supplier" : "Clinician"}
+                    {w.ts ? " · " + String(w.ts).slice(0, 10) : ""}
+                    {w.decidedBy ? " · by " + w.decidedBy : ""}
+                  </div>
+                </div>
+                <div className="row" style={{ gap: 8, alignItems: "center" }}>
+                  <span className="chip" style={{ fontSize: 11, color: chipTone[w.status] || "#5A6783" }}>{w.status || "pending"}</span>
+                  {w.status === "pending" ? (
+                    <>
+                      <button className="btn btn-light" style={{ fontSize: 12 }} disabled={busy === w.email + "approved"} onClick={() => decide(w.email, "approved")}>
+                        {busy === w.email + "approved" ? "Sending" : "Approve"}
+                      </button>
+                      <button className="btn btn-light" style={{ fontSize: 12 }} disabled={busy === w.email + "denied"} onClick={() => decide(w.email, "denied")}>
+                        Deny
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       ) : tab === "add" ? (
         <div className="card" style={{ padding: 18 }}>
@@ -3245,7 +3307,7 @@ function Landing({ onEnter, onDemo }) {
       <div className="lb" data-view={view}>
       <div className="sec home" style={{ background: "radial-gradient(115% 85% at 50% -8%, #E6F4F2 0%, #F3F9FD 44%, #fff 100%)", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
         <div className="wrap" style={{ padding: "56px 24px 36px", textAlign: "center" }}>
-          <CountdownBanner />
+          <QuraPitchBar />
           <div className="reveal"><span className="chip chip-cyan" style={{ padding: "7px 15px" }}><Sparkles size={14} /> Healthcare Growth CRM · 24/7 live, every market worldwide</span></div>
           <h1 className="disp heroh reveal" style={{ fontWeight: 700, margin: "26px auto 0", maxWidth: 880 }}>Stop rushing to the cheapest bidder. <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Start choosing the best.</span></h1>
           <div className="reveal" style={{ display: "flex", justifyContent: "center", margin: "14px 0 4px" }}><PulseLine /></div>
@@ -4129,10 +4191,35 @@ function BillingResult({ result, onSignIn, onClose }) {
     </div>
   );
 }
+const QURA_PITCHES = [
+  { tag: "For clinicians", title: "Get verified once, be seen everywhere", line: "One vetted profile, in front of hospitals and workforce suppliers worldwide, every day." },
+  { tag: "For workforce suppliers", title: "Win work in the time others spend searching", line: "Stop mapping the market by hand. Live demand and decision-makers on one platform." },
+  { tag: "For hospitals", title: "Ready-to-start talent in seconds, not weeks", line: "Search ready-to-start clinicians and request introductions the moment a need appears." },
+  { tag: "For medical device companies", title: "Reach the buyers who actually buy", line: "The decision-makers behind every trust and ICB, on one live platform." },
+  { tag: "For GP & care", title: "Fill sessions and shifts faster", line: "Find available GPs, nurses and carers, with compliance built in." },
+];
+
+// The rotating audience pitch that used to sit inside the teal banner. Same
+// five messages, same day-of-month rotation, without the box.
+function QuraPitchBar() {
+  const p = QURA_PITCHES[new Date().getDate() % QURA_PITCHES.length];
+  return (
+    <div style={{ borderTop: "1px solid rgba(10,23,48,.08)", borderBottom: "1px solid rgba(10,23,48,.08)", padding: "14px 20px", marginBottom: 26 }}>
+      <div className="row" style={{ justifyContent: "center", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 11, letterSpacing: ".12em", textTransform: "uppercase", color: "#0E8C7E", fontWeight: 700 }}>{p.tag}</span>
+        <span className="disp" style={{ fontSize: 20, fontWeight: 700, color: "var(--navy)" }}>{p.title}</span>
+      </div>
+      <div className="muted" style={{ fontSize: 13.5, marginTop: 4 }}>{p.line}</div>
+    </div>
+  );
+}
+
 function QuraFilmBlock() {
   const LAUNCH = new Date("2026-09-22T00:00:00");
   const [left, setLeft] = useState(LAUNCH - new Date());
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState("");
+  const [err, setErr] = useState("");
   const [done, setDone] = useState(false);
 
   useEffect(() => {
@@ -4151,16 +4238,48 @@ function QuraFilmBlock() {
     </div>
   );
 
+  const pill = (v, label) => (
+    <button
+      key={v}
+      onClick={() => { setRole(v); setErr(""); }}
+      className="lift"
+      style={{
+        padding: "9px 16px", borderRadius: 999, fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+        border: role === v ? "1px solid #0E8C7E" : "1px solid rgba(10,23,48,.16)",
+        background: role === v ? "rgba(14,140,126,.12)" : "transparent",
+        color: role === v ? "#0E8C7E" : "var(--navy)",
+      }}
+    >
+      {label}
+    </button>
+  );
+
+  // Requests are queued for a founder to approve. The role is captured here
+  // rather than after approval, because it decides what the person gets
+  // access to and they are the ones who know it.
   const join = async () => {
-    if (!email || !email.includes("@")) return;
+    if (!email || !email.includes("@")) { setErr("Enter a valid email address."); return; }
+    if (!role) { setErr("Choose clinician or supplier."); return; }
+    const addr = email.trim().toLowerCase();
+    const entry = { email: addr, role, ts: new Date().toISOString(), status: "pending" };
     try {
       let list = [];
-      const r = await window.storage?.get("qura_waitlist");
+      const r = await window.storage?.get("qura_waitlist_v2");
       if (r && r.value) list = JSON.parse(r.value);
       if (!Array.isArray(list)) list = [];
-      if (!list.includes(email)) {
-        list.push(email);
-        await window.storage?.set("qura_waitlist", JSON.stringify(list));
+      if (!list.some((e) => e && e.email === addr)) {
+        list.push(entry);
+        await window.storage?.set("qura_waitlist_v2", JSON.stringify(list));
+      }
+    } catch (e) {}
+    try {
+      let old = [];
+      const r2 = await window.storage?.get("qura_waitlist");
+      if (r2 && r2.value) old = JSON.parse(r2.value);
+      if (!Array.isArray(old)) old = [];
+      if (!old.includes(addr)) {
+        old.push(addr);
+        await window.storage?.set("qura_waitlist", JSON.stringify(old));
       }
     } catch (e) {}
     setDone(true);
@@ -4196,8 +4315,11 @@ function QuraFilmBlock() {
       </video>
 
       {done ? (
-        <div style={{ textAlign: "center", fontWeight: 700, fontSize: 14.5, marginTop: 22 }}>
-          You are on the early-access list. See you at launch.
+        <div style={{ textAlign: "center", marginTop: 22 }}>
+          <div style={{ fontWeight: 700, fontSize: 15 }}>Request received.</div>
+          <div className="muted" style={{ fontSize: 13.5, marginTop: 4 }}>
+            We review every request by hand. If you are approved you will get an email with a link to set your password.
+          </div>
         </div>
       ) : (
         <div className="row" style={{ justifyContent: "center", alignItems: "center", gap: 18, marginTop: 22, flexWrap: "wrap" }}>
@@ -4210,9 +4332,13 @@ function QuraFilmBlock() {
             </div>
           )}
           <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            {pill("clinician", "I am a clinician")}
+            {pill("supplier", "I am a supplier")}
+          </div>
+          <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <input
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setErr(""); }}
               onKeyDown={(e) => e.key === "Enter" && join()}
               placeholder="you@organisation.com"
               style={{ padding: "12px 16px", borderRadius: 999, border: "1px solid rgba(10,23,48,.16)", minWidth: 230, fontSize: 14, outline: "none" }}
@@ -4222,9 +4348,10 @@ function QuraFilmBlock() {
               className="btn lift"
               style={{ background: "#00C2B8", color: "#04231F", fontWeight: 800, padding: "12px 22px" }}
             >
-              {live ? "Get started" : "Get early access"}
+              {live ? "Request access" : "Get early access"}
             </button>
           </div>
+          {err ? <div style={{ textAlign: "center", color: "#C8102E", fontSize: 13, marginTop: 8 }}>{err}</div> : null}
         </div>
       )}
 
