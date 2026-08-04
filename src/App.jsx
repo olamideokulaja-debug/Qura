@@ -3326,14 +3326,48 @@ function Landing({ onEnter, onDemo }) {
               controls
               preload="none"
               playsInline
-              poster="/qura-video-poster-product.jpg"
+              poster="/qura-video-poster.jpg"
               style={{ width: "100%", display: "block", borderRadius: 16, background: "#0A1730", boxShadow: "0 18px 50px rgba(10,23,48,.18)" }}
+              onPlay={(ev) => {
+                const v = ev.currentTarget;
+                if (document.fullscreenElement || document.webkitFullscreenElement) return;
+                const go = v.requestFullscreen || v.webkitRequestFullscreen || v.webkitEnterFullscreen || v.msRequestFullscreen;
+                try { const r = go && go.call(v); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+              }}
+              onEnded={() => {
+                try {
+                  if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+                  else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+                } catch (e) {}
+              }}
             >
-              <source src="/qura-launch-89s-720p.mp4" type="video/mp4" />
-              <track kind="captions" srcLang="en" label="English" default src="/qura-launch-89s-subtitles.vtt" />
+              <source src="/qura-launch-62s.mp4" type="video/mp4" />
+              <track kind="captions" srcLang="en" label="English" default src="/qura-launch-62s-subtitles.vtt" />
             </video>
-            <div className="muted" style={{ fontSize: 14, marginTop: 10, textAlign: "center" }}>
-              90 seconds on what Qura does and who it is for.
+
+            <div className="row" style={{ justifyContent: "center", gap: 12, marginTop: 20, flexWrap: "wrap" }}>
+              <button
+                className="btn lift"
+                style={{ background: "#00C2B8", color: "#04231F", fontWeight: 800, padding: "12px 22px" }}
+                onClick={() => {
+                  const mail = document.querySelector('input[placeholder="you@organisation.com"]');
+                  if (mail) {
+                    mail.scrollIntoView({ behavior: "smooth", block: "center" });
+                    setTimeout(() => mail.focus(), 500);
+                    return;
+                  }
+                  const cta = Array.from(document.querySelectorAll("button, a"))
+                    .find((el) => /get started|sign in/i.test((el.innerText || "").trim()));
+                  if (cta) cta.click();
+                  else window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              >
+                {new Date() < new Date("2026-09-22T00:00:00") ? "Get early access" : "Get started"}
+              </button>
+            </div>
+
+            <div className="muted" style={{ fontSize: 14, marginTop: 12, textAlign: "center" }}>
+              60 seconds on what Qura does and who it is for.
             </div>
           </div>
         </Reveal>
