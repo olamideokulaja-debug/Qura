@@ -3326,11 +3326,11 @@ function Landing({ onEnter, onDemo }) {
                       <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>Six minutes, on demand, no booking</span>
                     </button>
                     <button
-                      onClick={() => { setDemoMenu(false); onDemo(); }}
+                      onClick={() => { setDemoMenu(false); onEnter(); }}
                       style={{ width: "100%", textAlign: "left", padding: "10px 12px", borderRadius: 9, border: "none", cursor: "pointer", background: "transparent" }}
                     >
                       <span style={{ display: "block", fontWeight: 600, fontSize: 13.5, color: "var(--text)" }}>Book a live demo</span>
-                      <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>Walk through it with a founder</span>
+                      <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>Create an account or sign in to book a founder session</span>
                     </button>
                   </div>
                 </>
