@@ -2481,7 +2481,7 @@ function HowToUseQura({ email, onToast }) {
         {bookings.length ? <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{bookings.map((b) => (<div key={b.id} className="row" style={{ justifyContent: "space-between", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: 10 }}><div><div style={{ fontWeight: 600, fontSize: 13.5 }}>{b.type}</div><div className="faint" style={{ fontSize: 11.5 }}>{new Date(b.at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</div></div><span className={"chip " + (b.status === "Waiting list" ? "chip-med" : "chip-cyan")}>{b.status}</span></div>))}</div> : <p className="muted" style={{ fontSize: 13 }}>No bookings yet. Watch the demo, then book a session or workshop above.</p>}
         <div className="faint" style={{ fontSize: 11.5, marginTop: 12, lineHeight: 1.5 }}>On confirmation, a calendar invite, confirmation email, video link and reminders are sent automatically. Paid sessions are processed securely by Stripe.</div>
       </div>
-      {rewatch ? <div onClick={() => setRewatch(false)} style={{ position: "fixed", inset: 0, background: "rgba(6,14,30,.6)", zIndex: 95, display: "grid", placeItems: "center", padding: 20 }}><div onClick={(e) => e.stopPropagation()} className="card" style={{ maxWidth: 820, width: "100%", padding: 0, overflow: "hidden" }}><div style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", background: "linear-gradient(135deg, #0A1730, #102A4F)", display: "grid", placeItems: "center" }}>{DEMO_VIDEO_URL ? <iframe src={DEMO_VIDEO_URL} title="Qura demo" allowFullScreen style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }} /> : <div style={{ textAlign: "center", color: "#fff" }}><div style={{ width: 70, height: 70, borderRadius: 999, background: "rgba(255,255,255,.14)", display: "grid", placeItems: "center", margin: "0 auto 12px" }}><Play size={28} color="#fff" /></div><div className="disp" style={{ fontWeight: 700 }}>On-demand Qura demo</div></div>}</div><div style={{ padding: 14, textAlign: "right" }}><button className="btn btn-light" onClick={() => setRewatch(false)}>Close</button></div></div></div> : null}
+      {rewatch ? <QuraDemoModal onClose={() => setRewatch(false)} /> : null}
     </div>
   );
 }
@@ -4209,6 +4209,70 @@ const QURA_PITCHES = [
 
 // The rotating audience pitch that used to sit inside the teal banner. Same
 // five messages, same day-of-month rotation, without the box.
+// The demo opens fullscreen the moment it is asked for and closes itself when
+// it finishes. Fullscreen is requested on the container rather than the video
+// element so the close control stays reachable, and leaving fullscreen by any
+// route (Escape, the browser control, the end of the film) closes the modal,
+// so the viewer is never left in a half state.
+function QuraDemoModal({ onClose }) {
+  const box = useRef(null);
+  const vid = useRef(null);
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const go = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+    try { const r = go && go.call(el); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+    const v = vid.current;
+    if (v) { const pl = v.play(); if (pl && pl.catch) pl.catch(() => {}); }
+    const onFsChange = () => {
+      const inFs = document.fullscreenElement || document.webkitFullscreenElement;
+      if (!inFs) onClose();
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    document.addEventListener("webkitfullscreenchange", onFsChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("webkitfullscreenchange", onFsChange);
+      try {
+        if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+      } catch (e) {}
+    };
+  }, []);
+
+  const finish = () => {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+      else onClose();
+    } catch (e) { onClose(); }
+  };
+
+  return (
+    <div ref={box} style={{ position: "fixed", inset: 0, zIndex: 120, background: "#050D1C", display: "grid", placeItems: "center" }}>
+      <video
+        ref={vid}
+        src="/qura-platform-demo.mp4"
+        controls
+        autoPlay
+        playsInline
+        onEnded={finish}
+        style={{ width: "100%", height: "100%", objectFit: "contain", background: "#050D1C" }}
+      >
+        <track kind="captions" srcLang="en" label="English" src="/qura-platform-demo.vtt" />
+      </video>
+      <button
+        onClick={finish}
+        className="btn btn-light"
+        style={{ position: "absolute", top: 22, right: 22, zIndex: 2 }}
+      >
+        Close
+      </button>
+    </div>
+  );
+}
+
 function QuraPitchBar() {
   const p = QURA_PITCHES[new Date().getDate() % QURA_PITCHES.length];
   return (
@@ -4314,8 +4378,8 @@ function QuraFilmBlock() {
         onEnded={leaveFull}
         style={{ width: "100%", display: "block", borderRadius: 16, background: "#0A1730", boxShadow: "0 18px 50px rgba(10,23,48,.18)" }}
       >
-        <source src="/qura-launch-62s.mp4" type="video/mp4" />
-        <track kind="captions" srcLang="en" label="English" default src="/qura-launch-62s-subtitles.vtt" />
+        <source src="/qura-launch-89s.mp4" type="video/mp4" />
+        <track kind="captions" srcLang="en" label="English" default src="/qura-launch-89s-subtitles.vtt" />
       </video>
 
       {done ? (
@@ -4360,7 +4424,7 @@ function QuraFilmBlock() {
       )}
 
       <div className="muted" style={{ fontSize: 13.5, marginTop: 14, textAlign: "center" }}>
-        60 seconds on what Qura does and who it is for.
+        90 seconds on what Qura does and who it is for.
         {!live && " Launching 22 September 2026."}
       </div>
     </div>
