@@ -3106,6 +3106,7 @@ const NAV = [
   { k: "platform", l: "Platform", items: [
     ["How it works", "how:walk", "Step through Qura by lens"],
     ["Inside the platform", "how:gallery", "Real screens, page by page"],
+    ["Watch the demo", "demo:video", "Six minutes through the whole platform"],
     ["Marketplace", "market", "The live marketplace, every market"],
     ["Solutions", "solutions", "What Qura solves, by organisation"],
   ] },
@@ -3176,11 +3177,20 @@ function Landing({ onEnter, onDemo }) {
   const initial = (typeof window !== "undefined" && routeFromPath(window.location.pathname)) || null;
   const [view, setView] = useState(initial ? initial.view : "home");
   const [howSec, setHowSec] = useState(initial && initial.howSec ? initial.howSec : "walk");
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [demoMenu, setDemoMenu] = useState(false);
   const [navMenu, setNavMenu] = useState(null);
   const navRef = useRef(null);
   // One handler for every internal link, top nav and footer alike.
   // "how:walk" means view "how", section "walk".
   const goTo = (mv) => {
+    // "demo:video" is not a page. It opens the film over whatever you are on,
+    // so the address bar and the page behind it are left alone.
+    if (mv === "demo:video") {
+      setNavMenu(null);
+      setDemoOpen(true);
+      return;
+    }
     const tv = mv.split(":")[0], ts = mv.split(":")[1];
     setView(tv);
     if (ts) setHowSec(ts);
@@ -3271,6 +3281,7 @@ function Landing({ onEnter, onDemo }) {
   const trusted = ["NHS trusts", "Integrated Care Boards", "Community Diagnostic Centres", "Private hospitals & clinics", "GP practices", "Care providers", "Workforce suppliers"];
   return (
     <div style={{ background: "#fff", display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      {demoOpen ? <QuraDemoModal onClose={() => setDemoOpen(false)} /> : null}
       <div style={{ position: "sticky", top: 0, zIndex: 30, background: "rgba(255,255,255,.82)", backdropFilter: "blur(12px)", borderBottom: "1px solid var(--line)" }}>
         <div className="row" style={{ justifyContent: "space-between", height: 72, padding: "0 20px" }}>
           <span onClick={() => goTo("home")} style={{ cursor: "pointer" }}><Wordmark /></span>
@@ -3300,7 +3311,33 @@ function Landing({ onEnter, onDemo }) {
               </div>
             );
           })}</div>
-          <div className="row" style={{ gap: 12 }}><button className="btn btn-light hsm" style={{ background: "var(--bg)" }} onClick={onDemo}>Book a demo</button><button className="btn btn-primary" onClick={onEnter}>Get started / Sign in</button></div>
+          <div className="row" style={{ gap: 12 }}>
+            <div style={{ position: "relative" }}>
+              <button className="btn btn-light hsm" style={{ background: "var(--bg)" }} onClick={() => setDemoMenu((v) => !v)}>Book a demo</button>
+              {demoMenu ? (
+                <>
+                  <div onClick={() => setDemoMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+                  <div className="card" style={{ position: "absolute", right: 0, top: "calc(100% + 10px)", zIndex: 41, width: 320, padding: 8 }}>
+                    <button
+                      onClick={() => { setDemoMenu(false); setDemoOpen(true); }}
+                      style={{ width: "100%", textAlign: "left", padding: "10px 12px", borderRadius: 9, border: "none", cursor: "pointer", background: "transparent" }}
+                    >
+                      <span style={{ display: "block", fontWeight: 600, fontSize: 13.5, color: "var(--text)" }}>Watch the demo now</span>
+                      <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>Six minutes, on demand, no booking</span>
+                    </button>
+                    <button
+                      onClick={() => { setDemoMenu(false); onDemo(); }}
+                      style={{ width: "100%", textAlign: "left", padding: "10px 12px", borderRadius: 9, border: "none", cursor: "pointer", background: "transparent" }}
+                    >
+                      <span style={{ display: "block", fontWeight: 600, fontSize: 13.5, color: "var(--text)" }}>Book a live demo</span>
+                      <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>Walk through it with a founder</span>
+                    </button>
+                  </div>
+                </>
+              ) : null}
+            </div>
+            <button className="btn btn-primary" onClick={onEnter}>Get started / Sign in</button>
+          </div>
         </div>
       </div>
 
