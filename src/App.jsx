@@ -495,6 +495,10 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
           market: n.market === "NHS" ? "NHS UK" : n.market === "Private" ? "Private UK" : "International",
           loc: n.region || "UK", close: n.closes || "",
           pr: null, score: null, status: "Live", source: n.source, url: n.url || null,
+          // the enrichment: what Qura knows that the portal does not
+          category: n.category || null, platform: n.platform || null,
+          contacts: Array.isArray(n.contacts) ? n.contacts : [],
+          inRegister: Boolean(n.inRegister), agency: n.agency || null,
         })));
       } catch (e) {}
     })();
@@ -517,6 +521,32 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
               <div className="row" style={{ gap: 14, flex: 1, minWidth: 0 }}><div style={{ width: 46, height: 46, borderRadius: 12, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><Building2 size={20} color="#1E54E6" /></div><div><div className="row" style={{ gap: 9 }}><span style={{ fontWeight: 600, fontSize: 15.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 420 }} title={o.org}>{o.org}</span>{o.score ? <span className="chip chip-cyan"><Sparkles size={11} /> {o.score}</span> : null}<span className="chip chip-grey" style={{ fontSize: 11 }}>{o.market}</span></div><div className="muted row hsm" style={{ fontSize: 13, gap: 14, marginTop: 4 }}><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 340, display: "inline-block", verticalAlign: "bottom" }} title={o.role}>{o.role}</span><span className="row" style={{ gap: 4 }}><MapPin size={12} />{o.loc}</span><span className="row" style={{ gap: 4 }}><Radar size={12} />{o.source}</span>{o.url ? <a href={o.url} target="_blank" rel="noreferrer" style={{ color: "var(--teal)", fontSize: 12.5 }}>Open notice</a> : null}{!o.url ? <DemoTag /> : null}</div></div></div>
               <div className="row" style={{ gap: 16 }}><div style={{ textAlign: "right" }}><div className="disp" style={{ fontWeight: 700, fontSize: 17 }}>{/^[£$€]/.test(String(o.val)) ? convMoney(o.val, market) : o.val}</div><span className="row faint" style={{ fontSize: 12, gap: 4, justifyContent: "flex-end" }}><Clock size={11} />{o.close ? "Closes " + o.close : "See notice for dates"}</span></div>{o.pr ? <span className={"chip " + prChip(o.pr)}>{prLabel(o.pr)}</span> : null}<button className={"btn hsm " + (savedIds.includes(o.org + "|" + o.role) ? "btn-light" : "btn-ghost")} onClick={() => saveOpp(o)} disabled={savedIds.includes(o.org + "|" + o.role)}>{savedIds.includes(o.org + "|" + o.role) ? <><Star size={14} fill="currentColor" /> Saved</> : <><Star size={14} /> Save</>}</button><button className="btn btn-ai hsm" onClick={() => onPropose(o)}><Sparkles size={14} /> Propose</button></div>
             </div>
+            {(o.category || o.platform || o.agency || (o.contacts && o.contacts.length)) ? (
+              <div style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 12 }}>
+                <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                  {o.category ? <span className="chip chip-cyan" style={{ fontSize: 11 }}>{o.category}</span> : null}
+                  {o.platform ? <span className="chip chip-grey" style={{ fontSize: 11 }}>via {o.platform}</span> : null}
+                  {o.agency ? <span className="chip chip-grey" style={{ fontSize: 11 }}>{o.agency}</span> : null}
+                </div>
+                {o.contacts && o.contacts.length ? (
+                  <div style={{ marginTop: 10 }}>
+                    <div className="faint" style={{ fontSize: 11.5, letterSpacing: ".06em", textTransform: "uppercase", marginBottom: 6 }}>
+                      Who decides this, from your directory
+                    </div>
+                    <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                      {o.contacts.slice(0, 4).map((c, ci) => (
+                        <span key={ci} className="row" style={{ gap: 7, alignItems: "center", background: "var(--bg)", borderRadius: 999, padding: "5px 11px 5px 5px" }}>
+                          <span style={{ width: 24, height: 24, borderRadius: 999, background: "#EEF3FF", color: "#1E54E6", display: "grid", placeItems: "center", fontSize: 10.5, fontWeight: 700 }}>{c.initials}</span>
+                          <span style={{ fontSize: 12.5, fontWeight: 600 }}>{c.name}</span>
+                          <span className="faint" style={{ fontSize: 11.5 }}>{c.spec}</span>
+                        </span>
+                      ))}
+                      {o.contacts.length > 4 ? <span className="faint" style={{ fontSize: 12 }}>+{o.contacts.length - 4} more</span> : null}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         ))}
       </div>
