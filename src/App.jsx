@@ -35,6 +35,29 @@ import { MARKETS, CURRENCY, PLAN_LABEL, PREMIUM_FEATURES, ALL_PREMIUM, CREDIT_TI
 
 const OWNER_EMAILS = (import.meta.env.VITE_OWNER_EMAILS || "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
 
+// The same instant as LAUNCH_AT in api/_seed.js. The client had no idea the
+// seed existed, which is why several screens showed invented people with no
+// label and no expiry.
+const LAUNCH_AT = Date.parse("2026-09-22T08:00:00Z");
+const seedActive = () => Date.now() < LAUNCH_AT;
+
+// Anything illustrative says so. A page that shows made-up people without this
+// is indistinguishable from a page that has confused the user's identity.
+const SampleNote = ({ what }) => (
+  <div className="card" style={{ padding: "10px 14px", marginBottom: 14, background: "var(--cyan-soft)", border: "none" }}>
+    <span className="row" style={{ gap: 8, fontSize: 12.5, color: "#06776F", fontWeight: 600 }}>
+      <Sparkles size={13} /> Illustrative {what}, shown until launch on 22 September. Not real people or messages.
+    </span>
+  </div>
+);
+
+const NothingYet = ({ title, body }) => (
+  <div className="card" style={{ padding: 30, textAlign: "center" }}>
+    <div className="disp" style={{ fontSize: 18, fontWeight: 700 }}>{title}</div>
+    <p className="muted" style={{ fontSize: 13.5, marginTop: 8, lineHeight: 1.6, maxWidth: 460, marginLeft: "auto", marginRight: "auto" }}>{body}</p>
+  </div>
+);
+
 const LINKEDIN = "https://uk.linkedin.com/in/ola-folawiyo-922160142";
 
 /* ===================================================================== */
@@ -1026,7 +1049,7 @@ const FEED_SEED = [
 ];
 
 function LiveFeedScreen({ onBook, onToast, role = "operator", market = "all", onMarket, displayName, go }) {
-  const [feed, setFeed] = useState(FEED_SEED);
+  const [feed, setFeed] = useState(seedActive() ? FEED_SEED : []);
   const [draft, setDraft] = useState("");
   const [openId, setOpenId] = useState(null);
   const [saved, setSaved] = useState({});
@@ -1135,7 +1158,7 @@ function LiveFeedScreen({ onBook, onToast, role = "operator", market = "all", on
 function SuppliersScreen({ onBook, onToast }) {
   const [openId, setOpenId] = useState(null);
   const [sort, setSort] = useState("default");
-  const [feed, setFeed] = useState(FEED_SEED);
+  const [feed, setFeed] = useState(seedActive() ? FEED_SEED : []);
   const request = (s) => { onBook?.({ type: "Demo call", with: s.name, org: s.name, when: "To schedule", status: "Pending", isNew: true }); onToast?.("Demo requested from " + s.name + " · logged to meetings"); setOpenId(null); };
   const [cat, setCat] = useState({ name: "My Medical Company", tag: "Your equipment and services, visible across the Qura marketplace.", kit: [{ n: "1.5T Mobile MRI", s: "Relocatable, 6-week install", lead: "4 weeks" }] });
   const [chyd, setChyd] = useState(false);
@@ -1207,7 +1230,7 @@ function SuppliersScreen({ onBook, onToast }) {
   );
 }
 function SupplierInbox({ go, onBook, onToast, market = "all" }) {
-  const [feed, setFeed] = useState(FEED_SEED);
+  const [feed, setFeed] = useState(seedActive() ? FEED_SEED : []);
   const [userCat, setUserCat] = useState(null);
   useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_feed"); if (r?.value) setFeed(JSON.parse(r.value)); } catch (e) {} try { const c = await window.storage?.get("qura_catalogue"); if (c?.value) setUserCat(JSON.parse(c.value)); } catch (e) {} })(); }, []);
   const matches = feed.map((p) => ({ p, sup: matchKit(p, userCat) })).filter((m) => m.sup.length > 0 && m.p.status < 3 && (market === "all" || m.p.market === market));
@@ -1240,7 +1263,7 @@ function SupplierInbox({ go, onBook, onToast, market = "all" }) {
   );
 }
 function Leaderboard({ go, market = "all" }) {
-  const [feed, setFeed] = useState(FEED_SEED);
+  const [feed, setFeed] = useState(seedActive() ? FEED_SEED : []);
   const [cat, setCat] = useState(null);
   const [metric, setMetric] = useState("win");
   const [displayPrev, setDisplayPrev] = useState({});
@@ -1349,6 +1372,7 @@ function ClinicianNetwork({ onToast, isOwner }) {
   return (
   <div>
     <PageHead title="Clinician network" sub="Registered, hospital-rated clinicians. Registration is checked against the official register before an introduction is made." right={<span className="chip chip-cyan"><ShieldCheck size={12} /> Registered on Qura</span>} />
+    {seedActive() ? <SampleNote what="clinician profiles" /> : null}
     <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--cyan-soft)", border: "none" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><Globe size={18} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 12.5, lineHeight: 1.55 }}>Qura facilitates international recruitment in line with the WHO and UK Code of Practice protected-countries list. Clinicians from listed countries are welcome to join and apply directly, of their own accord. We do not actively advertise to or target recruitment from those countries, and availability is shown by country of residence in line with each destination's own recruitment policy.</div></div></div>
     <div className="card" style={{ padding: 16, marginBottom: 16 }}>
       <div className="row" style={{ gap: 8, border: "1px solid var(--line)", borderRadius: 999, padding: "0 14px", background: "var(--bg2)", marginBottom: 12 }}><Search size={16} className="faint" /><input className="in" style={{ border: "none", boxShadow: "none", padding: "10px 0" }} placeholder="Search name, specialty or country" value={q} onChange={(e) => setQ(e.target.value)} /></div>
@@ -1409,25 +1433,37 @@ const HospitalDash = ({ go }) => (
     <div className="card" style={{ padding: 20 }}><SectionHead title="Top matched agencies" action={<button className="btn btn-ghost" style={{ padding: "7px 12px", fontSize: 13 }} onClick={() => go("findAgencies")}>View all</button>} />{AGENCIES.slice(0, 3).map((a, i) => (<div key={i} className="row" style={{ justifyContent: "space-between", padding: "12px 0", borderBottom: i < 2 ? "1px solid var(--line)" : "none" }}><div className="row" style={{ gap: 12 }}><div style={{ width: 38, height: 38, borderRadius: 10, background: "var(--navy)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{a.name[0]}</div><div><div style={{ fontWeight: 600, fontSize: 14 }}>{a.name}</div><div className="muted" style={{ fontSize: 12.5 }}>{a.spec}</div></div></div><span className="chip chip-cyan">{a.match}% match</span></div>))}</div>
   </div>
 );
-const ClinicianProfile = () => (
+// Was a static mock: every clinician saw Dr. Sarah Ahmed's name, specialties
+// and shortlists as their own. On a product built on verification, a stranger's
+// credentials on your own profile page reads as a mixed-up identity rather than
+// as a sample. It now renders the signed-in person and asks for what is missing.
+const ClinicianProfile = ({ name = "Your account", profile = {} }) => {
+  const initials = String(name).replace(/^Dr\.?\s+/i, "").split(" ").filter(Boolean)
+    .map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "Q";
+  const filled = [profile.title, profile.years, profile.available, (profile.specialties || []).length].filter(Boolean).length;
+  const strength = Math.round((filled / 4) * 100);
+  return (
   <div>
     <PageHead title="My profile" sub="Showcase your experience, specialties and availability" />
     <div className="grid-2" style={{ alignItems: "start" }}>
-      <div className="card" style={{ padding: 24, textAlign: "center" }}><div style={{ width: 84, height: 84, borderRadius: 999, background: "var(--navy)", color: "#fff", display: "grid", placeItems: "center", margin: "0 auto", fontSize: 28, fontWeight: 700 }} className="disp">SA</div><h2 style={{ fontSize: 20, fontWeight: 700, margin: "14px 0 2px" }}>Dr. Sarah Ahmed</h2><div className="muted">Consultant Radiologist</div><div className="row" style={{ justifyContent: "center", gap: 8, marginTop: 12 }}><span className="chip chip-low">Available 14 Jul</span><span className="chip chip-blue">12 yrs exp</span></div><div className="card" style={{ padding: 14, marginTop: 18, background: "var(--cyan-soft)", border: "none" }}><div className="disp row" style={{ justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#06776F", letterSpacing: ".05em" }}><Sparkles size={13} /> PROFILE STRENGTH 92%</div></div></div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}><div className="card" style={{ padding: 20 }}><SectionHead title="Specialties" /><div className="row" style={{ flexWrap: "wrap", gap: 8 }}>{["Radiology", "MRI", "CT", "Ultrasound", "Interventional"].map((s) => <span key={s} className="chip chip-grey" style={{ padding: "6px 13px" }}>{s}</span>)}</div></div><div className="card" style={{ padding: 20 }}><SectionHead title="Shortlisted by hospitals" />{["King's College Hospital · Consultant Radiologist", "University College London · MRI Consultant"].map((x, i) => (<div key={i} className="row" style={{ gap: 10, padding: "10px 0", borderBottom: i < 1 ? "1px solid var(--line)" : "none" }}><UserCheck size={16} color="var(--ok)" /><span style={{ fontSize: 14 }}>{x}</span></div>))}</div></div>
+      <div className="card" style={{ padding: 24, textAlign: "center" }}><div style={{ width: 84, height: 84, borderRadius: 999, background: "var(--navy)", color: "#fff", display: "grid", placeItems: "center", margin: "0 auto", fontSize: 28, fontWeight: 700 }} className="disp">{initials}</div><h2 style={{ fontSize: 20, fontWeight: 700, margin: "14px 0 2px" }}>{name}</h2><div className="muted">{profile.title || "Add your job title"}</div>{(profile.available || profile.years) ? <div className="row" style={{ justifyContent: "center", gap: 8, marginTop: 12 }}>{profile.available ? <span className="chip chip-low">Available {profile.available}</span> : null}{profile.years ? <span className="chip chip-blue">{profile.years} yrs exp</span> : null}</div> : null}<div className="card" style={{ padding: 14, marginTop: 18, background: "var(--cyan-soft)", border: "none" }}><div className="disp row" style={{ justifyContent: "center", gap: 6, fontSize: 12, fontWeight: 600, color: "#06776F", letterSpacing: ".05em" }}><Sparkles size={13} /> PROFILE STRENGTH {strength}%</div></div></div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>{(profile.specialties && profile.specialties.length) ? <div className="card" style={{ padding: 20 }}><SectionHead title="Specialties" /><div className="row" style={{ flexWrap: "wrap", gap: 8 }}>{profile.specialties.map((sp) => <span key={sp} className="chip chip-grey">{sp}</span>)}</div></div> : <NothingYet title="No specialties yet" body="Add the specialties you work in so hospitals and workforce suppliers can find you. It is the single biggest thing you can do to be shortlisted." />}{(profile.shortlists && profile.shortlists.length) ? <div className="card" style={{ padding: 20 }}><SectionHead title="Shortlisted by hospitals" />{profile.shortlists.map((x, ix) => <div key={ix} className="row" style={{ justifyContent: "space-between", padding: "8px 0", borderTop: ix ? "1px solid var(--line)" : "none" }}><span style={{ fontSize: 14 }}>{x}</span></div>)}</div> : null}</div>
     </div>
   </div>
-);
+  );
+};
 const MyOpportunities = () => (
   <div>
     <PageHead title="Opportunities for me" sub="Roles matched to your specialty, location and availability" />
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{OPPS.filter((o) => ["NHS UK", "Private UK"].includes(o.market)).map((o, i) => (<div key={i} className="card row lift" style={{ padding: 18, justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><div className="row" style={{ gap: 9 }}><span style={{ fontWeight: 600, fontSize: 15 }}>{o.role}</span><span className="chip chip-cyan"><Sparkles size={11} /> {o.score}% fit</span></div><div className="muted" style={{ fontSize: 13, marginTop: 3 }}>{o.org} · {o.loc}</div></div><div className="row" style={{ gap: 12 }}><span className="chip chip-low">{o.close} left</span><button className="btn btn-primary">Express interest</button></div></div>))}</div>
   </div>
 );
+// The six people here are invented. Unlabelled and permanent they read as a
+// real network; labelled and expiring they read as a sample.
 const NetworkScreen = () => (
   <div>
     <PageHead title="Network" sub="Connect, share and grow with healthcare professionals" />
-    <div className="grid-3">{CLINICIANS.slice(0, 6).map((c, i) => (<div key={i} className="card lift" style={{ padding: 18, textAlign: "center" }}><div style={{ width: 56, height: 56, borderRadius: 999, background: "#EEF3FF", color: "#1E54E6", display: "grid", placeItems: "center", margin: "0 auto", fontWeight: 700 }} className="disp">{c.name.split(" ").slice(-2).map((x) => x[0]).join("")}</div><div style={{ fontWeight: 600, fontSize: 14.5, marginTop: 10 }}>{c.name}</div><div className="muted" style={{ fontSize: 12.5 }}>{c.spec}</div><button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center", marginTop: 12, padding: "8px" }}><Plus size={14} /> Connect</button></div>))}</div>
+    {seedActive() ? <><SampleNote what="profiles" /><div className="grid-3">{CLINICIANS.slice(0, 6).map((c, i) => (<div key={i} className="card lift" style={{ padding: 18, textAlign: "center" }}><div style={{ width: 56, height: 56, borderRadius: 999, background: "#EEF3FF", color: "#1E54E6", display: "grid", placeItems: "center", margin: "0 auto", fontWeight: 700 }} className="disp">{c.name.split(" ").slice(-2).map((x) => x[0]).join("")}</div><div style={{ fontWeight: 600, fontSize: 14.5, marginTop: 10 }}>{c.name}</div><div className="muted" style={{ fontSize: 12.5 }}>{c.spec}</div><button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center", marginTop: 12, padding: "8px" }}><Plus size={14} /> Connect</button></div>))}</div></> : <NothingYet title="Your network is empty" body="Connect with clinicians you have worked alongside. As people join Qura and get verified, they appear here." />}
   </div>
 );
 const Pricing = ({ plan, onChoose, highlight, role = "agency", market = "all", isOwner }) => {
@@ -2006,7 +2042,10 @@ function MessagesScreen() {
     { id: "m2", who: "Dr. Amara Nguyen", init: "AN", role: "Consultant Sonographer", msgs: [{ me: false, t: "Thanks for the UK relocation details. What visa route would apply?", time: "Yesterday" }, { me: true, t: "The Health & Care Worker visa. Our concierge can handle it end to end.", time: "Yesterday" }] },
     { id: "m3", who: "Harley Street Clinic", init: "HS", role: "Private fertility clinic", msgs: [{ me: false, t: "Could you share candidates for a fertility sonographer role?", time: "Mon" }] },
   ];
-  const [convos, setConvos] = useState(SEED);
+  // Three threads with St George's, a consultant and Harley Street that no
+  // signed-in user has ever had. Illustrative until launch, empty after, so
+  // nobody is shown correspondence that is not theirs.
+  const [convos, setConvos] = useState(seedActive() ? SEED : []);
   const [active, setActive] = useState(SEED[0].id);
   const [draft, setDraft] = useState("");
   const cur = convos.find((c) => c.id === active);
@@ -2014,6 +2053,8 @@ function MessagesScreen() {
   return (
     <div>
       <PageHead title="Messages" sub="Your conversations with providers, agencies and candidates." />
+      {seedActive() ? <SampleNote what="conversations" /> : null}
+      {convos.length === 0 ? <NothingYet title="No messages yet" body="Conversations with hospitals, GP practices and workforce suppliers appear here once an introduction is agreed." /> : null}
       <div className="card" style={{ padding: 0, overflow: "hidden", display: "grid", gridTemplateColumns: "260px 1fr", minHeight: 460 }}>
         <div style={{ borderRight: "1px solid var(--line)", overflowY: "auto" }}>{convos.map((c) => (
           <button key={c.id} onClick={() => setActive(c.id)} style={{ width: "100%", textAlign: "left", padding: "14px 16px", border: "none", borderBottom: "1px solid var(--line)", cursor: "pointer", background: active === c.id ? "var(--bg)" : "#fff", display: "flex", gap: 11, alignItems: "center" }}>
@@ -4055,7 +4096,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "accommodation": return <Accommodation onNav={go} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "findAgencies": return <FindAgencies />;
       case "shortlists": return <Shortlists onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
-      case "profile": return <ClinicianProfile />;
+      case "profile": return <ClinicianProfile name={displayName} profile={clinProfile} />;
       case "myopps": return <MyOpportunities />;
       case "network": return <NetworkScreen />;
       case "messages": return <MessagesScreen />;
@@ -4521,6 +4562,35 @@ export default function App() {
   const [authMode, setAuthMode] = useState("in");
   const [pendingRole, setPendingRole] = useState(null);
   const [profileName, setProfileName] = useState("");
+  // The clinician's own record, from api/profile.js. Without this the profile
+  // page had nothing of theirs to render, which is why it rendered a stranger's.
+  const [clinProfile, setClinProfile] = useState({});
+  useEffect(() => {
+    let dead = false;
+    (async () => {
+      try {
+        let token = "";
+        if (supabase) {
+          const { data } = await supabase.auth.getSession();
+          token = (data && data.session && data.session.access_token) || "";
+        }
+        if (!token) return;
+        const r = await fetch("/api/profile", { headers: { Authorization: "Bearer " + token } });
+        if (!r.ok) return;
+        const j = await r.json();
+        const pr = (j && j.profile) || {};
+        if (dead) return;
+        setClinProfile({
+          title: pr.profession || "",
+          years: pr.experienceYears || "",
+          available: pr.availableFrom === "now" ? "now" : (pr.availableFrom || ""),
+          specialties: pr.category ? [pr.category] : [],
+          shortlists: [],
+        });
+      } catch (e) {}
+    })();
+    return () => { dead = true; };
+  }, []);
   useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_profile_name"); setProfileName(r?.value || ""); } catch (e) {} })(); }, [session, stage]);
   const email = ((session && session.user && session.user.email) || "").toLowerCase();
   const founder = FOUNDER_IDENTITY[email] || null;
