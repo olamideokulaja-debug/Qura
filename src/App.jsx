@@ -4486,8 +4486,8 @@ function QuraFilmBlock() {
         onEnded={leaveFull}
         style={{ width: "100%", display: "block", borderRadius: 16, background: "#0A1730", boxShadow: "0 18px 50px rgba(10,23,48,.18)" }}
       >
-        <source src="/qura-launch-89s.mp4" type="video/mp4" />
-        <track kind="captions" srcLang="en" label="English" default src="/qura-launch-89s-subtitles.vtt" />
+        <source src="/qura-launch-92s.mp4" type="video/mp4" />
+        <track kind="captions" srcLang="en" label="English" default src="/qura-launch-92s-subtitles.vtt" />
       </video>
 
       {done ? (
@@ -4532,7 +4532,7 @@ function QuraFilmBlock() {
       )}
 
       <div className="muted" style={{ fontSize: 13.5, marginTop: 14, textAlign: "center" }}>
-        90 seconds on what Qura does and who it is for.
+        92 seconds on what Qura does and who it is for.
         {!live && " Launching 22 September 2026."}
       </div>
     </div>
