@@ -269,7 +269,12 @@ export default async function handler(req, res) {
     // of the UK sources, so without a cap it swallows the feed and an NHS
     // supplier sees mostly Polish and Spanish notices. UK first, since that is
     // the primary market.
-    const CAP = { eu: 20, us: 15 };
+    // The US allowance is additive. The old cap of 80 meant every American
+    // notice displaced a British one, so switching the US on quietly cost a
+    // UK supplier a fifth of what they came for. The ceiling now rises by
+    // more than the American allowance.
+    const CAP = { eu: 20, us: 20 };
+    const FEED_CAP = US_ENABLED ? 120 : 100;
     let items = [
       ...(Array.isArray(eu) ? eu : []).slice(0, CAP.eu),
       ...(Array.isArray(us) ? us : []).slice(0, CAP.us),
@@ -306,12 +311,14 @@ export default async function handler(req, res) {
     items = [...byContract.values()];
 
     const seen = new Set();
-    const homeFirst = (x) => (x.source === "Find a Tender" || x.source === "Contracts Finder") ? 0 : 1;
+    const homeFirst = (x) =>
+      (x.source === "Find a Tender" || x.source === "Contracts Finder") ? 0
+      : x.source === "TED (EU)" ? 1 : 2;
     const unique = items
       .filter((i) => (seen.has(i.id) ? false : (seen.add(i.id), true)))
       .sort((a, b) => (homeFirst(a) - homeFirst(b)) ||
         String(b.publishedAt || "").localeCompare(String(a.publishedAt || "")))
-      .slice(0, 80)
+      .slice(0, FEED_CAP)
       // Everything above this line any portal could give you. This is the part
       // that is Qura's: the trust matched against the register, the ICB, the
       // region, the procurement category, the platform the bid will run

@@ -140,11 +140,42 @@ export function decisionMakersFor(org, category, limit = 6) {
     .map(({ c }) => ({ name: c.name, role: c.role, spec: c.spec, initials: c.initials, org: c.org }));
 }
 
+
+// ------------------------------------------------------------- US enrichment
+// There is no US decision-maker register yet, so American notices cannot carry
+// contacts. What they can carry is the agency and the state, so they arrive
+// with the same shape as a UK notice rather than looking half-built beside one.
+const US_AGENCIES = [
+  ["Veterans Affairs", /\b(veterans affairs|\bva\b medical|veterans health)/i],
+  ["Department of Defense", /\b(defense health|defence health|dod\b|army|navy|air force|tricare)/i],
+  ["Health and Human Services", /\b(health and human services|hhs\b|cdc\b|nih\b|fda\b)/i],
+  ["Indian Health Service", /\bindian health service\b/i],
+  ["Bureau of Prisons", /\bbureau of prisons\b/i],
+];
+
+const US_STATES = /\b(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming|district of columbia)\b/i;
+
+export function usAgencyOf(text) {
+  const t = String(text || "");
+  for (const [name, re] of US_AGENCIES) if (re.test(t)) return name;
+  return null;
+}
+
+export function usStateOf(text) {
+  const m = String(text || "").match(US_STATES);
+  return m ? m[0].replace(/\b\w/g, (c) => c.toUpperCase()) : null;
+}
+
 // ------------------------------------------------------------------- the join
 export function enrich(notice) {
   const text = [notice && notice.title, notice && notice.description, notice && notice.buyer]
     .filter(Boolean).join(" ");
-  const match = organisationOf(notice && notice.buyer);
+  // Match sam.gov specifically. A bare /\.gov\b/ test also matches
+  // find-tender.service.gov.uk, which classified every British notice as
+  // American.
+  const isUS = /sam\.gov/i.test(String((notice && notice.source) || "")) ||
+               /(^|\/\/)([a-z0-9-]+\.)*sam\.gov(\/|$)/i.test(String((notice && notice.url) || ""));
+  const match = isUS ? null : organisationOf(notice && notice.buyer);
   const category = categoryOf(text);
   const org = match ? match.org : (notice && notice.buyer) || null;
   return {
@@ -154,7 +185,11 @@ export function enrich(notice) {
     organisation: org,
     orgType: match ? match.orgType : null,
     inRegister: Boolean(match),
-    region: regionOf(org || text),
+    region: isUS ? usStateOf(text) : regionOf(org || text),
+    agency: isUS ? usAgencyOf(text) : null,
+    market: isUS ? "United States"
+      : /ted/i.test(String((notice && notice.source) || "")) ? "European Union"
+      : "United Kingdom",
     icb: match && match.orgType === "Integrated Care Board" ? org : null,
     contacts: decisionMakersFor(match ? match.org : null, category),
   };
