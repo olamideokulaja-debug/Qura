@@ -47,6 +47,18 @@ function relevant(rel) {
   const t = rel.tender || {};
   // Buying equipment or supplies is not a workforce opportunity.
   if (t.mainProcurementCategory === "goods") return false;
+
+  // Nor is a contract that has already been awarded. OCDS tags the release:
+  // "tender" is an open opportunity, "award" and "contract" mean it is done.
+  // Find a Tender's F03 award notices were arriving as live opportunities, so
+  // a supplier could open a notice, read it, and only then discover the work
+  // was given to someone else last week. NHS South Yorkshire ICB publishes one
+  // award notice per pharmacy contractor, which is why several nearly
+  // identical ones appeared at once.
+  const tags = Array.isArray(rel.tag) ? rel.tag.map((x) => String(x).toLowerCase()) : [];
+  if (tags.some((x) => /award|contract|implementation/.test(x))) return false;
+  if (Array.isArray(rel.awards) && rel.awards.length) return false;
+  if (/\bcontract award notice\b/i.test(String(t.title || "") + " " + String(t.description || ""))) return false;
   const buyer = ((rel.buyer || {}).name || "");
   const cpv = String(((t.classification || {}).id) || "");
   const text = ((t.title || "") + " " + (t.description || ""));
