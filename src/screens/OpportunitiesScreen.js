@@ -58,7 +58,29 @@ export default function OpportunitiesScreen({ navigation }) {
             </ScrollView>
           </View>
         }
-        ListEmptyComponent={<Empty text="No matching opportunities right now. Pull to refresh." />}
+        ListEmptyComponent={
+          // An empty page should recruit, not apologise. Before launch this
+          // rarely shows. After 22 September, when the illustrative roles
+          // switch off, it is what a clinician sees until the first real
+          // requirement is posted, so it asks them to do the two things that
+          // make them findable the moment one is.
+          <View style={{ padding: 26, alignItems: "center" }}>
+            <Text style={[type.h2, { textAlign: "center" }]}>Nothing matching you yet</Text>
+            <Text style={[type.muted, { textAlign: "center", marginTop: 8, lineHeight: 20 }]}>
+              Requirements are posted by hospitals, GP practices and workforce suppliers throughout the day.
+              Get verified and keep your profile current, and you will be in front of them the moment one lands.
+            </Text>
+            <View style={{ marginTop: 16, width: "100%" }}>
+              {/* Only routes this repo actually contains. VerifyScreen exists;
+                  a profile screen does not, so it is a line of text rather
+                  than a button that might not resolve. */}
+              <Button title="Get verified" onPress={() => navigation.navigate("Verify")} />
+            </View>
+            <Text style={[type.muted, { textAlign: "center", marginTop: 14, fontSize: 12 }]}>
+              Pull down to refresh.
+            </Text>
+          </View>
+        }
         renderItem={({ item }) => {
           const done = !!applied[item.id];
           return (

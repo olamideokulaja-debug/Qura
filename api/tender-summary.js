@@ -38,7 +38,9 @@ export default async function handler(req, res) {
     "WHAT: one sentence on what is being bought.\n" +
     "WHO: the buyer and what kind of organisation it is.\n" +
     "WHEN: the closing information as given.\n" +
-    "FIT: one sentence on whether this looks like clinical workforce, insourcing, or something adjacent, and for which professions if stated.";
+    "FIT: one sentence on whether this looks like clinical workforce, insourcing, or something adjacent, and for which professions if stated.\n" +
+    "ROUTE: if a bidding platform is given, name it in one short sentence. If it is not given, omit this line entirely.\n" +
+    "WHO TO APPROACH: if named contacts are given, list up to three as Name (role). If none are given, omit this line entirely.";
 
   const userMsg =
     "Notice fields:\n" +
@@ -46,11 +48,21 @@ export default async function handler(req, res) {
     "Buyer: " + (notice.buyer || "Not stated") + "\n" +
     "Region: " + (notice.region || "Not stated") + "\n" +
     "Market: " + (notice.market || "Not stated") + "\n" +
-    "Category: " + (notice.profession || "Not stated") + "\n" +
+    // notice.category is the enriched one (Pathology, Imaging & Radiology).
+    // notice.profession is the raw OCDS classification, which is usually the
+    // generic "Healthcare services", so the enriched value leads.
+    "Category: " + (notice.category || notice.profession || "Not stated") + "\n" +
     "Value: " + (notice.rate || "Not stated") + "\n" +
     "Closes: " + (notice.closes || "Not stated") + "\n" +
     "Description: " + (notice.note || "Not stated") + "\n" +
-    "Source: " + (notice.source || "Not stated");
+    "Source: " + (notice.source || "Not stated") + "\n" +
+    // The enrichment. This is the part no portal could tell them.
+    "Organisation: " + (notice.organisation || notice.buyer || "Not stated") + "\n" +
+    "Bidding platform: " + (notice.platform || "Not stated") + "\n" +
+    "Named contacts at this organisation: " +
+      (Array.isArray(notice.contacts) && notice.contacts.length
+        ? notice.contacts.slice(0, 3).map((c) => c.name + " (" + (c.role || c.spec || "decision maker") + ")").join("; ")
+        : "None held");
 
   const out = await askAI(system, userMsg, 300);
   if (!out.ok) return res.status(502).json({ error: out.error || "Could not summarise this notice." });
@@ -61,5 +73,8 @@ export default async function handler(req, res) {
     cached: !!out.cached,
     source: notice.source || null,
     url: notice.url || null,
+    category: notice.category || null,
+    platform: notice.platform || null,
+    contacts: Array.isArray(notice.contacts) ? notice.contacts.slice(0, 3) : [],
   });
 }
