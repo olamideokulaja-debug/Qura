@@ -40,6 +40,22 @@ const US_ENABLED = String(process.env.SOURCES_US || "").toLowerCase() === "on";
 const CPV_PERSONNEL = ["796"];          // supply of personnel, always relevant
 const CPV_HEALTH_SERVICES = ["85", "7512"];
 const BUYER_PATTERNS = /\b(nhs|health board|healthcare|integrated care|hospital|hospice|ambulance|icb)\b/i;
+
+// Independent healthcare providers, so the feed is not NHS-only. These are
+// buyers of clinical services in their own right.
+const INDEPENDENT_HEALTH = /\b(spire|nuffield|circle health|hca healthcare|ramsay|bmi healthcare|practice plus|inhealth|alliance medical|care uk|bupa|priory|cygnet|elysium|st andrew'?s healthcare|benenden|king edward vii|london clinic|cleveland clinic|medicare|vita health|totally plc|medinet)\b/i;
+
+// Buyers that are not healthcare organisations however health-adjacent the
+// wording gets. A county council commissioning a children's programme and a
+// procurement publisher running a staffing framework both used to slip in
+// through the personnel CPV code, which does not look at who is buying.
+const NOT_HEALTH_BUYER = /\b(county council|city council|borough council|district council|parish council|\bcouncil\b|police|fire and rescue|university of|college|academy trust|school|housing association|bip solutions|ministry of defence|home office|dwp|hmrc)\b/i;
+
+function healthBuyer(name) {
+  const b = String(name || "");
+  if (NOT_HEALTH_BUYER.test(b)) return false;
+  return BUYER_PATTERNS.test(b) || INDEPENDENT_HEALTH.test(b);
+}
 // Words that mean people, or work delivered by people
 const WORKFORCE_WORDS = /\b(staffing|locum|bank staff|agency staff|workforce|recruit\w*|nursing|nurses?|clinician\w*|insourc\w*|outsourc\w*|waiting list|radiograph\w*|sonograph\w*|endoscop\w*|theatre lists?|consultant\w*|physiotherap\w*|psychiatr\w*|dental|general practice|community health|domiciliary|care staff|allied health)\b/i;
 
@@ -62,11 +78,15 @@ function relevant(rel) {
   const buyer = ((rel.buyer || {}).name || "");
   const cpv = String(((t.classification || {}).id) || "");
   const text = ((t.title || "") + " " + (t.description || ""));
-  const buyerHit = BUYER_PATTERNS.test(buyer);
+  // Who is buying decides first. The personnel CPV code used to admit anything
+  // about temporary staff regardless of buyer, which is how a council's
+  // business support contract and a procurement publisher's framework reached
+  // a healthcare feed.
+  if (!healthBuyer(buyer)) return false;
   const wordHit = WORKFORCE_WORDS.test(text);
   if (CPV_PERSONNEL.some((p) => cpv.startsWith(p))) return true;
-  if (CPV_HEALTH_SERVICES.some((p) => cpv.startsWith(p)) && (buyerHit || wordHit)) return true;
-  return buyerHit && wordHit;
+  if (CPV_HEALTH_SERVICES.some((p) => cpv.startsWith(p))) return true;
+  return wordHit;
 }
 
 function region(rel) {
@@ -267,7 +287,12 @@ export default async function handler(req, res) {
   if (!sbUrl || !service) return res.status(500).json({ error: "Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY." });
 
   try {
-    const since = new Date(Date.now() - 21 * 86400000);
+    // 21 days was too short once award notices were excluded: a healthcare
+    // tender is typically open for four to six weeks, so a three-week window
+    // was missing opportunities that are still live and still biddable. 45
+    // days captures the full response period without dragging in stale ones,
+    // and closed notices fall out on their closing date anyway.
+    const since = new Date(Date.now() - 45 * 86400000);
     const isoDay = since.toISOString().slice(0, 10);
 
     const [fts, cf, eu, us] = await Promise.all([
