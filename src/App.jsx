@@ -3961,7 +3961,7 @@ const NOTIFS = [
   { t: "Round-table seat confirmed", b: "Community Diagnostics forum", time: "3h", i: Ticket, dot: false },
   { t: "Clinician shortlisted", b: "Matched to 2 new roles", time: "1d", i: Stethoscope, dot: false },
 ];
-function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan, onExtend, isOwner, ownerEmail, profileName, onProfileName, founder, authUser }) {
+function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan, onExtend, isOwner, ownerEmail, profileName, onProfileName, founder, authUser, clinProfile = {} }) {
   const nav = NAVS[role];
   const [active, setActive] = useState(nav[0].k);
   const [market, setMarket] = useState(role === "hospital" ? "nhs" : "all");
@@ -4684,7 +4684,7 @@ export default function App() {
       {stage === "roleChoice" && <RoleChoiceScreen onPick={pickRole} onHome={home} />}
       {stage === "auth" && <AuthPanel mode={authMode} roleLabel={authMode === "up" && pendingRole ? roleLabelOf(pendingRole) : null} onHome={home} onCreateAccount={() => setStage("roleChoice")} onBackToSignIn={() => { setPendingRole(null); setAuthMode("in"); }} />}
       {stage === "signup" && <Signup onHome={home} onSignIn={goSignIn} onChoose={(pl, annual) => { choosePlan(pl, annual); setStage("app"); }} />}
-      {stage === "app" && role && <Shell authUser={session && session.user} role={role} trial={trial} plan={plan} onPlan={choosePlan} onExtend={extendTrial} onSignup={() => setStage("signup")} onLogout={logout} onHome={home} onSwitch={switchRole} isOwner={isOwner} ownerEmail={email} profileName={profileName} onProfileName={setProfileName} founder={founder} />}
+      {stage === "app" && role && <Shell clinProfile={clinProfile} authUser={session && session.user} role={role} trial={trial} plan={plan} onPlan={choosePlan} onExtend={extendTrial} onSignup={() => setStage("signup")} onLogout={logout} onHome={home} onSwitch={switchRole} isOwner={isOwner} ownerEmail={email} profileName={profileName} onProfileName={setProfileName} founder={founder} />}
     </div>
   );
 }
