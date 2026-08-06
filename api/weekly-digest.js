@@ -64,9 +64,15 @@ export default async function handler(req, res) {
 
         const hits = recent.filter((n) => alerts.some((a) => {
           const mOk = a.market === "All" || n.market === a.market;
+          // Category is exact and reliable, so an alert set to Pathology
+          // matches every pathology notice whether or not the word appears in
+          // the title. Text search alone missed those.
+          const cOk = !a.category || a.category === "All" || n.category === a.category;
           const q = String(a.query || "").toLowerCase();
-          const qOk = !q || (n.title + " " + n.buyer + " " + n.profession + " " + n.note).toLowerCase().includes(q);
-          return mOk && qOk;
+          const hay = (n.title + " " + n.buyer + " " + (n.profession || "") + " " +
+                       (n.category || "") + " " + (n.organisation || "") + " " + n.note).toLowerCase();
+          const qOk = !q || hay.includes(q);
+          return mOk && cOk && qOk;
         })).slice(0, 12);
 
         // Nothing matched this week: skip rather than send an empty email.

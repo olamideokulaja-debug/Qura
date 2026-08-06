@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    const { action, id, query, market } = req.body || {};
+    const { action, id, query, market, category } = req.body || {};
     const alerts = (await kvGet(user.id, KEY)) || [];
     const list = Array.isArray(alerts) ? alerts : [];
 
@@ -44,12 +44,22 @@ export default async function handler(req, res) {
     // create
     const q = String(query || "").trim().slice(0, 60);
     const m = ["All", "NHS", "Private", "International"].includes(market) ? market : "All";
-    if (!q && m === "All") return res.status(400).json({ error: "Give the alert a search word or a market." });
+    // Category comes from the enrichment, so an alert can now be set to
+    // Pathology rather than hoping the word appears in a title. Validated
+    // against the list the enrichment actually produces.
+    const CATEGORIES = ["All", "Imaging & Radiology", "Pathology", "Audiology", "Endoscopy",
+      "Community Diagnostics", "Cardiology & Respiratory", "Cancer & Screening",
+      "Temporary Staffing", "Digital & Data", "Estates & Facilities",
+      "Pharmacy & Medicines", "Consultancy & Transformation"];
+    const c = CATEGORIES.includes(category) ? category : "All";
+    if (!q && m === "All" && c === "All") {
+      return res.status(400).json({ error: "Give the alert a search word, a market or a category." });
+    }
     if (list.length >= MAX_ALERTS) return res.status(409).json({ error: "You have " + MAX_ALERTS + " alerts already. Remove one first." });
-    if (list.some((a) => a.query.toLowerCase() === q.toLowerCase() && a.market === m)) {
+    if (list.some((a) => a.query.toLowerCase() === q.toLowerCase() && a.market === m && (a.category || "All") === c)) {
       return res.status(200).json({ ok: true, alerts: list, existed: true });
     }
-    const entry = { id: "al_" + Date.now(), query: q, market: m, at: new Date().toISOString() };
+    const entry = { id: "al_" + Date.now(), query: q, market: m, category: c, at: new Date().toISOString() };
     const next = [entry, ...list];
     await kvSet(user.id, KEY, next);
     const idx = (await kvGet("shared", INDEX)) || [];
