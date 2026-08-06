@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { limited } from "./_ratelimit.js";
 import { alertFounders } from "./_alert.js";
+import { enrich } from "./_enrich.js";
 
 export const config = { maxDuration: 60 };
 
@@ -27,6 +28,11 @@ const CANADA = "https://canadabuys.canada.ca/opendata/pub/openTenderNotice-ouver
 // set as SAMGOV_API_KEY in Vercel. Personal keys allow only about 10 calls a
 // day, so this makes exactly one call per run and no retries.
 const SAM = "https://api.sam.gov/opportunities/v2/search";
+
+// US notices are built and tested but off by default: the UK launch should not
+// show an NHS supplier a Veterans Affairs contract. Set SOURCES_US=on in the
+// environment to switch them back on, with no code change.
+const US_ENABLED = String(process.env.SOURCES_US || "").toLowerCase() === "on";
 
 // Filtering, tuned against live data rather than guessed. A first attempt that
 // matched on "medical" pulled in things like medical gas pipeline maintenance,
@@ -256,7 +262,7 @@ export default async function handler(req, res) {
       getPaged(FTS + "?updatedFrom=" + encodeURIComponent(since.toISOString().replace(/\.\d+Z$/, "Z")) + "&limit=100"),
       getPaged(CF + "?publishedFrom=" + isoDay + "&size=100"),
       euTenders(since.toISOString()),
-      usTenders(since.toISOString()),
+      US_ENABLED ? usTenders(since.toISOString()) : Promise.resolve([]),
     ]);
 
     // Per-source caps. The EU board carries roughly a hundred times the volume
@@ -305,7 +311,30 @@ export default async function handler(req, res) {
       .filter((i) => (seen.has(i.id) ? false : (seen.add(i.id), true)))
       .sort((a, b) => (homeFirst(a) - homeFirst(b)) ||
         String(b.publishedAt || "").localeCompare(String(a.publishedAt || "")))
-      .slice(0, 80);
+      .slice(0, 80)
+      // Everything above this line any portal could give you. This is the part
+      // that is Qura's: the trust matched against the register, the ICB, the
+      // region, the procurement category, the platform the bid will run
+      // through, and the named people already in the directory who decide it.
+      .map((it) => {
+        try {
+          const e = enrich({ title: it.title, description: it.note, buyer: it.buyer, url: it.url });
+          return {
+            ...it,
+            category: e.category,
+            platform: e.platform,
+            organisation: e.organisation,
+            orgType: e.orgType,
+            inRegister: e.inRegister,
+            icb: e.icb,
+            region: it.region || e.region,
+            contacts: e.contacts,
+          };
+        } catch (err) {
+          // Enrichment must never cost us the feed itself.
+          return it;
+        }
+      });
 
     const sb = createClient(sbUrl, service, { auth: { persistSession: false } });
     const kvRead = async (owner, key) => {
