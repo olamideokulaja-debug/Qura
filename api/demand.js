@@ -12,6 +12,18 @@ const SEED = [
   { id: "dm_4", title: "Biomedical Scientists", buyer: "NHS trust", region: "Birmingham", market: "NHS", profession: "Biomedical Scientist", rate: "Band 6", need: "4 posts", start: "ASAP", closes: "9 days", note: "Blood sciences rotation, pathology network." },
 ];
 
+// Founders see the whole product, including the markets a free plan cannot.
+// Note the deliberate difference from admin.js: there, an empty OWNER_EMAILS
+// treats everyone as an owner, which is a reasonable fallback for a panel
+// nobody can reach without a password. Here it would silently unlock paid
+// markets for every user, so an empty list grants nothing.
+function isOwner(user) {
+  const owners = (process.env.OWNER_EMAILS || process.env.VITE_OWNER_EMAILS || "")
+    .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  if (!owners.length) return false;
+  return owners.includes(String((user && user.email) || "").toLowerCase());
+}
+
 export default async function handler(req, res) {
   const user = await getUser(req);
   if (!user) return res.status(401).json({ error: "Sign in required" });
@@ -30,7 +42,7 @@ export default async function handler(req, res) {
     let items = [...(Array.isArray(posted) ? posted : []), ...live, ...filler];
     // Plan gate: only Growth/Intelligence and above see International markets.
     const plan = await planOf(user.id);
-    const canInternational = ENTITLEMENTS.internationalMarkets(plan);
+    const canInternational = isOwner(user) || ENTITLEMENTS.internationalMarkets(plan);
     if (!canInternational) items = items.filter((d) => d.market !== "International");
     if (market && market !== "All") items = items.filter((d) => d.market === market);
     if (profession && profession !== "All") items = items.filter((d) => d.profession === profession);
