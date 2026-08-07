@@ -2361,7 +2361,59 @@ function ClinicianRegistration({ onToast }) {
   const [f, setF] = useState({ cat: "", prof: "", regNo: "", country: "", years: "", sector: "", cv: "", declare: false });
   const [done, setDone] = useState(false);
   const [cvBusy, setCvBusy] = useState(false);
+  // hyd gates the draft autosave. Without it the first render would save an
+  // empty form over a real draft before the fetch below has come back.
+  const [hyd, setHyd] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
   const upd = (k, v) => setF((s) => ({ ...s, [k]: v }));
+
+  const authHeaders = async (json) => {
+    let t = "";
+    try { const { data } = await supabase.auth.getSession(); t = (data && data.session && data.session.access_token) || ""; } catch (e) {}
+    const h = t ? { Authorization: "Bearer " + t } : {};
+    if (json) h["content-type"] = "application/json";
+    return h;
+  };
+
+  // Load whatever this clinician already has: a finished registration puts
+  // them straight on the confirmation screen, a draft refills the form.
+  useEffect(() => {
+    let dead = false;
+    (async () => {
+      try {
+        const r = await fetch("/api/clinician-register", { headers: await authHeaders(false) });
+        if (r.ok) {
+          const j = await r.json();
+          const reg = j && j.registration;
+          if (!dead && reg) {
+            if (reg.status === "registered") {
+              setF((s) => ({ ...s, ...reg, declare: true }));
+              setDone(true);
+            } else if (reg.form) {
+              setF((s) => ({ ...s, ...reg.form }));
+            }
+          }
+        }
+      } catch (e) {}
+      if (!dead) setHyd(true);
+    })();
+    return () => { dead = true; };
+  }, []);
+
+  // Autosave the draft. Debounced, because this fires on every keystroke.
+  useEffect(() => {
+    if (!hyd || done) return;
+    const t = setTimeout(async () => {
+      try {
+        await fetch("/api/clinician-register", {
+          method: "POST", headers: await authHeaders(true),
+          body: JSON.stringify({ action: "draft", ...f }),
+        });
+      } catch (e) {}
+    }, 900);
+    return () => clearTimeout(t);
+  }, [f, hyd, done]);
   const onCv = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
@@ -2394,7 +2446,30 @@ function ClinicianRegistration({ onToast }) {
     { k: "Declaration", ok: f.declare },
   ];
   const complete = checks.every((c) => c.ok);
-  const submit = () => { if (!complete) return; setDone(true); if (onToast) onToast("Registration complete. You are now registered on Qura."); };
+  // The old version of this function set a local flag and told the clinician
+  // they were registered. Nothing was written anywhere. The success screen is
+  // now shown only after the server confirms it has the record.
+  const submit = async () => {
+    if (!complete || busy) return;
+    setBusy(true); setErr("");
+    try {
+      const r = await fetch("/api/clinician-register", {
+        method: "POST", headers: await authHeaders(true),
+        body: JSON.stringify({ ...f, years: Number(f.years) }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) {
+        setErr(j.error || "We could not save your registration. Nothing has been lost, please try again.");
+        setBusy(false);
+        return;
+      }
+      setDone(true);
+      if (onToast) onToast("Registration complete. You are now registered on Qura.");
+    } catch (e) {
+      setErr("We could not reach Qura to save your registration. Nothing has been lost, please try again.");
+    }
+    setBusy(false);
+  };
   const lab = { fontSize: 12.5, fontWeight: 600, display: "block", margin: "14px 0 5px" };
   const inp = { width: "100%", padding: "11px 12px", border: "1px solid var(--line)", borderRadius: 10, fontSize: 14, boxSizing: "border-box", background: "#fff" };
   if (done) return (
@@ -2442,8 +2517,9 @@ function ClinicianRegistration({ onToast }) {
           <SectionHead title="Registration status" />
           <p className="muted" style={{ fontSize: 12.5, marginTop: 0, marginBottom: 14 }}>You can only join once every item is complete. This is how we keep the network complete and employable.</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{checks.map((c) => (<div key={c.k} className="row" style={{ gap: 9, fontSize: 13.5, color: c.ok ? "var(--text)" : "var(--muted)" }}>{c.ok ? <Check size={16} color="#0E8C7E" style={{ flexShrink: 0 }} /> : <span style={{ width: 16, height: 16, borderRadius: 999, border: "1.6px solid var(--line)", flexShrink: 0 }} />}{c.k}</div>))}</div>
-          <button onClick={submit} disabled={!complete} className={"btn " + (complete ? "btn-primary" : "btn-light")} style={{ width: "100%", justifyContent: "center", marginTop: 20 }}>{complete ? "Complete registration" : "Complete all items to join"}</button>
-          <div className="faint" style={{ fontSize: 11.5, marginTop: 10, lineHeight: 1.5 }}>An incomplete profile cannot join the network. CV upload is captured here; secure file storage connects with your backend.</div>
+          <button onClick={submit} disabled={!complete || busy} className={"btn " + (complete ? "btn-primary" : "btn-light")} style={{ width: "100%", justifyContent: "center", marginTop: 20 }}>{busy ? "Saving..." : (complete ? "Complete registration" : "Complete all items to join")}</button>
+          {err ? <div style={{ fontSize: 12.5, color: "var(--red)", marginTop: 10, lineHeight: 1.5 }}>{err}</div> : null}
+          <div className="faint" style={{ fontSize: 11.5, marginTop: 10, lineHeight: 1.5 }}>An incomplete profile cannot join the network. Your answers are saved as you go, so you can come back and finish later.</div>
         </div>
       </div>
     </div>
