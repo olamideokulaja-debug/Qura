@@ -4425,6 +4425,20 @@ function QuraFilmBlock() {
     </div>
   );
 
+  // segment -> the product role it opens on. The role keys are the ones the
+  // signup picker uses: agency, hospital, gp, care, clinician.
+  const SEGMENTS = [
+    ["clinician", "Clinician", "clinician"],
+    ["supplier", "Workforce supplier", "agency"],
+    ["provider", "Hospital or provider", "hospital"],
+    ["gp", "GP practice", "gp"],
+    ["care", "Care home, complex care or SEND", "care"],
+    ["device", "Medical device company", "agency"],
+    ["healthtech", "Health technology", "agency"],
+    ["consultancy", "Consultancy", "agency"],
+    ["other", "Something else", "agency"],
+  ];
+
   const pill = (v, label) => (
     <button
       key={v}
@@ -4446,14 +4460,15 @@ function QuraFilmBlock() {
   // access to and they are the ones who know it.
   const join = async () => {
     if (!email || !email.includes("@")) { setErr("Enter a valid email address."); return; }
-    if (!role) { setErr("Choose clinician or supplier."); return; }
+    if (!role) { setErr("Tell us which one you are."); return; }
     const addr = email.trim().toLowerCase();
     setErr("");
     try {
       const r = await fetch("/api/waitlist-join", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email: addr, role }),
+        // segment is what they picked; role is the product view it opens on
+        body: JSON.stringify({ email: addr, segment: role, role: (SEGMENTS.find((x) => x[0] === role) || [])[2] || "agency" }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) { setErr(j.error || "That did not work. Try again in a moment."); return; }
@@ -4511,8 +4526,7 @@ function QuraFilmBlock() {
             </div>
           )}
           <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            {pill("clinician", "I am a clinician")}
-            {pill("supplier", "I am a supplier")}
+            {SEGMENTS.map(([v, label]) => pill(v, label))}
           </div>
           <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <input
