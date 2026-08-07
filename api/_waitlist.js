@@ -8,7 +8,25 @@
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 
+const ROLE_LABEL = { supplier: "workforce supplier", clinician: "clinician" };
+
 const SITE = "https://www.qurahealth.org";
+
+// The signature block that goes under every founder email. Kept in one place
+// so the two emails cannot drift apart.
+const SIGNATURE =
+  '<table cellpadding="0" cellspacing="0" border="0" style="margin-top:30px;border-top:1px solid #E3E8F0;padding-top:18px">' +
+  '<tr><td style="padding:0 0 10px 0">' +
+  '<img src="' + SITE + '/qura-logo-email.png" width="200" height="47" alt="Qura, Healthcare Growth CRM" style="display:block;border:0">' +
+  '</td></tr>' +
+  '<tr><td style="font-family:Inter,Arial,sans-serif;font-size:13px;line-height:1.7;color:#5A6783">' +
+  '<strong style="color:#0A1730">The Qura Founders</strong><br>' +
+  '<a href="' + SITE + '" style="color:#0E8C7E;text-decoration:none">qurahealth.org</a> &nbsp;·&nbsp; ' +
+  '<a href="https://www.linkedin.com/company/qura-healthcare" style="color:#0E8C7E;text-decoration:none">LinkedIn</a><br>' +
+  'Qura Ltd, company no. 17310951<br>' +
+  '167-169 Great Portland Street, 5th Floor, London W1W 5PF' +
+  '</td></tr></table>';
+
 
 export function adminClient() {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -101,12 +119,44 @@ export async function approve(admin, entry, by) {
   await kvWrite(admin, userId, "qura_role", role);
   // No qura_plan row is written. Absence of one already means the free plan.
 
-  const mail = await sendMail([addr], "Your Qura early access is approved",
-    '<div style="font-family:Inter,Arial,sans-serif;color:#0A1730;line-height:1.6">' +
-    "<p>Your request for early access to Qura has been approved.</p>" +
-    "<p>Set your password and sign in as a " + role + ":</p>" +
-    '<p><a href="' + actionLink + '" style="background:#00C2B8;color:#04231F;font-weight:700;padding:12px 22px;border-radius:999px;text-decoration:none;display:inline-block">Set your password</a></p>' +
-    '<p style="font-size:13px;color:#5A6783">If the button does not work, paste this into your browser:<br>' + actionLink + "</p></div>");
+  // The set-password link must be a QURA url. A Supabase verify link in an
+  // email from a healthcare platform reads as phishing, and this is the one
+  // link we most need people to trust. So the real link is stored against a
+  // short opaque token and /api/set-password redirects to it.
+  const token = crypto.randomBytes(16).toString("hex");
+  await kvWrite(admin, "shared", "pw_link_" + token, {
+    link: actionLink, email: addr, role,
+    expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  });
+  const setLink = SITE + "/api/set-password?t=" + token;
+  const roleWord = ROLE_LABEL[role] || "clinician";
+
+  const mail = await sendMail([addr], "Welcome to Qura: your early access is open",
+    '<div style="font-family:Inter,Arial,sans-serif;color:#0A1730;line-height:1.65;font-size:15px;max-width:620px">' +
+    '<h1 style="font-size:24px;margin:0 0 18px 0;color:#0A1730">Welcome to Qura</h1>' +
+    "<p>Thank you for becoming one of our early pre-launch subscribers. We are genuinely excited to have you with us at the very beginning of the Qura journey.</p>" +
+    "<p>Qura has been built to bring the healthcare ecosystem together through one intelligent platform. Whether you are a healthcare provider, workforce supplier, clinician, medical device company or another organisation supporting healthcare, our mission is simple: to make meaningful connections easier, improve collaboration, and help the right people find the right opportunities.</p>" +
+
+    '<div style="background:#F2F5F9;border-left:4px solid #0E8C7E;padding:18px 22px;margin:26px 0;border-radius:6px">' +
+    '<p style="margin:0 0 14px 0"><strong>Set your password and sign in.</strong><br>' +
+    "You asked for access as a <strong>" + roleWord + "</strong>, so that is the view your account opens on.</p>" +
+    '<p style="margin:0 0 12px 0"><a href="' + setLink + '" style="background:#00C2B8;color:#04231F;font-weight:700;padding:13px 26px;border-radius:999px;text-decoration:none;display:inline-block">Create your password</a></p>' +
+    '<p style="margin:0;font-size:12.5px;color:#5A6783">This link is for you alone and lasts seven days. If the button does not work, paste this into your browser:<br>' + setLink + "</p></div>" +
+
+    "<p>As one of our early subscribers, we would love to get to know you better. Which lens are you viewing Qura from?</p>" +
+    '<ul style="margin:0 0 18px 22px;padding:0">' +
+    "<li>Healthcare provider</li><li>Workforce supplier</li><li>Clinician</li><li>Medical device company</li>" +
+    "<li>Healthcare technology</li><li>Consultancy</li><li>Something else</li></ul>" +
+
+    "<p>We would also love to hear from you. Just reply to this email and tell us:</p>" +
+    '<ul style="margin:0 0 18px 22px;padding:0">' +
+    "<li>What you would like to achieve using Qura</li>" +
+    "<li>Any features or functionality you would find valuable</li>" +
+    "<li>Any challenges you are hoping Qura can help solve</li></ul>" +
+
+    "<p>Your feedback will directly influence how we develop the platform ahead of our public launch. Your message will be read personally by the founders, and you will get a direct response from us.</p>" +
+    "<p>Thank you for helping shape the future of Qura. We are looking forward to building it with you.</p>" +
+    SIGNATURE + "</div>");
 
   entry.status = "approved";
   entry.decidedAt = new Date().toISOString();
