@@ -4701,10 +4701,29 @@ export default function App() {
           token = (data && data.session && data.session.access_token) || "";
         }
         if (!token) return;
-        const r = await fetch("/api/profile", { headers: { Authorization: "Bearer " + token } });
-        if (!r.ok) return;
-        const j = await r.json();
-        const pr = (j && j.profile) || {};
+        const auth = { Authorization: "Bearer " + token };
+        let pr = {};
+        try {
+          const r = await fetch("/api/profile", { headers: auth });
+          if (r.ok) { const j = await r.json(); pr = (j && j.profile) || {}; }
+        } catch (e) {}
+
+        // Fall back to the registration. /api/profile has no writer: nothing
+        // in the app has ever populated it, which is why every clinician saw
+        // 0% and "Add your job title" no matter what they had filled in. The
+        // registration is the one place they have actually told us any of this.
+        if (!pr.profession && !pr.category) {
+          try {
+            const rr = await fetch("/api/clinician-register", { headers: auth });
+            if (rr.ok) {
+              const jj = await rr.json();
+              const reg = jj && jj.registration;
+              if (reg && reg.status === "registered") {
+                pr = { profession: reg.prof || "", category: reg.cat || "", experienceYears: reg.years || "", availableFrom: pr.availableFrom || "" };
+              }
+            }
+          } catch (e) {}
+        }
         if (dead) return;
         setClinProfile({
           title: pr.profession || "",
