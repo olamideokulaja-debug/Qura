@@ -4785,7 +4785,11 @@ export default function App() {
       } catch (e) {}
     })();
     return () => { dead = true; };
-  }, []);
+    // Was []. That ran once when the app first mounted, on the marketing page,
+    // before anyone had signed in, so there was never a token, the effect
+    // returned at once and never fired again. Every clinician saw profile
+    // strength 0% no matter what was stored, because the read never happened.
+  }, [session, stage]);
   useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_profile_name"); setProfileName(r?.value || ""); } catch (e) {} })(); }, [session, stage]);
   const email = ((session && session.user && session.user.email) || "").toLowerCase();
   const founder = FOUNDER_IDENTITY[email] || null;
