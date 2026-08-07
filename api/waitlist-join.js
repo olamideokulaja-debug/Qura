@@ -13,16 +13,22 @@ export default async function handler(req, res) {
 
   const body = req.body || {};
   const addr = String(body.email || "").trim().toLowerCase();
-  const role = body.role === "supplier" ? "supplier" : body.role === "clinician" ? "clinician" : "";
+  // role is the product view the account opens on, and must be one the signup
+  // picker knows. segment is the finer thing they actually are, which the
+  // product has no view for but the founders want to know.
+  const ROLES = ["agency", "hospital", "gp", "care", "clinician"];
+  const SEGMENTS = ["clinician", "supplier", "provider", "gp", "care", "device", "healthtech", "consultancy", "other"];
+  const role = ROLES.includes(body.role) ? body.role : "";
+  const segment = SEGMENTS.includes(body.segment) ? body.segment : "";
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) return res.status(400).json({ error: "That email address does not look right." });
-  if (!role) return res.status(400).json({ error: "Choose clinician or supplier." });
+  if (!role) return res.status(400).json({ error: "Tell us which one you are." });
 
   try {
     const queue = await getQueue(admin);
     const already = queue.find((e) => e && e.email === addr);
     if (already) return res.status(200).json({ ok: true, duplicate: true, status: already.status || "pending" });
 
-    const entry = { email: addr, role, ts: new Date().toISOString(), status: "pending" };
+    const entry = { email: addr, role, segment, ts: new Date().toISOString(), status: "pending" };
     queue.push(entry);
     await kvWrite(admin, "shared", "qura_waitlist_v2", queue);
 

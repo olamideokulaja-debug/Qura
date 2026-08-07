@@ -8,7 +8,13 @@
 import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 
-const ROLE_LABEL = { supplier: "workforce supplier", clinician: "clinician" };
+// The roles the signup picker knows. "supplier" is kept only so requests
+// queued before the landing page widened still approve correctly.
+const ROLE_LABEL = {
+  agency: "workforce supplier", supplier: "workforce supplier",
+  hospital: "hospital or provider", gp: "GP practice",
+  care: "care provider", clinician: "clinician",
+};
 
 const SITE = "https://www.qurahealth.org";
 
@@ -69,7 +75,11 @@ export function actionLinks(email) {
   return { approve: q("approve"), deny: q("deny") };
 }
 
-export async function sendMail(to, subject, html) {
+export const SUPPORT = "support@qurahealth.org";
+
+// replyTo matters here: the from address is noreply@, so an email that invites
+// a reply and does not set this sends the answer into a black hole.
+export async function sendMail(to, subject, html, replyTo) {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.MAIL_FROM || "noreply@qurahealth.org";
   if (!key) return { ok: false, error: "RESEND_API_KEY is not set." };
@@ -77,7 +87,8 @@ export async function sendMail(to, subject, html) {
     const r = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { authorization: "Bearer " + key, "content-type": "application/json" },
-      body: JSON.stringify({ from: "Qura <" + from + ">", to, subject, html }),
+      body: JSON.stringify(Object.assign({ from: "Qura <" + from + ">", to, subject, html },
+        replyTo ? { reply_to: replyTo } : {})),
     });
     return { ok: r.ok, error: r.ok ? "" : "Resend returned " + r.status };
   } catch (e) {
@@ -95,7 +106,11 @@ export function owners() {
 // so an account can never be reachable without one.
 export async function approve(admin, entry, by) {
   const addr = entry.email;
-  const role = entry.role === "supplier" ? "supplier" : "clinician";
+  // Anything unrecognised falls back to clinician, which is the most limited
+  // view: a wrong guess that under-grants is recoverable, one that over-grants
+  // is not. "supplier" from the old form maps to the real key, "agency".
+  const raw = String(entry.role || "");
+  const role = raw === "supplier" ? "agency" : (ROLE_LABEL[raw] ? raw : "clinician");
 
   let userId = null;
   const made = await admin.auth.admin.createUser({ email: addr, email_confirm: true });
@@ -143,12 +158,7 @@ export async function approve(admin, entry, by) {
     '<p style="margin:0 0 12px 0"><a href="' + setLink + '" style="background:#00C2B8;color:#04231F;font-weight:700;padding:13px 26px;border-radius:999px;text-decoration:none;display:inline-block">Create your password</a></p>' +
     '<p style="margin:0;font-size:12.5px;color:#5A6783">This link is for you alone and lasts seven days. If the button does not work, paste this into your browser:<br>' + setLink + "</p></div>" +
 
-    "<p>As one of our early subscribers, we would love to get to know you better. Which lens are you viewing Qura from?</p>" +
-    '<ul style="margin:0 0 18px 22px;padding:0">' +
-    "<li>Healthcare provider</li><li>Workforce supplier</li><li>Clinician</li><li>Medical device company</li>" +
-    "<li>Healthcare technology</li><li>Consultancy</li><li>Something else</li></ul>" +
-
-    "<p>We would also love to hear from you. Just reply to this email and tell us:</p>" +
+    "<p>We would also love to hear from you. Write to us at <a href=\"mailto:" + SUPPORT + "\" style=\"color:#0E8C7E\">" + SUPPORT + "</a> and tell us:</p>" +
     '<ul style="margin:0 0 18px 22px;padding:0">' +
     "<li>What you would like to achieve using Qura</li>" +
     "<li>Any features or functionality you would find valuable</li>" +
@@ -156,7 +166,7 @@ export async function approve(admin, entry, by) {
 
     "<p>Your feedback will directly influence how we develop the platform ahead of our public launch. Your message will be read personally by the founders, and you will get a direct response from us.</p>" +
     "<p>Thank you for helping shape the future of Qura. We are looking forward to building it with you.</p>" +
-    SIGNATURE + "</div>");
+    SIGNATURE + "</div>", SUPPORT);
 
   entry.status = "approved";
   entry.decidedAt = new Date().toISOString();
