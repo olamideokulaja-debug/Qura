@@ -58,7 +58,9 @@ const NothingYet = ({ title, body }) => (
   </div>
 );
 
-const LINKEDIN = "https://uk.linkedin.com/in/ola-folawiyo-922160142";
+// The company page, not a founder's personal profile. The old value was
+// declared and never rendered anywhere.
+const LINKEDIN = "https://www.linkedin.com/company/qura-healthcare";
 
 /* ===================================================================== */
 const STYLES = `
@@ -3709,7 +3711,8 @@ function Landing({ onEnter, onDemo }) {
 
           <div className="faint" style={{ fontSize: 12.5, marginTop: 22, lineHeight: 1.6 }}>
             © {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM<br />
-            Qura Ltd, company no. 17310951 · 167-169 Great Portland Street, 5th Floor, London W1W 5PF
+            Qura Ltd, company no. 17310951 · 167-169 Great Portland Street, 5th Floor, London W1W 5PF<br />
+            <a href={LINKEDIN} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)", textDecoration: "none" }}>Follow Qura on LinkedIn</a>
           </div>
         </div>
       </div>
