@@ -4155,6 +4155,10 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
 
 /* ===================== root ===================== */
 function RoleChoiceScreen({ onPick, onHome }) {
+  // Before launch a self-registered account can only be a clinician. The
+  // business roles are reachable through an approved early-access request,
+  // which sets the role server-side and never comes through this screen.
+  const businessOpen = seedActive() === false;
   const roles = [
     { k: "operator", t: "Operator (Founder)", d: "Run and grow the marketplace across every market.", i: Activity, c: "#00C2B8", bg: "rgba(0,194,184,.14)" },
     { k: "agency", t: "Workforce supplier", d: "Win and manage placements and contracts.", i: Briefcase, c: "#2D6BFF", bg: "rgba(45,107,255,.14)" },
@@ -4175,8 +4179,19 @@ function RoleChoiceScreen({ onPick, onHome }) {
           <h1 className="disp" style={{ color: "#fff", fontSize: 30, fontWeight: 700, margin: "18px 0 6px", lineHeight: 1.15 }}>Which best describes you?</h1>
           <p style={{ color: "#9FB0D0", fontSize: 15, marginTop: 0 }}>Choose how you'll use Qura. You can switch views later.</p>
         </div>
+        {!businessOpen ? (
+          <div className="card" style={{ padding: "12px 16px", margin: "0 0 18px", background: "rgba(0,194,184,.12)", border: "1px solid rgba(0,194,184,.3)" }}>
+            <div style={{ fontSize: 13, lineHeight: 1.6, color: "#EEF3FF" }}>
+              Clinician accounts are open now and free. Organisation accounts open on 22 September, or sooner by requesting early access on the home page.
+            </div>
+          </div>
+        ) : null}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>{roles.map((r) => (
-          <button key={r.k} onClick={() => onPick(r.k)} style={{ textAlign: "left", padding: "22px 22px 20px", cursor: "pointer", borderRadius: 18, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.12)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", display: "flex", flexDirection: "column", gap: 14, minWidth: 0, transition: "all .18s ease" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.09)"; e.currentTarget.style.borderColor = "rgba(0,194,184,.5)"; e.currentTarget.style.transform = "translateY(-3px)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.05)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.12)"; e.currentTarget.style.transform = "none"; }}>
+          <button key={r.k} disabled={!businessOpen && r.k !== "clinician"}
+            onClick={() => { if (businessOpen || r.k === "clinician") onPick(r.k); }}
+            style={{ textAlign: "left", padding: "22px 22px 20px",
+              opacity: (!businessOpen && r.k !== "clinician") ? 0.4 : 1,
+              cursor: (!businessOpen && r.k !== "clinician") ? "not-allowed" : "pointer", borderRadius: 18, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.12)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", display: "flex", flexDirection: "column", gap: 14, minWidth: 0, transition: "all .18s ease" }} onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.09)"; e.currentTarget.style.borderColor = "rgba(0,194,184,.5)"; e.currentTarget.style.transform = "translateY(-3px)"; }} onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.05)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.12)"; e.currentTarget.style.transform = "none"; }}>
             <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
               <div style={{ width: 52, height: 52, borderRadius: 14, background: r.bg, display: "grid", placeItems: "center", flexShrink: 0 }}><r.i size={26} color={r.c} /></div>
               <span style={{ width: 34, height: 34, borderRadius: 999, background: "rgba(255,255,255,.08)", display: "grid", placeItems: "center" }}><ArrowRight size={17} color="#fff" /></span>
@@ -4228,6 +4243,17 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
   };
   const soon = () => setMsg("SSO and NHS Mail sign-in are coming soon. Please continue with your email and password.");
   const up = mode === "up";
+  // Self-serve sign-up opens at launch. Before then the only route in is an
+  // approved early-access request, which is what the whole waitlist exists
+  // for. This is the cosmetic half: the real enforcement is the "Allow new
+  // users to sign up" toggle in Supabase, which the approval flow bypasses
+  // because it creates users with the service role.
+  // Clinicians can register themselves from today: they are the supply the
+  // marketplace needs before launch, and clinician accounts are free, so
+  // there is nothing to gate. The business roles still come through an
+  // approved early-access request until 22 September.
+  const selfServeOpen = true;
+  const businessSelfServeOpen = seedActive() === false;
   return (
   <div style={{ minHeight: "100vh", position: "relative", display: "grid", placeItems: "center", padding: 24, overflow: "hidden", background: "radial-gradient(135% 120% at 0% 0%, #102A4F 0%, #0A1730 46%, #070E20 100%)" }}>
     <div className="login-orb orb-float" style={{ top: -130, right: -90, width: 440, height: 440, background: "radial-gradient(circle, rgba(0,194,184,.30), transparent 70%)" }} />
@@ -4272,7 +4298,14 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
         <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 18, padding: 13 }} onClick={submit} disabled={busy}>{busy ? "Please wait..." : (up ? "Create account" : "Sign in")} <ArrowRight size={16} /></button>
         <div className="row" style={{ gap: 12, margin: "18px 0", color: "var(--faint)", fontSize: 12 }}><div style={{ flex: 1, height: 1, background: "var(--line)" }} /> or continue with <div style={{ flex: 1, height: 1, background: "var(--line)" }} /></div>
         <div className="row" style={{ gap: 10 }}><button className="btn btn-light" style={{ flex: 1, justifyContent: "center", background: "var(--bg)" }} onClick={soon}><ShieldCheck size={15} /> SSO</button><button className="btn btn-light" style={{ flex: 1, justifyContent: "center", background: "var(--bg)" }} onClick={soon}><Mail size={15} /> NHS Mail</button></div>
-        <div className="row" style={{ justifyContent: "center", gap: 6, marginTop: 18, fontSize: 13 }}><span className="muted">{up ? "Already have an account?" : "New member?"}</span><button onClick={() => { setMsg(""); if (up) { onBackToSignIn && onBackToSignIn(); } else { onCreateAccount && onCreateAccount(); } }} style={{ color: "var(--teal)", fontWeight: 700, background: "none", cursor: "pointer" }}>{up ? "Sign in" : "Create account"}</button></div>
+        {!businessSelfServeOpen && !up ? (
+          <div className="card" style={{ padding: "12px 16px", marginTop: 16, background: "var(--cyan-soft)", border: "none" }}>
+            <div style={{ fontSize: 13, lineHeight: 1.6, color: "#06776F" }}>
+              <strong>Clinicians can join today.</strong> Create your account, get verified, and be visible to hospitals and workforce suppliers from the moment we open. Organisations join on 22 September, or sooner by requesting early access on the home page.
+            </div>
+          </div>
+        ) : null}
+        <div className="row" style={{ justifyContent: "center", gap: 6, marginTop: 18, fontSize: 13 }}><span className="muted">{up ? "Already have an account?" : (selfServeOpen ? "New member?" : "")}</span>{(up || selfServeOpen) ? <button onClick={() => { setMsg(""); if (up) { onBackToSignIn && onBackToSignIn(); } else { onCreateAccount && onCreateAccount(); } }} style={{ color: "var(--teal)", fontWeight: 700, background: "none", cursor: "pointer" }}>{up ? "Sign in" : "Create account"}</button> : null}</div>
       </div>
     </div>
   </div>
