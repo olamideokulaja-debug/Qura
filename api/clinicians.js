@@ -18,9 +18,16 @@ const SAMPLE = [
   { id: "sample_2", handle: "Sonographer", profession: "Sonographer", spec: "General", country: "United Kingdom", region: "—", experience: "3 to 5 years", regBody: "HCPC", verified: true, fit: 90, sample: true },
 ];
 
+// Verified means a founder opened the official public register and confirmed the
+// number. It does NOT mean the clinician filled in every box.
+//
+// This function used to return true the moment all seven fields were present, so
+// completing a form put you in front of suppliers labelled verified with nobody
+// having checked anything. That is precisely the claim Qura sells against.
 function isVerified(p) {
+  if (!p || !p.verifiedAt) return false;
   const req = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded"];
-  return req.every((k) => { const v = p ? p[k] : undefined; return v !== undefined && v !== null && v !== "" && v !== false; });
+  return req.every((k) => { const v = p[k]; return v !== undefined && v !== null && v !== "" && v !== false; });
 }
 
 // Turn a stored profile into a privacy-safe talent card. Deterministic id from owner.

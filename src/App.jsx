@@ -1537,6 +1537,7 @@ function AdminOps() {
   const [busy, setBusy] = useState("");
   const [nc, setNc] = useState({ name: "", org: "", role: "", email: "", phone: "" });
   const [ncMsg, setNcMsg] = useState("");
+  const [clinicians, setClinicians] = useState([]);
   const [rmName, setRmName] = useState("");
   const [rmReason, setRmReason] = useState("");
   const [msg, setMsg] = useState("");
@@ -1546,15 +1547,17 @@ function AdminOps() {
     try {
       const t = await token();
       const h = { authorization: "Bearer " + t };
-      const [qi, qr, qw] = await Promise.all([
+      const [qi, qr, qw, qc] = await Promise.all([
         fetch("/api/admin?view=intros", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=removals", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=waitlist", { headers: h }).then((r) => r.json()),
+        fetch("/api/admin?view=clinicians", { headers: h }).then((r) => r.json()),
       ]);
       setQueue(qi.queue || []);
       setRemovals(qr.removals || []);
       setWaitlist(qw.waitlist || []);
-    } catch (e) { setQueue([]); setRemovals([]); setWaitlist([]); }
+      setClinicians(qc.clinicians || []);
+    } catch (e) { setQueue([]); setRemovals([]); setWaitlist([]); setClinicians([]); }
   };
   useEffect(() => { load(); }, []);
 
@@ -1566,6 +1569,19 @@ function AdminOps() {
         body: JSON.stringify({ action: "intro-update", introId, status }) });
       await load();
     } catch (e) {}
+    setBusy("");
+  };
+
+  const verifyClinician = async (owner, on) => {
+    setBusy(owner + (on ? "v" : "u"));
+    try {
+      const t = await token();
+      const r = await fetch("/api/admin", { method: "POST", headers: { authorization: "Bearer " + t, "content-type": "application/json" },
+        body: JSON.stringify({ action: on ? "clinician-verify" : "clinician-unverify", owner }) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) setMsg(j.error || "Could not update that clinician.");
+      await load();
+    } catch (e) { setMsg("Could not update that clinician."); }
     setBusy("");
   };
 
@@ -1611,7 +1627,7 @@ function AdminOps() {
   return (
     <div style={{ marginBottom: 28 }}>
       <div className="row" style={{ gap: 8, marginBottom: 14 }}>
-        {[["intros", "Introduction queue"], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
+        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
           <button key={k} className={"btn " + (tab === k ? "btn-primary" : "btn-light")} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -1642,6 +1658,46 @@ function AdminOps() {
               </div>
             </div>
           ))}
+        </div>
+      ) : tab === "clinicians" ? (
+        <div className="card" style={{ padding: 18 }}>
+          <SectionHead title="Clinicians" action={<span className="faint" style={{ fontSize: 12 }}>{clinicians.length} total</span>} />
+          <div className="faint" style={{ fontSize: 12.5, marginBottom: 12, lineHeight: 1.55 }}>
+            Open the register linked beside each clinician, find their number, and mark them verified only if it matches. Until you do, they are not shown to any supplier. Anyone waiting on a check is listed first.
+          </div>
+          {clinicians.length === 0 ? (
+            <div className="faint" style={{ fontSize: 13 }}>Nobody has started a clinician profile yet.</div>
+          ) : clinicians.map((c) => {
+            const waiting = c.registeredAt && !c.missing.length && !c.verifiedAt;
+            return (
+              <div key={c.owner} style={{ padding: "12px 0", borderBottom: "1px solid var(--line)" }}>
+                <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                  <div style={{ minWidth: 260 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{c.profession || "Profile started"} <span className="faint">·</span> {c.email || c.owner}</div>
+                    <div className="faint" style={{ fontSize: 12, marginTop: 3, lineHeight: 1.5 }}>
+                      {[c.category, c.country, c.experienceYears ? c.experienceYears + " yrs" : "", c.sector].filter(Boolean).join(" · ")}
+                    </div>
+                    <div style={{ fontSize: 13, marginTop: 4 }}>
+                      <b>{c.regBody || "Registration"}</b> {c.regNumber || <span className="faint">not given</span>}
+                      {c.registerUrl ? <> · <a href={c.registerUrl} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)" }}>open the register</a></> : null}
+                    </div>
+                    {c.missing.length ? <div className="faint" style={{ fontSize: 12, marginTop: 4, color: "#9A5E00" }}>Incomplete: {c.missing.join(", ")}</div> : null}
+                    {c.verifiedAt ? <div className="faint" style={{ fontSize: 12, marginTop: 4 }}>Verified {new Date(c.verifiedAt).toLocaleDateString("en-GB")} by {c.verifiedBy}</div> : null}
+                  </div>
+                  <div className="row" style={{ gap: 6, alignItems: "center" }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: c.verifiedAt ? "#06776F" : (waiting ? "#9A5E00" : "#5A6783"), border: "1px solid " + (c.verifiedAt ? "#06776F" : (waiting ? "#9A5E00" : "var(--line)")), borderRadius: 999, padding: "3px 10px" }}>
+                      {c.verifiedAt ? "VERIFIED" : (waiting ? "AWAITING CHECK" : "INCOMPLETE")}
+                    </span>
+                    {c.verifiedAt ? (
+                      <button className="btn btn-light" style={{ fontSize: 12 }} disabled={busy === c.owner + "u"} onClick={() => verifyClinician(c.owner, false)}>{busy === c.owner + "u" ? "..." : "Withdraw"}</button>
+                    ) : (
+                      <button className="btn btn-light" style={{ fontSize: 12 }} disabled={busy === c.owner + "v" || c.missing.length > 0} onClick={() => verifyClinician(c.owner, true)}>{busy === c.owner + "v" ? "..." : "Mark verified"}</button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : tab === "waitlist" ? (
         <div className="card" style={{ padding: 18 }}>
@@ -2357,6 +2413,15 @@ function AgencyBot({ plan = "starter" }) {
 
 
 
+// The form and the stored profile use different names for the same things.
+// Kept in one function so the draft save and the submit can never drift.
+const toProfile = (f) => ({
+  category: f.cat, profession: f.prof, regBody: REG_BODY[f.cat] || "",
+  regNumber: f.regNo, country: f.country,
+  experienceYears: f.years === "" ? "" : Number(f.years),
+  sector: f.sector, cvUploaded: f.cv || false,
+});
+
 function ClinicianRegistration({ onToast }) {
   const [f, setF] = useState({ cat: "", prof: "", regNo: "", country: "", years: "", sector: "", cv: "", declare: false });
   const [done, setDone] = useState(false);
@@ -2382,17 +2447,18 @@ function ClinicianRegistration({ onToast }) {
     let dead = false;
     (async () => {
       try {
-        const r = await fetch("/api/clinician-register", { headers: await authHeaders(false) });
+        const r = await fetch("/api/profile", { headers: await authHeaders(false) });
         if (r.ok) {
           const j = await r.json();
-          const reg = j && j.registration;
-          if (!dead && reg) {
-            if (reg.status === "registered") {
-              setF((s) => ({ ...s, ...reg, declare: true }));
-              setDone(true);
-            } else if (reg.form) {
-              setF((s) => ({ ...s, ...reg.form }));
-            }
+          const p = (j && j.profile) || {};
+          if (!dead && (p.category || p.profession)) {
+            setF((st) => ({
+              ...st,
+              cat: p.category || "", prof: p.profession || "", regNo: p.regNumber || "",
+              country: p.country || "", years: p.experienceYears === undefined ? "" : String(p.experienceYears),
+              sector: p.sector || "", cv: p.cvUploaded || "", declare: Boolean(p.registeredAt),
+            }));
+            if (p.registeredAt) setDone(true);
           }
         }
       } catch (e) {}
@@ -2406,9 +2472,9 @@ function ClinicianRegistration({ onToast }) {
     if (!hyd || done) return;
     const t = setTimeout(async () => {
       try {
-        await fetch("/api/clinician-register", {
+        await fetch("/api/profile", {
           method: "POST", headers: await authHeaders(true),
-          body: JSON.stringify({ action: "draft", ...f }),
+          body: JSON.stringify(toProfile(f)),
         });
       } catch (e) {}
     }, 900);
@@ -2453,12 +2519,12 @@ function ClinicianRegistration({ onToast }) {
     if (!complete || busy) return;
     setBusy(true); setErr("");
     try {
-      const r = await fetch("/api/clinician-register", {
+      const r = await fetch("/api/profile", {
         method: "POST", headers: await authHeaders(true),
-        body: JSON.stringify({ ...f, years: Number(f.years) }),
+        body: JSON.stringify({ ...toProfile(f), submit: true }),
       });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok || !j.ok) {
+      if (!r.ok || !(j.profile && j.profile.registeredAt)) {
         setErr(j.error || "We could not save your registration. Nothing has been lost, please try again.");
         setBusy(false);
         return;
@@ -4708,22 +4774,6 @@ export default function App() {
           if (r.ok) { const j = await r.json(); pr = (j && j.profile) || {}; }
         } catch (e) {}
 
-        // Fall back to the registration. /api/profile has no writer: nothing
-        // in the app has ever populated it, which is why every clinician saw
-        // 0% and "Add your job title" no matter what they had filled in. The
-        // registration is the one place they have actually told us any of this.
-        if (!pr.profession && !pr.category) {
-          try {
-            const rr = await fetch("/api/clinician-register", { headers: auth });
-            if (rr.ok) {
-              const jj = await rr.json();
-              const reg = jj && jj.registration;
-              if (reg && reg.status === "registered") {
-                pr = { profession: reg.prof || "", category: reg.cat || "", experienceYears: reg.years || "", availableFrom: pr.availableFrom || "" };
-              }
-            }
-          } catch (e) {}
-        }
         if (dead) return;
         setClinProfile({
           title: pr.profession || "",

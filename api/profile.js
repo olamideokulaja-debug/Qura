@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     const raw = (await kvGet(user.id, KEY)) || {};
-    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate"];
+    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate", "sector", "registeredAt", "verifiedAt", "verifiedBy"];
     const p = { email: user.email };
     for (const f of FIELDS) if (raw[f] !== undefined) p[f] = raw[f];
     return res.status(200).json({ profile: p, status: completeness(p) });
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     const incoming = req.body || {};
     const current = (await kvGet(user.id, KEY)) || {};
     // Only ever persist these known fields — prevents any runaway growth / nesting.
-    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate"];
+    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate", "sector"];
     const clean = {};
     for (const f of FIELDS) {
       const v = incoming[f] !== undefined ? incoming[f] : current[f];
@@ -48,6 +48,22 @@ export default async function handler(req, res) {
       else if (/^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(Date.parse(v))) clean.availableFrom = v;
       else delete clean.availableFrom;
     }
+    // Verification is the founder's to give. These three are carried across from
+    // what is already stored and are never read off the request, so a clinician
+    // posting {verifiedAt: ...} from the console cannot verify themselves.
+    if (current.verifiedAt) clean.verifiedAt = current.verifiedAt;
+    if (current.verifiedBy) clean.verifiedBy = current.verifiedBy;
+    if (current.registeredAt) clean.registeredAt = current.registeredAt;
+
+    // registeredAt is set once, on the explicit "Complete registration" press,
+    // and only if the profile really is complete. Every other POST is a draft
+    // save from someone still typing.
+    if (incoming.submit === true && !clean.registeredAt) {
+      const st = completeness(clean);
+      if (!st.verified) return res.status(400).json({ error: "Some items are still missing.", missing: st.missing });
+      clean.registeredAt = new Date().toISOString();
+    }
+
     clean.email = user.email;
     clean.updatedAt = new Date().toISOString();
     const ok = await kvSet(user.id, KEY, clean);

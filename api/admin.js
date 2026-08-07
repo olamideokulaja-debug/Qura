@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { categorise, orgTypeOf, initialsOf } from "./_categorise.js";
 import { getQueue, approve, deny } from "./_waitlist.js";
+import { kvListByKey } from "./_auth.js";
 
 export default async function handler(req, res) {
   const sbUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -108,6 +109,35 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, removed: name, logSize: log.length });
       }
 
+      // ---- clinician verification: the register check, done once, per person ----
+      // Previously the only "Mark verified" in the product sat on an introduction
+      // request, so a clinician nobody had asked for could never be verified at
+      // all, and the profile record was never touched either way.
+      if (action === "clinician-verify" || action === "clinician-unverify") {
+        const { owner } = req.body || {};
+        if (!owner) return res.status(400).json({ error: "owner is required." });
+        const profile = await kvRead(owner, "clinician_profile");
+        if (!profile) return res.status(404).json({ error: "No clinician profile for that account." });
+
+        if (action === "clinician-verify") {
+          const req7 = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded"];
+          const missing = req7.filter((k) => { const v = profile[k]; return v === undefined || v === null || v === "" || v === false; });
+          if (missing.length) return res.status(400).json({ error: "Profile is incomplete.", missing });
+          profile.verifiedAt = new Date().toISOString();
+          profile.verifiedBy = email;
+        } else {
+          // Kept as an explicit undo rather than a delete, because withdrawing a
+          // verification is exactly the moment you want to know who did it.
+          profile.verifiedAt = null;
+          profile.verifiedBy = null;
+          profile.unverifiedAt = new Date().toISOString();
+          profile.unverifiedBy = email;
+        }
+        profile.updatedAt = new Date().toISOString();
+        await kvWrite(owner, "clinician_profile", profile);
+        return res.status(200).json({ ok: true, owner, verifiedAt: profile.verifiedAt || null });
+      }
+
       // ---- original role override ----
       const { userId, role } = req.body || {};
       if (!userId || !role) return res.status(400).json({ error: "userId and role are required." });
@@ -124,6 +154,39 @@ export default async function handler(req, res) {
       const order = { pending: 0, approved: 1, denied: 2 };
       rows.sort((a, b) => (order[a.status] ?? 0) - (order[b.status] ?? 0) || String(b.ts || "").localeCompare(String(a.ts || "")));
       return res.status(200).json({ waitlist: rows });
+    }
+    if (req.query && req.query.view === "clinicians") {
+      // Everyone who has started a clinician profile, with the details a founder
+      // needs in front of them to open the right public register and check.
+      const rows = await kvListByKey("clinician_profile");
+      const REGISTER_URL = {
+        NMC: "https://www.nmc.org.uk/registration/search-the-register/",
+        HCPC: "https://www.hcpc-uk.org/check-the-register/",
+        GMC: "https://www.gmc-uk.org/registration-and-licensing/the-medical-register",
+        "GPhC / HCPC": "https://www.pharmacyregulation.org/registers",
+      };
+      const list = (rows || []).map(({ owner, value }) => {
+        const p = value || {};
+        const req7 = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded"];
+        const missing = req7.filter((k) => { const v = p[k]; return v === undefined || v === null || v === "" || v === false; });
+        return {
+          owner,
+          email: p.email || "",
+          category: p.category || "", profession: p.profession || "",
+          regBody: p.regBody || "", regNumber: p.regNumber || "",
+          country: p.country || "", experienceYears: p.experienceYears || "",
+          sector: p.sector || "",
+          cvUploaded: p.cvUploaded || false,
+          registeredAt: p.registeredAt || null,
+          verifiedAt: p.verifiedAt || null, verifiedBy: p.verifiedBy || null,
+          missing,
+          registerUrl: REGISTER_URL[p.regBody] || "",
+        };
+      });
+      // Anyone waiting on a check comes first: submitted, complete, not yet verified.
+      const rank = (c) => (c.verifiedAt ? 2 : (c.registeredAt && !c.missing.length ? 0 : 1));
+      list.sort((a, b) => rank(a) - rank(b) || String(b.registeredAt || "").localeCompare(String(a.registeredAt || "")));
+      return res.status(200).json({ clinicians: list });
     }
     if (req.query && req.query.view === "removals") {
       const log = (await kvRead("shared", "contact_removals")) || [];
