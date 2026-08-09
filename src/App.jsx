@@ -60,7 +60,25 @@ const NothingYet = ({ title, body }) => (
 
 // The company page, not a founder's personal profile. The old value was
 // declared and never rendered anywhere.
-const LINKEDIN = "https://www.linkedin.com/company/qura-healthcare";
+const LINKEDIN = "https://www.linkedin.com/company/qura-healthcare/";
+const INSTAGRAM = "https://www.instagram.com/qura_healthcare?igsh=MXR1Y2loYXZ5cDR3Yw%3D%3D&utm_source=qr";
+const TIKTOK = "https://www.tiktok.com/@qura_healthcare?_r=1&_t=ZN-98jlSUXN57u";
+
+// One list, so hiding a channel that is not ready yet is a single line rather
+// than an edit in three places.
+function TikTokIcon({ size = 17 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+      <path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 0 1-2.59 2.5 2.59 2.59 0 1 1 .74-5.07v-3.1a5.66 5.66 0 0 0-.74-.05A5.66 5.66 0 1 0 15.54 15.4V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3a4.29 4.29 0 0 1-3.24-1.48Z" />
+    </svg>
+  );
+}
+
+const SOCIALS = [
+  { name: "LinkedIn", url: LINKEDIN, icon: Linkedin, live: true },
+  { name: "Instagram", url: INSTAGRAM, icon: Instagram, live: true },
+  { name: "TikTok", url: TIKTOK, icon: null, live: true },
+];
 
 /* ===================================================================== */
 const STYLES = `
@@ -3509,42 +3527,43 @@ function Landing({ onEnter, onDemo }) {
 
       <div className="lb" data-view={view}>
       <div className="sec home" style={{ background: "radial-gradient(115% 85% at 50% -8%, #E6F4F2 0%, #F3F9FD 44%, #fff 100%)", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
-        <div className="wrap" style={{ padding: "56px 24px 36px", textAlign: "center" }}>
+        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
+        <div className="wrap" style={{ padding: "48px 24px 36px", textAlign: "center" }}>
           <QuraPitchBar />
-          <div className="reveal"><span className="chip chip-cyan" style={{ padding: "7px 15px" }}><Sparkles size={14} /> Healthcare Growth CRM · 24/7 live, every market worldwide</span></div>
-          <h1 className="disp heroh reveal" style={{ fontWeight: 700, margin: "26px auto 0", maxWidth: 880 }}>Stop rushing to the cheapest bidder. <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Start choosing the best.</span></h1>
-          <div className="reveal" style={{ display: "flex", justifyContent: "center", margin: "14px 0 4px" }}><PulseLine /></div>
-          <div className="reveal" style={{
-            background: "#0E8C7E",
-            borderRadius: 16, padding: "22px 30px", margin: "22px auto 0", maxWidth: 760,
-          }}>
-            <p style={{
-              fontSize: 18, lineHeight: 1.65, margin: 0, color: "rgba(255,255,255,.94)",
-              textAlign: "justify", textJustify: "inter-word", hyphens: "auto",
-            }}>{APP_NAME} is the 24/7 live healthcare marketplace and growth CRM across the NHS, private and international markets. It turns the hours teams lose to manual client-mapping, decision-maker research and stale CRM data into one live platform, so you win work in the time others spend searching.</p>
-          </div>
-          
-          <div className="row faint reveal" style={{ gap: 8, justifyContent: "center", marginTop: 18, fontSize: 13.5 }}><ShieldCheck size={15} /> For private clinics, GP practices, care providers, NHS trusts, workforce suppliers and international health systems</div>
-        </div>
-      </div>
+          <div className="reveal"><span className="chip chip-cyan" style={{ padding: "7px 15px" }}><Sparkles size={14} /> Commercial intelligence and connectivity for healthcare · 24/7 live</span></div>
 
-      <div className="sec market" style={{ background: "var(--navy)", borderBottom: "1px solid var(--line)" }}>
-        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}`}</style>
-        <div className="wrap" style={{ padding: "44px 24px 48px" }}>
-          <div className="grid g2" style={{ gap: 30, alignItems: "center" }}>
-            <div>
-              <div className="eyebrow" style={{ color: "#5FE6DC" }}>Live worldwide, 24/7</div>
-              <h2 className="disp" style={{ color: "#fff", fontSize: 30, fontWeight: 700, margin: "12px 0 10px", lineHeight: 1.15 }}>See the market moving in real time</h2>
-              <p style={{ color: "#9FB0D0", fontSize: 15.5, lineHeight: 1.6, margin: "0 0 18px", maxWidth: 460 }}>Roles, insourcing, candidates and intelligence, updating around the clock across every market, so you work from live data instead of last quarter's spreadsheet. Choose your lens. Names are hidden until you sign in, so this is only a glimpse of what members act on first.</p>
-              <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>{LENSES.map((x) => (<button key={x.k} onClick={() => setLens(x.k)} style={{ cursor: "pointer", padding: "8px 15px", borderRadius: 999, fontSize: 13, fontWeight: 600, transition: "all .15s ease", background: lens === x.k ? "#00C2B8" : "rgba(255,255,255,.06)", color: lens === x.k ? "#04211F" : "#C4D0E6", border: "1px solid " + (lens === x.k ? "#00C2B8" : "rgba(255,255,255,.14)") }}>{x.l}</button>))}</div>
-            </div>
-            <div style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 16, backdropFilter: "blur(10px)" }}>
-              <div className="row" style={{ justifyContent: "space-between", padding: "2px 6px 12px" }}>
+          {/* The three lenses ARE the headline. A visitor has to know within a
+              few seconds whether they are in the right place, and naming all
+              three answers that faster than any description of the product. */}
+          <h1 className="disp heroh reveal" style={{ fontWeight: 700, margin: "22px auto 0", maxWidth: 900 }}>
+            Clinicians. Healthcare providers. Workforce suppliers.{" "}
+            <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>One connected healthcare ecosystem.</span>
+          </h1>
+
+          <div className="reveal faint" style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: ".09em", marginTop: 20, textTransform: "uppercase" }}>Built for healthcare, across every setting</div>
+          <p className="reveal" style={{ fontSize: 17.5, lineHeight: 1.55, margin: "8px auto 0", maxWidth: 640, color: "var(--muted)" }}>One live platform spanning the NHS, private and international healthcare markets.</p>
+
+          {/* Context first, then the ask. The box stays above the fold either
+              way, and a visitor should know what they are joining before they
+              are asked for an address. */}
+          <QuraJoinBlock />
+
+          <div className="muted reveal" style={{ fontSize: 13.5, marginTop: 30, textAlign: "center" }}>
+            92 seconds on what {APP_NAME} does and who it is for. Launching 22 September 2026.
+          </div>
+
+          {/* Film and live feed side by side. The feed is the single most
+              persuasive thing on the page and was buried below the fold. */}
+          <div className="hero-split reveal" style={{ marginTop: 16, textAlign: "left" }}>
+            <div style={{ display: "flex" }}><QuraFilmPlayer /></div>
+            <div style={{ background: "var(--navy)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 16, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+              <div className="row" style={{ justifyContent: "space-between", padding: "2px 6px 10px" }}>
                 <span className="row" style={{ gap: 9, color: "#fff", fontWeight: 600, fontSize: 13.5 }}><span style={{ position: "relative", width: 9, height: 9 }}><span style={{ position: "absolute", inset: 0, borderRadius: 999, background: "#22E0A1" }} /><span style={{ position: "absolute", inset: 0, borderRadius: 999, background: "#22E0A1", animation: "quraPulse 1.8s infinite" }} /></span>Live marketplace</span>
                 <span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC", fontSize: 10.5 }}>{feed.length} live now</span>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{shown.map((it, i) => (
-                <div key={i} className="row" style={{ gap: 12, padding: "12px 13px", borderRadius: 12, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.07)" }}>
+              <div className="row" style={{ gap: 6, flexWrap: "wrap", padding: "0 2px 12px" }}>{LENSES.map((x) => (<button key={x.k} onClick={() => setLens(x.k)} style={{ cursor: "pointer", padding: "5px 11px", borderRadius: 999, fontSize: 11.5, fontWeight: 600, transition: "all .15s ease", background: lens === x.k ? "#00C2B8" : "rgba(255,255,255,.06)", color: lens === x.k ? "#04211F" : "#C4D0E6", border: "1px solid " + (lens === x.k ? "#00C2B8" : "rgba(255,255,255,.14)") }}>{x.l}</button>))}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, minHeight: 0, overflow: "hidden", WebkitMaskImage: "linear-gradient(#000 82%, transparent 100%)", maskImage: "linear-gradient(#000 82%, transparent 100%)" }}>{shown.slice(0, 8).map((it, i) => (
+                <div key={i} className="row" style={{ gap: 12, padding: "11px 12px", borderRadius: 12, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.07)" }}>
                   <span style={{ width: 8, height: 8, borderRadius: 999, background: SVC_C[it.svc] || "#5FE6DC", flexShrink: 0 }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ color: "#fff", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.role}</div>
@@ -3553,9 +3572,35 @@ function Landing({ onEnter, onDemo }) {
                   <div style={{ textAlign: "right", flexShrink: 0 }}><span style={{ fontSize: 10, fontWeight: 700, color: SVC_C[it.svc] || "#5FE6DC" }}>{it.svc}</span><div style={{ color: "#6B7C9C", fontSize: 11, marginTop: 3 }}>{it.ago}</div></div>
                 </div>
               ))}{!shown.length && <div style={{ color: "#8295B6", fontSize: 13, padding: "18px 6px" }}>New listings opening in this market shortly.</div>}</div>
-              <button onClick={onEnter} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 14, background: "#00C2B8", color: "#04211F", fontWeight: 700 }}>Sign in to see who is hiring <ArrowRight size={16} /></button>
+              <button onClick={onEnter} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 13, flexShrink: 0, background: "#00C2B8", color: "#04211F", fontWeight: 700 }}>Sign in to see who is hiring <ArrowRight size={16} /></button>
             </div>
           </div>
+
+          {/* Cut from 60 words to 17. The old opening repeated the line under
+              the headline almost word for word and led with "growth CRM",
+              which is the category the page is deliberately moving away from.
+              What survives is the only sentence that names the actual problem.
+              Justification and auto-hyphenation dropped with it: at this width
+              a short paragraph has too few words per line to absorb the
+              stretch, so justified text opens visible gaps. */}
+          <div className="reveal" style={{ background: "#0E8C7E", borderRadius: 16, padding: "24px 32px", margin: "34px auto 0", maxWidth: 700 }}>
+            <p style={{ fontSize: 19, lineHeight: 1.55, margin: 0, color: "rgba(255,255,255,.95)", textAlign: "center" }}>{APP_NAME} turns the hours lost to client-mapping, decision-maker research and stale data into one live platform.</p>
+          </div>
+
+          <div className="row faint reveal" style={{ gap: 8, justifyContent: "center", marginTop: 18, fontSize: 13.5 }}><ShieldCheck size={15} /> For private clinics, GP practices, care providers, NHS trusts, workforce suppliers and international health systems</div>
+        </div>
+      </div>
+
+      <div className="sec market" style={{ background: "var(--navy)", borderBottom: "1px solid var(--line)" }}>
+        <div className="wrap" style={{ padding: "44px 24px 8px", textAlign: "center" }}>
+          <div className="eyebrow" style={{ color: "#5FE6DC" }}>Live worldwide, 24/7</div>
+          <h2 className="disp" style={{ color: "#fff", fontSize: 30, fontWeight: 700, margin: "12px 0 10px", lineHeight: 1.15 }}>See the market moving in real time</h2>
+          <p style={{ color: "#9FB0D0", fontSize: 15.5, lineHeight: 1.6, margin: "0 auto 10px", maxWidth: 660 }}>Roles, insourcing, candidates and intelligence, updating around the clock across every market, so you work from live data instead of last quarter's spreadsheet. Names are hidden until you sign in, so the feed above is only a glimpse of what members act on first.</p>
+          {/* Now a supporting line rather than the headline. It speaks to one
+              lens, and it lands better once a visitor understands the platform. */}
+          <p className="disp" style={{ color: "#fff", fontSize: 21, fontWeight: 700, lineHeight: 1.35, margin: "22px auto 0", maxWidth: 620 }}>
+            Stop rushing to the cheapest bidder. <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>Start choosing the best.</span>
+          </p>
         </div>
         <div className="wrap" style={{ padding: "0 24px 64px" }}>
           <div className="grid g4" style={{ gap: 14, marginBottom: 26 }}>
@@ -3593,7 +3638,6 @@ function Landing({ onEnter, onDemo }) {
       </div>
 
       <div className="wrap sec home" style={{ padding: "22px 24px" }}>
-        <Reveal><QuraFilmBlock /></Reveal>
         <Reveal><div className="grid g4">{stats.map((s) => (<div key={s.l} style={{ textAlign: "center" }}><div className="num" style={{ fontSize: 40, fontWeight: 600, color: "var(--navy)" }}><CountUp v={s.n} /></div><div className="muted" style={{ fontSize: 14, marginTop: 2 }}>{s.l}</div></div>))}</div></Reveal>
       </div>
       <div className="wrap sec fragile" style={{ padding: "8px 24px 8px" }}>
@@ -3805,7 +3849,25 @@ function Landing({ onEnter, onDemo }) {
           <div className="faint" style={{ fontSize: 12.5, marginTop: 22, lineHeight: 1.6 }}>
             © {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM<br />
             Qura Ltd, company no. 17310951 · 167-169 Great Portland Street, 5th Floor, London W1W 5PF<br />
-            <a href={LINKEDIN} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)", textDecoration: "none" }}>Follow Qura on LinkedIn</a>
+            <div className="row" style={{ gap: 10, flexWrap: "wrap", marginTop: 2 }}>
+              {SOCIALS.filter((x) => x.live).map((x) => (
+                <a
+                  key={x.name}
+                  href={x.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={"Qura on " + x.name}
+                  title={"Qura on " + x.name}
+                  className="lift"
+                  style={{
+                    width: 34, height: 34, borderRadius: 999, display: "grid", placeItems: "center",
+                    border: "1px solid rgba(10,23,48,.16)", color: "var(--navy)", textDecoration: "none",
+                  }}
+                >
+                  {x.icon ? <x.icon size={17} /> : <TikTokIcon size={17} />}
+                </a>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -4527,7 +4589,7 @@ function QuraPitchBar() {
   );
 }
 
-function QuraFilmBlock() {
+function QuraJoinBlock() {
   const LAUNCH = new Date("2026-09-22T00:00:00");
   const [left, setLeft] = useState(LAUNCH - new Date());
   const [email, setEmail] = useState("");
@@ -4620,20 +4682,7 @@ function QuraFilmBlock() {
   };
 
   return (
-    <div style={{ maxWidth: 900, margin: "40px auto 0" }}>
-      <video
-        controls
-        preload="none"
-        playsInline
-        poster="/qura-video-poster.jpg"
-        onPlay={goFull}
-        onEnded={leaveFull}
-        style={{ width: "100%", display: "block", borderRadius: 16, background: "#0A1730", boxShadow: "0 18px 50px rgba(10,23,48,.18)" }}
-      >
-        <source src="/qura-launch-92s.mp4" type="video/mp4" />
-        <track kind="captions" srcLang="en" label="English" default src="/qura-launch-92s-subtitles.vtt" />
-      </video>
-
+    <div style={{ maxWidth: 820, margin: "26px auto 0" }}>
       {done ? (
         <div style={{ textAlign: "center", marginTop: 22 }}>
           <div style={{ fontWeight: 700, fontSize: 15 }}>Request received.</div>
@@ -4674,11 +4723,38 @@ function QuraFilmBlock() {
         </div>
       )}
 
-      <div className="muted" style={{ fontSize: 13.5, marginTop: 14, textAlign: "center" }}>
-        92 seconds on what Qura does and who it is for.
-        {!live && " Launching 22 September 2026."}
-      </div>
     </div>
+  );
+}
+
+// The player, on its own, so it can sit beside the live feed rather than
+// stacked under the join box.
+function QuraFilmPlayer() {
+  const goFull = (ev) => {
+    const v = ev.currentTarget;
+    if (document.fullscreenElement || document.webkitFullscreenElement) return;
+    const go = v.requestFullscreen || v.webkitRequestFullscreen || v.webkitEnterFullscreen || v.msRequestFullscreen;
+    try { const r = go && go.call(v); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+  };
+  const leaveFull = () => {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+    } catch (e) {}
+  };
+  return (
+    <video
+      controls
+      preload="none"
+      playsInline
+      poster="/qura-video-poster.jpg"
+      onPlay={goFull}
+      onEnded={leaveFull}
+      style={{ width: "100%", display: "block", borderRadius: 16, background: "#0A1730", boxShadow: "0 18px 50px rgba(10,23,48,.18)" }}
+    >
+      <source src="/qura-launch-92s.mp4" type="video/mp4" />
+      <track kind="captions" srcLang="en" label="English" default src="/qura-launch-92s-subtitles.vtt" />
+    </video>
   );
 }
 
