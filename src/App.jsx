@@ -3576,8 +3576,15 @@ function Landing({ onEnter, onDemo }) {
             </div>
           </div>
 
-          <div className="reveal" style={{ background: "#0E8C7E", borderRadius: 16, padding: "22px 30px", margin: "34px auto 0", maxWidth: 760 }}>
-            <p style={{ fontSize: 18, lineHeight: 1.65, margin: 0, color: "rgba(255,255,255,.94)", textAlign: "justify", textJustify: "inter-word", hyphens: "auto" }}>{APP_NAME} is the 24/7 live healthcare marketplace and growth CRM across the NHS, private and international markets. It turns the hours teams lose to manual client-mapping, decision-maker research and stale CRM data into one live platform, so you can form partnerships in the time others spend searching.</p>
+          {/* Cut from 60 words to 17. The old opening repeated the line under
+              the headline almost word for word and led with "growth CRM",
+              which is the category the page is deliberately moving away from.
+              What survives is the only sentence that names the actual problem.
+              Justification and auto-hyphenation dropped with it: at this width
+              a short paragraph has too few words per line to absorb the
+              stretch, so justified text opens visible gaps. */}
+          <div className="reveal" style={{ background: "#0E8C7E", borderRadius: 16, padding: "24px 32px", margin: "34px auto 0", maxWidth: 700 }}>
+            <p style={{ fontSize: 19, lineHeight: 1.55, margin: 0, color: "rgba(255,255,255,.95)", textAlign: "center" }}>{APP_NAME} turns the hours lost to client-mapping, decision-maker research and stale data into one live platform.</p>
           </div>
 
           <div className="row faint reveal" style={{ gap: 8, justifyContent: "center", marginTop: 18, fontSize: 13.5 }}><ShieldCheck size={15} /> For private clinics, GP practices, care providers, NHS trusts, workforce suppliers and international health systems</div>
