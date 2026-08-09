@@ -3527,7 +3527,7 @@ function Landing({ onEnter, onDemo }) {
 
       <div className="lb" data-view={view}>
       <div className="sec home" style={{ background: "radial-gradient(115% 85% at 50% -8%, #E6F4F2 0%, #F3F9FD 44%, #fff 100%)", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
-        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.hero-split{display:grid;grid-template-columns:1.35fr .95fr;gap:18px;align-items:start}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
+        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
         <div className="wrap" style={{ padding: "48px 24px 36px", textAlign: "center" }}>
           <QuraPitchBar />
           <div className="reveal"><span className="chip chip-cyan" style={{ padding: "7px 15px" }}><Sparkles size={14} /> Commercial intelligence and connectivity for healthcare · 24/7 live</span></div>
@@ -3555,14 +3555,14 @@ function Landing({ onEnter, onDemo }) {
           {/* Film and live feed side by side. The feed is the single most
               persuasive thing on the page and was buried below the fold. */}
           <div className="hero-split reveal" style={{ marginTop: 16, textAlign: "left" }}>
-            <div><QuraFilmPlayer /></div>
-            <div style={{ background: "var(--navy)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 16 }}>
+            <div style={{ display: "flex" }}><QuraFilmPlayer /></div>
+            <div style={{ background: "var(--navy)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 16, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
               <div className="row" style={{ justifyContent: "space-between", padding: "2px 6px 10px" }}>
                 <span className="row" style={{ gap: 9, color: "#fff", fontWeight: 600, fontSize: 13.5 }}><span style={{ position: "relative", width: 9, height: 9 }}><span style={{ position: "absolute", inset: 0, borderRadius: 999, background: "#22E0A1" }} /><span style={{ position: "absolute", inset: 0, borderRadius: 999, background: "#22E0A1", animation: "quraPulse 1.8s infinite" }} /></span>Live marketplace</span>
                 <span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC", fontSize: 10.5 }}>{feed.length} live now</span>
               </div>
               <div className="row" style={{ gap: 6, flexWrap: "wrap", padding: "0 2px 12px" }}>{LENSES.map((x) => (<button key={x.k} onClick={() => setLens(x.k)} style={{ cursor: "pointer", padding: "5px 11px", borderRadius: 999, fontSize: 11.5, fontWeight: 600, transition: "all .15s ease", background: lens === x.k ? "#00C2B8" : "rgba(255,255,255,.06)", color: lens === x.k ? "#04211F" : "#C4D0E6", border: "1px solid " + (lens === x.k ? "#00C2B8" : "rgba(255,255,255,.14)") }}>{x.l}</button>))}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{shown.slice(0, 4).map((it, i) => (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, minHeight: 0, overflow: "hidden", WebkitMaskImage: "linear-gradient(#000 82%, transparent 100%)", maskImage: "linear-gradient(#000 82%, transparent 100%)" }}>{shown.slice(0, 8).map((it, i) => (
                 <div key={i} className="row" style={{ gap: 12, padding: "11px 12px", borderRadius: 12, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.07)" }}>
                   <span style={{ width: 8, height: 8, borderRadius: 999, background: SVC_C[it.svc] || "#5FE6DC", flexShrink: 0 }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
@@ -3572,7 +3572,7 @@ function Landing({ onEnter, onDemo }) {
                   <div style={{ textAlign: "right", flexShrink: 0 }}><span style={{ fontSize: 10, fontWeight: 700, color: SVC_C[it.svc] || "#5FE6DC" }}>{it.svc}</span><div style={{ color: "#6B7C9C", fontSize: 11, marginTop: 3 }}>{it.ago}</div></div>
                 </div>
               ))}{!shown.length && <div style={{ color: "#8295B6", fontSize: 13, padding: "18px 6px" }}>New listings opening in this market shortly.</div>}</div>
-              <button onClick={onEnter} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 13, background: "#00C2B8", color: "#04211F", fontWeight: 700 }}>Sign in to see who is hiring <ArrowRight size={16} /></button>
+              <button onClick={onEnter} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 13, flexShrink: 0, background: "#00C2B8", color: "#04211F", fontWeight: 700 }}>Sign in to see who is hiring <ArrowRight size={16} /></button>
             </div>
           </div>
 
