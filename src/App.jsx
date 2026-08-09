@@ -60,10 +60,25 @@ const NothingYet = ({ title, body }) => (
 
 // The company page, not a founder's personal profile. The old value was
 // declared and never rendered anywhere.
-const LINKEDIN = "https://www.linkedin.com/company/qura-healthcare";
-const INSTAGRAM = "https://www.instagram.com/qura_healthcare";
-const TIKTOK = "https://www.tiktok.com/@qura_healthcare";
-const SOCIALS = [["LinkedIn", LINKEDIN], ["Instagram", INSTAGRAM], ["TikTok", TIKTOK]];
+const LINKEDIN = "https://www.linkedin.com/company/qura-healthcare/";
+const INSTAGRAM = "https://www.instagram.com/qura_healthcare?igsh=MXR1Y2loYXZ5cDR3Yw%3D%3D&utm_source=qr";
+const TIKTOK = "https://www.tiktok.com/@qura_healthcare?_r=1&_t=ZN-98jlSUXN57u";
+
+// One list, so hiding a channel that is not ready yet is a single line rather
+// than an edit in three places.
+function TikTokIcon({ size = 17 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+      <path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 0 1-2.59 2.5 2.59 2.59 0 1 1 .74-5.07v-3.1a5.66 5.66 0 0 0-.74-.05A5.66 5.66 0 1 0 15.54 15.4V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3a4.29 4.29 0 0 1-3.24-1.48Z" />
+    </svg>
+  );
+}
+
+const SOCIALS = [
+  { name: "LinkedIn", url: LINKEDIN, icon: Linkedin, live: true },
+  { name: "Instagram", url: INSTAGRAM, icon: Instagram, live: true },
+  { name: "TikTok", url: TIKTOK, icon: null, live: true },
+];
 
 /* ===================================================================== */
 const STYLES = `
@@ -3827,9 +3842,23 @@ function Landing({ onEnter, onDemo }) {
           <div className="faint" style={{ fontSize: 12.5, marginTop: 22, lineHeight: 1.6 }}>
             © {new Date().getFullYear()} {APP_NAME}, Healthcare Growth CRM<br />
             Qura Ltd, company no. 17310951 · 167-169 Great Portland Street, 5th Floor, London W1W 5PF<br />
-            <div className="row" style={{ gap: 16, flexWrap: "wrap" }}>
-              {SOCIALS.map(([l, u]) => (
-                <a key={l} href={u} target="_blank" rel="noreferrer" style={{ color: "var(--cyan)", textDecoration: "none" }}>{l}</a>
+            <div className="row" style={{ gap: 10, flexWrap: "wrap", marginTop: 2 }}>
+              {SOCIALS.filter((x) => x.live).map((x) => (
+                <a
+                  key={x.name}
+                  href={x.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={"Qura on " + x.name}
+                  title={"Qura on " + x.name}
+                  className="lift"
+                  style={{
+                    width: 34, height: 34, borderRadius: 999, display: "grid", placeItems: "center",
+                    border: "1px solid rgba(10,23,48,.16)", color: "var(--navy)", textDecoration: "none",
+                  }}
+                >
+                  {x.icon ? <x.icon size={17} /> : <TikTokIcon size={17} />}
+                </a>
               ))}
             </div>
           </div>
