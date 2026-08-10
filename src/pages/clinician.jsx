@@ -24,6 +24,51 @@ export const CLIN_COUNTRIES = {
   "Canada": { flag: "\uD83C\uDDE8\uD83C\uDDE6", reg: "Provincial colleges", items: ["Eligibility with the relevant provincial college", "Credential assessment (NNAS / MCC)", "An eligible Canadian work permit or PR pathway"] },
 };
 
+// The film sits directly under the hero, above everything else on the page.
+// This is the one page where the call to action is live: organisations wait
+// until 22 September, clinicians can join today, which is exactly what the
+// film argues. The context line goes ABOVE the player, so a clinician knows
+// what they are about to watch before deciding whether to press play.
+function ClinicianFilm({ onEnter }) {
+  const goFull = (ev) => {
+    const v = ev.currentTarget;
+    if (document.fullscreenElement || document.webkitFullscreenElement) return;
+    const go = v.requestFullscreen || v.webkitRequestFullscreen || v.webkitEnterFullscreen || v.msRequestFullscreen;
+    try { const r = go && go.call(v); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+  };
+  const leaveFull = () => {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitFullscreenElement && document.webkitExitFullscreen) document.webkitExitFullscreen();
+    } catch (e) {}
+  };
+  return (
+    <div style={{ maxWidth: 760, margin: "0 auto 34px" }}>
+      <div style={{ textAlign: "center", color: "#AEBED6", fontSize: 13.5, marginBottom: 12 }}>
+        70 seconds on why clinicians join before we open. Launching 22 September 2026.
+      </div>
+      <video
+        controls
+        preload="none"
+        playsInline
+        poster="/qura-clinician-film-poster.jpg"
+        onPlay={goFull}
+        onEnded={leaveFull}
+        style={{ width: "100%", display: "block", borderRadius: 16, background: "#0A1730", boxShadow: "0 18px 50px rgba(0,0,0,.35)" }}
+      >
+        <source src="/qura-clinician-film.mp4" type="video/mp4" />
+        <track kind="captions" srcLang="en" label="English" default src="/qura-clinician-film-subtitles.vtt" />
+      </video>
+      <div style={{ textAlign: "center", marginTop: 16 }}>
+        <button onClick={onEnter} className="btn lift" style={{ background: "var(--cyan)", color: "var(--navy)", fontWeight: 800, padding: "12px 24px" }}>
+          Create your free account
+        </button>
+        <div style={{ color: "#AEBED6", fontSize: 12.5, marginTop: 9 }}>Free to join. Verified before we open.</div>
+      </div>
+    </div>
+  );
+}
+
 export function ClinicianSection({ onEnter }) {
   const [country, setCountry] = useState(CLIN_TABS[0]);
   const c = CLIN_COUNTRIES[country];
@@ -34,6 +79,9 @@ export function ClinicianSection({ onEnter }) {
           <span className="chip chip-cyan" style={{ background: "rgba(0,194,184,.15)", color: "var(--cyan)" }}>For clinicians</span>
           <h2 className="disp" style={{ fontSize: "clamp(26px,4vw,40px)", fontWeight: 700, margin: "16px 0 8px", lineHeight: 1.1 }}>Your move abroad, in your hands.</h2>
         </div>
+
+        <ClinicianFilm onEnter={onEnter} />
+
         <div style={{ display: "grid", gap: 12, maxWidth: 820, margin: "0 auto 20px", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))" }}>
           {CLIN_TAGLINES.map((t, i) => (
             <div key={i} style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: "16px 18px", fontSize: 15, lineHeight: 1.5 }}>{t}</div>
