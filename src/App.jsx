@@ -3357,7 +3357,7 @@ function routeFromPath(path) {
   return hit ? { view: hit[1], howSec: hit[2] || null } : null;
 }
 
-function Landing({ onEnter, onDemo }) {
+function Landing({ onEnter, onDemo, earlyFocus }) {
   const initial = (typeof window !== "undefined" && routeFromPath(window.location.pathname)) || null;
   const [view, setView] = useState(initial ? initial.view : "home");
   const [howSec, setHowSec] = useState(initial && initial.howSec ? initial.howSec : "walk");
@@ -3546,7 +3546,7 @@ function Landing({ onEnter, onDemo }) {
           {/* Context first, then the ask. The box stays above the fold either
               way, and a visitor should know what they are joining before they
               are asked for an address. */}
-          <QuraJoinBlock />
+          <QuraJoinBlock earlyFocus={earlyFocus} />
 
           <div className="muted reveal" style={{ fontSize: 13.5, marginTop: 30, textAlign: "center" }}>
             92 seconds on what {APP_NAME} does and who it is for. Launching 22 September 2026.
@@ -4589,7 +4589,22 @@ function QuraPitchBar() {
   );
 }
 
-function QuraJoinBlock() {
+function QuraJoinBlock({ earlyFocus }) {
+  const emailRef = useRef(null);
+  // Arriving on ?early=1. The delay lets the reveal animations settle first,
+  // or the field is focused while it is still moving and the scroll lands
+  // in the wrong place. Focus is preventScroll so the two do not fight.
+  useEffect(() => {
+    if (!earlyFocus) return;
+    const t = setTimeout(() => {
+      const el = emailRef.current;
+      if (!el) return;
+      try { el.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (e) { el.scrollIntoView(); }
+      setTimeout(() => { try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); } }, 550);
+    }, 700);
+    return () => clearTimeout(t);
+  }, [earlyFocus]);
+
   const LAUNCH = new Date("2026-09-22T00:00:00");
   const [left, setLeft] = useState(LAUNCH - new Date());
   const [email, setEmail] = useState("");
@@ -4705,6 +4720,7 @@ function QuraJoinBlock() {
           </div>
           <div className="row" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <input
+              ref={emailRef}
               value={email}
               onChange={(e) => { setEmail(e.target.value); setErr(""); }}
               onKeyDown={(e) => e.key === "Enter" && join()}
@@ -4764,11 +4780,34 @@ export default function App() {
   // site, off the moment they are inside the product.
   useEffect(() => { setMarketingMode(stage !== "app"); }, [stage]);
   const [billingResult, setBillingResult] = useState(null);
+  const [earlyFocus, setEarlyFocus] = useState(0);
   useEffect(() => {
     try {
-      const q = new URLSearchParams(window.location.search).get("billing");
+      const p = new URLSearchParams(window.location.search);
+      const q = p.get("billing");
       if (q === "success" || q === "cancelled") {
         setBillingResult(q);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+
+      // Deep links for campaigns. Without these a post's link lands on a page
+      // CONTAINING the form and the reader has to go looking for it.
+      //
+      // ?join=clinician opens create-account directly, skipping the role
+      // picker. CLINICIAN ONLY, deliberately: organisations are gated until
+      // launch and are meant to come through early access, so this must not
+      // become a way round that. Any other value is ignored.
+      if (p.get("join") === "clinician" && supabaseEnabled) {
+        setPendingRole("clinician");
+        setAuthMode("up");
+        setStage("auth");
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+
+      // ?early=1 scrolls the early-access field into view and focuses it.
+      // Counter, not boolean, so a repeat visit in the same session re-fires.
+      if (p.get("early") === "1") {
+        setEarlyFocus((n) => n + 1);
         window.history.replaceState({}, "", window.location.pathname);
       }
     } catch (e) {}
@@ -4917,7 +4956,7 @@ export default function App() {
       <style>{STYLES}</style>
       <CookieConsent />
       {billingResult ? <BillingResult result={billingResult} onSignIn={() => { setBillingResult(null); goSignIn(); }} onClose={() => setBillingResult(null)} /> : null}
-      {stage === "landing" && <Landing onEnter={goSignIn} onDemo={() => setStage("demo")} />}
+      {stage === "landing" && <Landing onEnter={goSignIn} onDemo={() => setStage("demo")} earlyFocus={earlyFocus} />}
       {stage === "demo" && <DemoBooking onHome={home} onSignIn={goSignIn} />}
       {stage === "roleChoice" && <RoleChoiceScreen onPick={pickRole} onHome={home} />}
       {stage === "auth" && <AuthPanel mode={authMode} roleLabel={authMode === "up" && pendingRole ? roleLabelOf(pendingRole) : null} onHome={home} onCreateAccount={() => setStage("roleChoice")} onBackToSignIn={() => { setPendingRole(null); setAuthMode("in"); }} />}
