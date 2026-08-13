@@ -90,10 +90,36 @@ export async function sendMail(to, subject, html, replyTo) {
       body: JSON.stringify(Object.assign({ from: "Qura <" + from + ">", to, subject, html },
         replyTo ? { reply_to: replyTo } : {})),
     });
-    return { ok: r.ok, error: r.ok ? "" : "Resend returned " + r.status };
+    let detail = "";
+    if (!r.ok) { try { detail = (await r.text()).slice(0, 300); } catch (e) {} }
+    return { ok: r.ok, status: r.status, error: r.ok ? "" : "Resend returned " + r.status + (detail ? ": " + detail : "") };
   } catch (e) {
-    return { ok: false, error: String(e.message || e) };
+    return { ok: false, status: 0, error: String(e.message || e) };
   }
+}
+
+// Send the SAME message to several people as SEPARATE messages.
+//
+// Resend rejects an entire send if ANY recipient on it is suppressed. One dead
+// test address (audit.owner@) therefore silently killed every early-access
+// notification to every founder for a week — nobody was told that people were
+// waiting. One message per person means a bad address can only ever lose its
+// own copy.
+//
+// Returns per-recipient outcomes so the caller can report who actually got it
+// rather than a single true/false that hides a partial failure.
+export async function sendMailEach(recipients, subject, html, replyTo) {
+  const list = (Array.isArray(recipients) ? recipients : [recipients]).filter(Boolean);
+  const results = await Promise.all(list.map(async (addr) => {
+    const r = await sendMail([addr], subject, html, replyTo);
+    return { to: addr, ok: r.ok, error: r.error || "" };
+  }));
+  const delivered = results.filter((x) => x.ok).map((x) => x.to);
+  const failed = results.filter((x) => !x.ok);
+  // Anything that fails here is worth a server log: this is the path that was
+  // failing invisibly before.
+  for (const f of failed) console.error("[mail] failed to " + f.to + ": " + f.error);
+  return { ok: delivered.length > 0, delivered, failed, results };
 }
 
 export function owners() {
