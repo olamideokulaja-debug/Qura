@@ -3,7 +3,10 @@ import { Briefcase, FileText, Link2, Sparkles, Stethoscope, Trophy } from "lucid
 // Extracted from App.jsx, 27 July 2026. Pure data only, no components and no
 // behaviour, so moving it cannot change how anything renders.
 
-export const REGISTER = { total: 795, deduped: 778, orgs: 289 };
+// Counted from api/_contacts.js after the 15 August NHS merge, not estimated.
+// total is rows sourced before de-duplication; deduped is what the product
+// actually holds. Re-count both whenever contacts are merged.
+export const REGISTER = { total: 959, deduped: 890, orgs: 300 };
 
 export const SPECIALTIES = ["Audiology", "Sonography", "Radiography & Radiology", "Echocardiography", "Respiratory", "Speech & Language Therapy", "Pathology", "Biomedical Science", "Ophthalmology", "Gastroenterology", "Oncology", "Dermatology"];
 
