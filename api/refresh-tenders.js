@@ -104,16 +104,56 @@ function region(rel) {
   return "UK";
 }
 
-function money(t) {
-  const v = (t.value || {}).amount;
-  if (!v || typeof v !== "number") return null;
-  if (v >= 1000000) return "£" + (v / 1000000).toFixed(1) + "m";
-  if (v >= 1000) return "£" + Math.round(v / 1000) + "k";
-  return "£" + Math.round(v);
+const SYMBOL = { GBP: "£", EUR: "€", USD: "$", CAD: "C$", AUD: "A$" };
+
+// Format any figure once, so every source prints the same way.
+function fmt(v, cur) {
+  if (!v || typeof v !== "number" || v <= 0) return null;
+  const s = SYMBOL[(cur || "GBP").toUpperCase()] || ((cur || "") + " ");
+  if (v >= 1000000) return s + (v / 1000000).toFixed(1) + "m";
+  if (v >= 1000) return s + Math.round(v / 1000) + "k";
+  return s + Math.round(v);
+}
+
+// OCDS puts the figure in whichever field the buyer filled in. Reading only
+// tender.value.amount left 7 of 9 Find a Tender notices saying "Value not
+// stated" when the number was published a field away. Checked in order of how
+// firm the figure is: an agreed value beats an estimate, which beats a range.
+function money(t, rel) {
+  const cur = (t.value || {}).currency || (t.minValue || {}).currency ||
+              (t.maxValue || {}).currency || "GBP";
+  const direct = [
+    (t.value || {}).amount,
+    (t.maxValue || {}).amount,
+    (t.minValue || {}).amount,
+  ];
+  for (const v of direct) { const f = fmt(v, cur); if (f) return f; }
+
+  // Awards carry the figure once a contract is let.
+  for (const a of ((rel && rel.awards) || [])) {
+    const f = fmt((a.value || {}).amount, (a.value || {}).currency || cur);
+    if (f) return f;
+  }
+
+  // Lot-level values: sum them, since the notice as a whole is what a supplier
+  // is sizing up. Only summed when every lot carries a figure, or the total
+  // would understate the contract and that is worse than saying nothing.
+  const lots = t.lots || [];
+  if (lots.length) {
+    const amounts = lots.map((l) => (l.value || {}).amount).filter((x) => typeof x === "number" && x > 0);
+    if (amounts.length === lots.length) {
+      const f = fmt(amounts.reduce((a, b) => a + b, 0), ((lots[0].value || {}).currency) || cur);
+      if (f) return f;
+    }
+  }
+  return null;
 }
 
 function daysLeft(t) {
-  const end = ((t.tenderPeriod || {}).endDate) || null;
+  // Same problem as the value: the closing date is not always on tenderPeriod.
+  const end = ((t.tenderPeriod || {}).endDate) ||
+              ((t.enquiryPeriod || {}).endDate) ||
+              ((t.awardPeriod || {}).startDate) || null;
   if (!end) return null;
   const d = Math.ceil((Date.parse(end) - Date.now()) / 86400000);
   if (isNaN(d) || d < 0) return null;
@@ -130,7 +170,7 @@ function normalise(rel, source, url) {
     region: region(rel),
     market: BUYER_PATTERNS.test(buyer) ? "NHS" : "Private",
     profession: ((t.classification || {}).description) || "Healthcare services",
-    rate: money(t) || "Value not stated",
+    rate: money(t, rel) || "Value not stated",
     need: (t.mainProcurementCategory || "services"),
     start: ((t.contractPeriod || {}).startDate || "").slice(0, 10) || "Not stated",
     closes: daysLeft(t) || "",
@@ -166,7 +206,9 @@ async function euTenders(sinceIso) {
   const body = {
     query: "classification-cpv IN (85000000) AND publication-date>=" + day,
     limit: 100,
-    fields: ["notice-title", "buyer-name", "publication-date", "place-of-performance", "publication-number", "deadline-receipt-tender-date-lot"],
+    fields: ["notice-title", "buyer-name", "publication-date", "place-of-performance",
+             "publication-number", "deadline-receipt-tender-date-lot",
+             "total-value", "total-value-cur", "estimated-value-lot", "estimated-value-cur-lot"],
   };
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 20000);
@@ -188,6 +230,23 @@ async function euTenders(sinceIso) {
         return Array.isArray(val) ? val[0] : val;
       };
       const num = n["publication-number"];
+      // TED returns most things as arrays, and dates carry a UTC offset.
+      const one = (v) => (Array.isArray(v) ? v[0] : v);
+      const tedDate = (v) => {
+        const d = one(v);
+        return d ? String(d).slice(0, 10) : "";
+      };
+      const tedMoney = () => {
+        const pairs = [[n["total-value"], n["total-value-cur"]],
+                       [n["estimated-value-lot"], n["estimated-value-cur-lot"]]];
+        for (const [amt, cur] of pairs) {
+          const a = one(amt);
+          const f = fmt(typeof a === "string" ? Number(a) : a, one(cur) || "EUR");
+          if (f) return f;
+        }
+        return null;
+      };
+      const deadline = tedDate(n["deadline-receipt-tender-date-lot"]);
       const country = ((n["place-of-performance"] || [])[1]) || ((n["place-of-performance"] || [])[0]) || "EU";
       return {
         id: "ted_" + num,
@@ -196,10 +255,10 @@ async function euTenders(sinceIso) {
         region: country,
         market: "International",
         profession: "Health and social work services",
-        rate: "Value not stated",
+        rate: tedMoney() || "Value not stated",
         need: "services",
         start: "Not stated",
-        closes: "",
+        closes: deadline,
         note: "Published on the EU notice board. Open the notice for full detail.",
         source: "TED (EU)",
         url: "https://ted.europa.eu/en/notice/" + num,
@@ -243,7 +302,9 @@ async function usTenders(sinceIso) {
       region: state,
       market: "International",
       profession: "Temporary healthcare staffing",
-      rate: "Value not stated",
+      // US solicitations usually publish no figure until award, but awarded
+      // notices carry one. Read it where it exists rather than hardcoding.
+      rate: fmt(Number((o.award || {}).amount), "USD") || "Value not stated",
       need: (o.type || "services"),
       start: (o.postedDate || "").slice(0, 10) || "Not stated",
       closes: o.responseDeadLine ? String(o.responseDeadLine).slice(0, 10) : "",
