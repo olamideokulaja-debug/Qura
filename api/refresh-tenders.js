@@ -604,8 +604,6 @@ export default async function handler(req, res) {
     } catch (e) {
       console.error("[tenders] notice_contacts write failed: " + (e && e.message));
     }
-      console.error("[tenders] us_contacts write failed: " + (e && e.message));
-    }
 
     // Saved alerts: match new notices against each subscriber's saved searches
     // and push at most ONE notification per person per day, naming the count.
