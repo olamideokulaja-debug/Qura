@@ -607,6 +607,7 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
   const [recent, setRecent] = useState(false);
   const [favOnly, setFavOnly] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [srcF, setSrcF] = useState("All");
   const [openContact, setOpenContact] = useState(null);
   const [revealed, setRevealed] = useState({});
   const [pick, setPick] = useState([]);
@@ -687,6 +688,9 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
     (org === "All" || d.org === org) &&
     (reg === "All" || (reg === "__none" ? !d.region : d.region === reg)) &&
     (otype === "All" || d.orgType === otype) &&
+    (srcF === "All" ||
+      (srcF === "Notices" ? (d.source && d.source !== "Founder research")
+                          : (!d.source || d.source === "Founder research"))) &&
     (!recent || d.addedAt >= "2026-08-01") &&
     (!favOnly || favs[keyOf(d)]) &&
     (!ql || (d.name + " " + d.org + " " + (d.role || "") + " " + (d.spec || "")).toLowerCase().includes(ql))
@@ -751,7 +755,10 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
         <div style={{ fontSize: 12.5, lineHeight: 1.65, color: "var(--muted)", marginTop: 8, background: "#F4F7FB", borderRadius: 12, padding: "12px 14px" }}>
           A founder-populated directory, compiled over many years from publicly available business information: official organisation
           websites, publicly accessible professional profiles, conference and event speaker listings, published papers and board papers.
-          Independently researched, verified and maintained by Qura's founders. Qura claims no ownership of any individual's contact
+          Independently researched, verified and maintained by Qura's founders. The register also includes people named as the contact
+          on published procurement notices, gathered from Find a Tender, Contracts Finder, TED and SAM.gov. Those details are public
+          at their source and every record links back to the notice it came from; what Qura provides is the assembly, deduplicated
+          and searchable in one place. Shared departmental inboxes are excluded. Qura claims no ownership of any individual's contact
           information, and the directory supports legitimate business communication only. Anyone can ask to be removed at{" "}
           <a href="mailto:privacy@qurahealth.org" style={{ color: "var(--teal)" }}>privacy@qurahealth.org</a>, which we action promptly.
         </div>
@@ -779,6 +786,13 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
           <select value={otype} onChange={(e) => setOtype(e.target.value)} style={sel} aria-label="Filter by organisation type">
             <option value="All">All organisation types</option>
             {types.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+          {/* Where a record came from. Founder research and notice-harvested
+              entries sit in one list, but a subscriber can separate them. */}
+          <select value={srcF} onChange={(e) => setSrcF(e.target.value)} className="sel" style={{ minWidth: 150 }}>
+            <option value="All">All sources</option>
+            <option value="Founder research">Founder research</option>
+            <option value="Notices">Procurement notices</option>
           </select>
           <button className="btn btn-light" style={{ fontSize: 13 }} onClick={() => setMoreOpen((v) => !v)}>
             {moreOpen ? "Fewer filters" : "More filters"}

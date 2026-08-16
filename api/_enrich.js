@@ -191,7 +191,13 @@ export function enrich(notice) {
       : /ted/i.test(String((notice && notice.source) || "")) ? "European Union"
       : "United Kingdom",
     icb: match && match.orgType === "Integrated Care Board" ? org : null,
-    contacts: decisionMakersFor(match ? match.org : null, category),
+    // A notice that publishes its own contacts beats a register lookup: those
+    // people are named on the notice as the ones to approach about this
+    // specific work. US notices carry them; UK portals do not. This is what
+    // closes the "American notices cannot carry contacts" gap noted below.
+    contacts: (Array.isArray(n.noticeContacts) && n.noticeContacts.length)
+      ? n.noticeContacts
+      : decisionMakersFor(match ? match.org : null, category),
   };
 }
 
