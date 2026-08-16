@@ -29,7 +29,7 @@ import { CLIN_TAGLINES, CLIN_UNIVERSAL, CLIN_TABS, CLIN_COUNTRIES, ClinicianSect
 import { APP_NAME } from "./constants.js";
 import { initAnalytics, trackPage, setMarketingMode } from "./lib/analytics.js";
 import { QuraLogo, Wordmark, Avatar, useCountUp, Stat, Kpi, SectionHead, PageHead, Toggle, Stars, Reveal, PulseLine, DemoTag, IllustrativeBanner } from "./components/ui.jsx";
-import { REGISTER, SPECIALTIES, REAL_OPPS, CLIENTS, INTL_OPPS, OPPS, CLINICIANS, AGENCIES, MEETINGS, INTEL, STAGES, PIPE_DATA, REGION_DATA, SPEC_DATA, GMV_TREND, REGIONS, FUNNEL, TOP_AGENCIES, TOP_OPPS, FEED_POOL, ALERTS } from "./data/marketplace.js";
+import { SPECIALTIES, REAL_OPPS, CLIENTS, INTL_OPPS, OPPS, CLINICIANS, AGENCIES, MEETINGS, INTEL, STAGES, PIPE_DATA, REGION_DATA, SPEC_DATA, GMV_TREND, REGIONS, FUNNEL, TOP_AGENCIES, TOP_OPPS, FEED_POOL, ALERTS } from "./data/marketplace.js";
 import { PRIORITY, PROTECTED_LIST, REG_BODY, NURSE_TYPES, AHP_TYPES, SCIENCE_TYPES, DOCTOR_SPECIALTIES, RESIDENCE_LIST } from "./data/clinical.js";
 import { MARKETS, CURRENCY, PLAN_LABEL, PREMIUM_FEATURES, ALL_PREMIUM, CREDIT_TIERS, PLAN_ACCESS, FEED_STAGES, STATUS_STAGES, MARKET_TREND, SUP_PERF, SUPPLIERS, FEED_STATUS } from "./data/plans.js";
 
@@ -698,6 +698,10 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
 
   const cats = Array.from(new Set(DMS.map((d) => d.spec).filter(Boolean))).sort();
   const orgs = Array.from(new Set(DMS.map((d) => d.org).filter(Boolean))).sort();
+  // Counted from the register the page has just loaded, never hardcoded. The
+  // old constant read 890 while the list showed 916: a merge or a harvest
+  // changes the register, and nothing changes a number typed into a file.
+  const orgCount = orgs.length;
   const regs = Array.from(new Set(DMS.map((d) => d.region).filter(Boolean))).sort();
   const types = Array.from(new Set(DMS.map((d) => d.orgType).filter(Boolean))).sort();
   const favCount = Object.keys(favs).length;
@@ -726,7 +730,10 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
     <div>
       <PageHead
         title="Decision makers"
-        sub={REGISTER.deduped + " named healthcare decision-makers across " + REGISTER.orgs + " organisations, researched and maintained by the founders."}
+        sub={dmsLoading
+          ? "Named healthcare decision-makers, researched and maintained by the founders."
+          : DMS.length + " named healthcare decision-makers across " + orgCount +
+            " organisations, researched and maintained by the founders."}
         right={<div className="row" style={{ gap: 8 }}>
           <button className="btn btn-light" onClick={async () => {
             try {
@@ -755,10 +762,9 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
         <div style={{ fontSize: 12.5, lineHeight: 1.65, color: "var(--muted)", marginTop: 8, background: "#F4F7FB", borderRadius: 12, padding: "12px 14px" }}>
           A founder-populated directory, compiled over many years from publicly available business information: official organisation
           websites, publicly accessible professional profiles, conference and event speaker listings, published papers and board papers.
-          Independently researched, verified and maintained by Qura's founders. The register also includes people named as the contact
-          on published procurement notices, gathered from Find a Tender, Contracts Finder, TED and SAM.gov. Those details are public
-          at their source and every record links back to the notice it came from; what Qura provides is the assembly, deduplicated
-          and searchable in one place. Shared departmental inboxes are excluded. Qura claims no ownership of any individual's contact
+          Independently researched, verified and maintained by Qura's founders, including people named as the contact on published
+          procurement notices from Find a Tender, Contracts Finder, TED and SAM.gov, which Qura monitors daily. Shared departmental
+          inboxes are excluded. Qura claims no ownership of any individual's contact
           information, and the directory supports legitimate business communication only. Anyone can ask to be removed at{" "}
           <a href="mailto:privacy@qurahealth.org" style={{ color: "var(--teal)" }}>privacy@qurahealth.org</a>, which we action promptly.
         </div>
