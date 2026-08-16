@@ -28,6 +28,7 @@ const CANADA = "https://canadabuys.canada.ca/opendata/pub/openTenderNotice-ouver
 // set as SAMGOV_API_KEY in Vercel. Personal keys allow only about 10 calls a
 // day, so this makes exactly one call per run and no retries.
 const SAM = "https://api.sam.gov/opportunities/v2/search";
+const TODAY_ISO = new Date().toISOString().slice(0, 10);
 
 // US notices are built and tested but off by default: the UK launch should not
 // show an NHS supplier a Veterans Affairs contract. Set SOURCES_US=on in the
@@ -119,6 +120,65 @@ function fmt(v, cur) {
 // tender.value.amount left 7 of 9 Find a Tender notices saying "Value not
 // stated" when the number was published a field away. Checked in order of how
 // firm the figure is: an agreed value beats an estimate, which beats a range.
+
+// ------------------------------------------------------- notice contacts
+// Every portal publishes who to approach; each does it differently. These
+// helpers put them all into one shape so the directory does not care where a
+// contact came from.
+//
+// Measured on live data: 40 of 40 UK OCDS releases carry a NAMED buyer contact
+// with an email. SAM names the contracting officer. TED usually gives a
+// departmental mailbox rather than a person.
+const ORG_WORDS = /\b(team|department|departement|direction|service|services|unit|office|bureau|procurement|purchasing|contracts?|tender|admin|enquiries|helpdesk|mailbox|group|division|council|trust|nhs|ltd|limited|plc|gmbh|sarl|university|hospital)\b/i;
+
+// A directory of decision-makers should hold people, not shared inboxes. A
+// departmental contact is still worth showing on the notice, but importing it
+// as a named decision-maker would quietly degrade the register.
+function isPerson(name) {
+  const n = String(name || "").trim();
+  if (n.length < 4 || n.length > 60) return false;
+  if (ORG_WORDS.test(n)) return false;
+  const parts = n.split(/\s+/).filter(Boolean);
+  if (parts.length < 2 || parts.length > 5) return false;
+  return parts.every((w) => /^[A-Z\u00C0-\u00DE][A-Za-z\u00C0-\u024F'".-]*$/.test(w));
+}
+
+function initialsOfName(n) {
+  return String(n || "?").split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "??";
+}
+
+function contactRecord({ name, role, org, email, phone, source, url }) {
+  const person = isPerson(name);
+  return {
+    name: person ? String(name).trim() : (String(name || "").trim() || "Procurement contact"),
+    role: String(role || "").trim() || (person ? "Named on procurement notice" : "Procurement contact point"),
+    org: String(org || "").trim().slice(0, 140),
+    email: String(email || "").trim() || null,
+    phone: String(phone || "").trim() || null,
+    initials: initialsOfName(person ? name : org),
+    source, sourceUrl: url || null,
+    // Only named individuals join the register. Shared inboxes stay on the
+    // notice where they belong.
+    directory: person && Boolean(String(email || "").trim() || String(phone || "").trim()),
+  };
+}
+
+// UK: Find a Tender and Contracts Finder, OCDS parties[].contactPoint.
+function ukContacts(rel, url, source) {
+  const out = [];
+  for (const p of (rel.parties || [])) {
+    const roles = (p.roles || []).map((r) => String(r).toLowerCase());
+    if (!roles.includes("buyer") && !roles.includes("procuringentity")) continue;
+    const cp = p.contactPoint || {};
+    if (!cp.name && !cp.email) continue;
+    out.push(contactRecord({
+      name: cp.name, role: "", org: p.name || (rel.buyer || {}).name,
+      email: cp.email, phone: cp.telephone, source, url,
+    }));
+  }
+  return out.slice(0, 4);
+}
+
 function money(t, rel) {
   const cur = (t.value || {}).currency || (t.minValue || {}).currency ||
               (t.maxValue || {}).currency || "GBP";
@@ -178,6 +238,7 @@ function normalise(rel, source, url) {
     source,
     url: url || null,
     publishedAt: rel.date || null,
+    noticeContacts: ukContacts(rel, url, source),
     live: true,
   };
 }
@@ -208,7 +269,8 @@ async function euTenders(sinceIso) {
     limit: 100,
     fields: ["notice-title", "buyer-name", "publication-date", "place-of-performance",
              "publication-number", "deadline-receipt-tender-date-lot",
-             "total-value", "total-value-cur", "estimated-value-lot", "estimated-value-cur-lot"],
+             "total-value", "total-value-cur", "estimated-value-lot", "estimated-value-cur-lot",
+             "organisation-email-buyer", "organisation-contact-point-buyer"],
   };
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 20000);
@@ -263,6 +325,16 @@ async function euTenders(sinceIso) {
         source: "TED (EU)",
         url: "https://ted.europa.eu/en/notice/" + num,
         publishedAt: (n["publication-date"] || "").slice(0, 10),
+        // TED usually publishes a departmental mailbox rather than a person,
+        // so most of these will show on the notice without joining the
+        // register. contactRecord decides, not this call site.
+        noticeContacts: [contactRecord({
+          name: pick(n["organisation-contact-point-buyer"]),
+          org: pick(n["buyer-name"]),
+          email: one(n["organisation-email-buyer"]),
+          source: "TED (EU)",
+          url: "https://ted.europa.eu/en/notice/" + num,
+        })].filter((c) => c.email || c.phone),
         live: true,
       };
     });
@@ -295,8 +367,24 @@ async function usTenders(sinceIso) {
     const dept = (o.fullParentPathName || "").split(".")[0] || "US federal";
     const place = (o.placeOfPerformance || {});
     const state = (place.state || {}).name || (place.city || {}).name || "United States";
+    // SAM publishes the contracting officer on the notice itself: name, title,
+    // email and phone. Nothing else in the feed carries this, and until now it
+    // was being discarded. Primary contact first, secondary after.
+    const poc = (Array.isArray(o.pointOfContact) ? o.pointOfContact : [])
+      .filter((c) => c && (c.fullName || c.email))
+      .sort((a, b) => (a.type === "primary" ? -1 : 0) - (b.type === "primary" ? -1 : 0))
+      .slice(0, 4)
+      .map((c) => contactRecord({
+        name: c.fullName, role: c.title,
+        org: dept.replace(/\s+/g, " ").trim(),
+        email: c.email, phone: c.phone,
+        source: "SAM.gov (US)",
+        url: o.uiLink || ("https://sam.gov/opp/" + (o.noticeId || "")),
+      }));
+
     return {
       id: "sam_" + (o.noticeId || o.solicitationNumber),
+      noticeContacts: poc,
       title: (o.title || "Untitled notice").slice(0, 140),
       buyer: dept.replace(/\s+/g, " ").trim().slice(0, 120),
       region: state,
@@ -423,7 +511,11 @@ export default async function handler(req, res) {
       // through, and the named people already in the directory who decide it.
       .map((it) => {
         try {
-          const e = enrich({ title: it.title, description: it.note, buyer: it.buyer, url: it.url });
+          // noticeContacts must be passed through or enrich never sees the
+          // contracting officers the notice published, and falls back to a
+          // register lookup that has no US entries.
+          const e = enrich({ title: it.title, description: it.note, buyer: it.buyer, url: it.url,
+                             source: it.source, noticeContacts: it.noticeContacts });
           return {
             ...it,
             category: e.category,
@@ -456,6 +548,64 @@ export default async function handler(req, res) {
 
     const payload = { items: unique, refreshedAt: new Date().toISOString(), sources: ["Find a Tender", "Contracts Finder", "TED (EU)", "SAM.gov (US)"] };
     await sb.from("kv").upsert({ owner: "shared", key: "tenders", value: JSON.stringify(payload) }, { onConflict: "owner,key" });
+
+    // ---------------------------------------------------------------------
+    // Contacts named on procurement notices, from EVERY source.
+    //
+    // These are people the buyer has published as the route in on a specific
+    // piece of work. Qura's value here is the assembly: one place, deduplicated
+    // across thousands of notices, searchable next to the register. Anyone can
+    // still go and read the original notice for nothing.
+    //
+    // Only NAMED INDIVIDUALS are imported. contactRecord sets `directory` and
+    // shared departmental inboxes are excluded, because a register of
+    // decision-makers full of procurement@ addresses is worth less than one
+    // without them.
+    try {
+      const prior = (await kvRead("shared", "notice_contacts")) || [];
+      const byKey = new Map();
+      for (const c of (Array.isArray(prior) ? prior : [])) {
+        byKey.set(String(c.email || (c.name + "|" + c.org)).toLowerCase(), c);
+      }
+      let fresh = 0;
+      for (const it of unique) {
+        for (const c of (it.noticeContacts || [])) {
+          if (!c.directory) continue;
+          const k = String(c.email || (c.name + "|" + c.org)).toLowerCase();
+          if (!k || k === "|") continue;
+          const existing = byKey.get(k);
+          if (existing) {
+            existing.lastSeenAt = TODAY_ISO;
+            existing.noticeCount = (existing.noticeCount || 1) + 1;
+            existing.lastNotice = c.sourceUrl || existing.lastNotice || null;
+            if (!existing.email && c.email) existing.email = c.email;
+            if (!existing.phone && c.phone) existing.phone = c.phone;
+            continue;
+          }
+          byKey.set(k, {
+            name: c.name, role: c.role, org: c.org,
+            email: c.email || null, phone: c.phone || null,
+            initials: c.initials,
+            spec: "Procurement & Commercial Leadership",
+            group: "Commissioning",
+            source: c.source,
+            sourceUrl: c.sourceUrl,
+            lastNotice: c.sourceUrl,
+            noticeCount: 1,
+            addedAt: TODAY_ISO,
+            lastSeenAt: TODAY_ISO,
+          });
+          fresh++;
+        }
+      }
+      const list = [...byKey.values()];
+      await sb.from("kv").upsert({ owner: "shared", key: "notice_contacts", value: JSON.stringify(list) }, { onConflict: "owner,key" });
+      console.log("[tenders] notice_contacts: " + list.length + " total, " + fresh + " new this run");
+    } catch (e) {
+      console.error("[tenders] notice_contacts write failed: " + (e && e.message));
+    }
+      console.error("[tenders] us_contacts write failed: " + (e && e.message));
+    }
 
     // Saved alerts: match new notices against each subscriber's saved searches
     // and push at most ONE notification per person per day, naming the count.

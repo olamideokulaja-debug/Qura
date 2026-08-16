@@ -65,13 +65,35 @@ export default async function handler(req, res) {
     });
   } catch (e) {}
 
+  // Contacts named on procurement notices, harvested daily from every source.
+  // These sit IN the register and count towards the total: the product's value
+  // is the assembly — one searchable place, deduplicated across thousands of
+  // notices — not exclusive access to the underlying fact, which stays public
+  // at its source. Every record carries where it came from and a link back.
+  let noticeContacts = [];
+  try {
+    const rows = (await kvGet("shared", "notice_contacts")) || [];
+    noticeContacts = (Array.isArray(rows) ? rows : []).map((c) => ({
+      ...c,
+      spec: c.spec || "Procurement & Commercial Leadership",
+      group: c.group || "Commissioning",
+      orgType: c.orgType || orgTypeOf(c.org),
+      initials: c.initials || initialsOf(c.name),
+      fromNotice: true,
+    }));
+  } catch (e) {}
+
   const plan = await planOf(user.id);
   // Decision-maker contact details sit with the same tier as the rest of the
   // commercial intelligence.
   const unlocked = ENTITLEMENTS.intelligence(plan);
 
   // Newest additions first, then the register.
-  const ALL = [...added, ...CONTACTS];
+  // Researched register first, so a person already in it is never displaced by
+  // a notice-harvested duplicate of the same name at the same organisation.
+  const seen = new Set([...added, ...CONTACTS].map((c) => (String(c.name || "").toLowerCase() + "|" + String(c.org || "").toLowerCase())));
+  const harvested = noticeContacts.filter((c) => !seen.has(String(c.name || "").toLowerCase() + "|" + String(c.org || "").toLowerCase()));
+  const ALL = [...added, ...CONTACTS, ...harvested];
   const contacts = ALL.filter((c) => !removedNames.has(c.name.toLowerCase())).map((c) => ({
     name: c.name,
     org: c.org,
@@ -81,6 +103,11 @@ export default async function handler(req, res) {
     initials: c.initials,
     orgType: c.orgType || "",
     addedAt: c.addedAt || "",
+    // Where this record came from, so the directory can be filtered by source
+    // and every harvested entry can be traced to the notice that named them.
+    source: c.source || "Founder research",
+    sourceUrl: c.sourceUrl || null,
+    noticeCount: c.noticeCount || 0,
     // Region is derived from the organisation name rather than stored, so it
     // stays correct if an organisation is renamed and never has to be
     // maintained by hand.
@@ -94,6 +121,9 @@ export default async function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
   return res.status(200).json({
     contacts,
+    // How many of the total came from procurement notices rather than founder
+    // research, so the front end can label the source filter honestly.
+    harvested: harvested.length,
     total: contacts.length,
     removed: removedNames.size,
     withContactDetails: contacts.filter((c) => c.hasEmail || c.hasPhone).length,
