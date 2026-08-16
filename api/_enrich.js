@@ -191,13 +191,16 @@ export function enrich(notice) {
       : /ted/i.test(String((notice && notice.source) || "")) ? "European Union"
       : "United Kingdom",
     icb: match && match.orgType === "Integrated Care Board" ? org : null,
-    // A notice that publishes its own contacts beats a register lookup: those
-    // people are named on the notice as the ones to approach about this
-    // specific work. US notices carry them; UK portals do not. This is what
-    // closes the "American notices cannot carry contacts" gap noted below.
-    contacts: (Array.isArray(n.noticeContacts) && n.noticeContacts.length)
-      ? n.noticeContacts
-      : decisionMakersFor(match ? match.org : null, category),
+    // Both, not either. The people named on the notice are the route in for
+    // THIS piece of work; the register holds who else matters at that
+    // organisation. Showing only one of them throws away half the answer.
+    // Notice contacts lead because they are specific to the opportunity.
+    contacts: (() => {
+      const fromNotice = Array.isArray(notice && notice.noticeContacts) ? notice.noticeContacts : [];
+      const fromRegister = decisionMakersFor(match ? match.org : null, category);
+      const seen = new Set(fromNotice.map((c) => String(c.name || "").toLowerCase()));
+      return [...fromNotice, ...fromRegister.filter((c) => !seen.has(String(c.name || "").toLowerCase()))].slice(0, 8);
+    })(),
   };
 }
 
