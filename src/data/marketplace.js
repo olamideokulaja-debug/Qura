@@ -3,10 +3,11 @@ import { Briefcase, FileText, Link2, Sparkles, Stethoscope, Trophy } from "lucid
 // Extracted from App.jsx, 27 July 2026. Pure data only, no components and no
 // behaviour, so moving it cannot change how anything renders.
 
-// Counted from api/_contacts.js after the 15 August NHS merge, not estimated.
-// total is rows sourced before de-duplication; deduped is what the product
-// actually holds. Re-count both whenever contacts are merged.
-export const REGISTER = { total: 959, deduped: 890, orgs: 300 };
+// REGISTER was removed on 16 August 2026. It was a hand-maintained count that
+// the Decision makers headline read from, and it went stale every time the
+// register changed: it said 890 while the list showed 916 after the first
+// notice harvest. The page now counts the records it has actually loaded.
+// Do not reintroduce a hardcoded total here.
 
 export const SPECIALTIES = ["Audiology", "Sonography", "Radiography & Radiology", "Echocardiography", "Respiratory", "Speech & Language Therapy", "Pathology", "Biomedical Science", "Ophthalmology", "Gastroenterology", "Oncology", "Dermatology"];
 
