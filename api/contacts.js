@@ -105,13 +105,17 @@ export default async function handler(req, res) {
     addedAt: c.addedAt || "",
     // Where this record came from, so the directory can be filtered by source
     // and every harvested entry can be traced to the notice that named them.
+    // Which market a record belongs to. Absent means United Kingdom, since the
+    // register began as a UK one and back-filling 890 records to say so would
+    // be churn for nothing.
+    market: c.market || "United Kingdom",
     source: c.source || "Founder research",
     sourceUrl: c.sourceUrl || null,
     noticeCount: c.noticeCount || 0,
     // Region is derived from the organisation name rather than stored, so it
     // stays correct if an organisation is renamed and never has to be
     // maintained by hand.
-    region: regionOf(c.org + " " + (c.role || "")) || "",
+    region: c.region || regionOf(c.org + " " + (c.role || "")) || "",
     hasEmail: !!c.email,
     hasPhone: !!c.phone,
     email: unlocked ? c.email : maskEmail(c.email),
