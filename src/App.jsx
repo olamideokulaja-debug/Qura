@@ -20,15 +20,96 @@ import {
 // "European Union" at that size is unreadable. Ireland is dropped: at this
 // scale its label collides with the UK's on every frame.
 const GLOBE_MARKETS = [
-  { name: "UK", lat: 54.0, lon: -2.0 },
-  { name: "EU", lat: 50.8, lon: 10.4 },
-  { name: "USA", lat: 38.9, lon: -95.0 },
-  { name: "CAN", lat: 56.0, lon: -106.0 },
-  { name: "AUS", lat: -25.0, lon: 134.0 },
-  { name: "UAE", lat: 24.0, lon: 54.0 },
-  { name: "AFR", lat: -1.3, lon: 36.8 },
-  { name: "NZ", lat: -41.0, lon: 174.0 },
+  { code: "gb", lat: 54.0, lon: -2.0 },
+  { code: "eu", lat: 50.8, lon: 10.4 },
+  { code: "us", lat: 38.9, lon: -95.0 },
+  { code: "ca", lat: 56.0, lon: -106.0 },
+  { code: "au", lat: -25.0, lon: 134.0 },
+  { code: "ae", lat: 24.0, lon: 54.0 },
+  { code: "za", lat: -26.2, lon: 28.0 },
+  { code: "nz", lat: -41.0, lon: 174.0 },
 ];
+
+// Flags drawn as vectors rather than emoji. Emoji flags are unreliable on a
+// canvas: Windows renders regional-indicator pairs as bare letters, and at the
+// 10px this needs they are illegible anywhere. These are simplified but
+// recognisable at 14x9, and cost nothing to render.
+function drawFlag(ctx, code, x, y, w, a) {
+  const h = w * 0.64;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+  const fill = (c, X, Y, W, H) => { ctx.fillStyle = c; ctx.fillRect(X, Y, W, H); };
+  const band = (cols, vertical) => cols.forEach((c, i) => vertical
+    ? fill(c, x + (w / cols.length) * i, y, w / cols.length + 0.5, h)
+    : fill(c, x, y + (h / cols.length) * i, w, h / cols.length + 0.5));
+
+  if (code === "gb" || code === "au" || code === "nz") {
+    const cw = code === "gb" ? w : w / 2, ch = code === "gb" ? h : h / 2;
+    fill("#012169", x, y, w, h);
+    // union: white saltire, red cross
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = ch * 0.28;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + cw, y + ch);
+    ctx.moveTo(x + cw, y); ctx.lineTo(x, y + ch); ctx.stroke();
+    ctx.strokeStyle = "#C8102E"; ctx.lineWidth = ch * 0.16;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + cw, y + ch);
+    ctx.moveTo(x + cw, y); ctx.lineTo(x, y + ch); ctx.stroke();
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = ch * 0.30;
+    ctx.beginPath(); ctx.moveTo(x + cw / 2, y); ctx.lineTo(x + cw / 2, y + ch);
+    ctx.moveTo(x, y + ch / 2); ctx.lineTo(x + cw, y + ch / 2); ctx.stroke();
+    ctx.strokeStyle = "#C8102E"; ctx.lineWidth = ch * 0.17;
+    ctx.beginPath(); ctx.moveTo(x + cw / 2, y); ctx.lineTo(x + cw / 2, y + ch);
+    ctx.moveTo(x, y + ch / 2); ctx.lineTo(x + cw, y + ch / 2); ctx.stroke();
+    if (code !== "gb") {
+      ctx.fillStyle = code === "nz" ? "#C8102E" : "#fff";
+      [[0.62, 0.30], [0.78, 0.58], [0.66, 0.80], [0.88, 0.44]].forEach(([px, py]) => {
+        ctx.beginPath(); ctx.arc(x + w * px, y + h * py, w * 0.055, 0, Math.PI * 2); ctx.fill();
+      });
+    }
+  } else if (code === "us") {
+    fill("#fff", x, y, w, h);
+    ctx.fillStyle = "#B22234";
+    for (let i = 0; i < 7; i++) ctx.fillRect(x, y + (h / 6.5) * i * 1.0, w, h / 13);
+    fill("#3C3B6E", x, y, w * 0.42, h * 0.54);
+  } else if (code === "eu") {
+    fill("#003399", x, y, w, h);
+    ctx.fillStyle = "#FFCC00";
+    for (let i = 0; i < 8; i++) {
+      const an = (i / 8) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(x + w / 2 + Math.cos(an) * w * 0.22, y + h / 2 + Math.sin(an) * h * 0.28, w * 0.05, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (code === "ca") {
+    band(["#D80621", "#fff", "#D80621"], true);
+    // A pointed leaf rather than a disc: at this size a red circle on white
+    // reads as Japan.
+    ctx.fillStyle = "#D80621";
+    const cx = x + w / 2, cy = y + h * 0.52, r = h * 0.30;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - r * 1.25);
+    ctx.lineTo(cx + r * 0.55, cy - r * 0.15);
+    ctx.lineTo(cx + r * 1.05, cy - r * 0.35);
+    ctx.lineTo(cx + r * 0.5, cy + r * 0.6);
+    ctx.lineTo(cx, cy + r * 1.15);
+    ctx.lineTo(cx - r * 0.5, cy + r * 0.6);
+    ctx.lineTo(cx - r * 1.05, cy - r * 0.35);
+    ctx.lineTo(cx - r * 0.55, cy - r * 0.15);
+    ctx.closePath(); ctx.fill();
+  } else if (code === "ae") {
+    band(["#00732F", "#fff", "#000"], false);
+    fill("#FF0000", x, y, w * 0.28, h);
+  } else if (code === "za") {
+    band(["#E03C31", "#fff", "#007A4D"], false);
+    ctx.fillStyle = "#001489";
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w * 0.42, y + h / 2); ctx.lineTo(x, y + h); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+  ctx.globalAlpha = a * 0.5;
+  ctx.strokeStyle = "rgba(10,26,48,.45)"; ctx.lineWidth = 0.7;
+  ctx.strokeRect(x, y, w, h);
+  ctx.globalAlpha = 1;
+}
 
 function WorldGlobe({ size = 190 }) {
   const ref = useRef(null);
@@ -97,29 +178,18 @@ function WorldGlobe({ size = 190 }) {
         ctx.stroke();
       }
 
-      // markets, with their labels
-      ctx.font = "600 9.5px Inter, system-ui, sans-serif";
-      ctx.textBaseline = "middle";
+      // markets, each with its flag
+      const FW = 14;
       for (const m of GLOBE_MARKETS) {
         const p = project(m.lat, m.lon, spin);
         if (p.z < 0.02) continue;
         const a = Math.min(1, p.z * 1.6);
-        ctx.beginPath(); ctx.arc(p.x, p.y, 4.6, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(0,194,184," + (0.18 * a) + ")"; ctx.fill();
-        ctx.beginPath(); ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2.0, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(14,140,126," + a + ")"; ctx.fill();
-
-        // Label on whichever side keeps it inside the disc, so it never runs
-        // off the edge as a point crosses the limb.
+        // Flag on whichever side keeps it inside the disc, so it never runs off
+        // the edge as a point crosses the limb.
         const left = p.x > CX;
-        ctx.textAlign = left ? "right" : "left";
-        const lx = p.x + (left ? -8 : 8);
-        // Faint halo so the text stays legible over the graticule.
-        ctx.lineWidth = 2.5;
-        ctx.strokeStyle = "rgba(255,255,255," + (0.85 * a) + ")";
-        ctx.strokeText(m.name, lx, p.y);
-        ctx.fillStyle = "rgba(10,26,48," + (0.92 * a) + ")";
-        ctx.fillText(m.name, lx, p.y);
+        drawFlag(ctx, m.code, left ? p.x - 7 - FW : p.x + 7, p.y - FW * 0.32, FW, a);
       }
       raf = requestAnimationFrame(draw);
     };
@@ -3745,7 +3815,7 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
 
       <div className="lb" data-view={view}>
       <div className="sec home" style={{ background: "radial-gradient(115% 85% at 50% -8%, #E6F4F2 0%, #F3F9FD 44%, #fff 100%)", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
-        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.globe-corner{position:absolute;top:26px;right:34px;opacity:.5;pointer-events:none;z-index:0}@media(max-width:1100px){.globe-corner{display:none}}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
+        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.globe-corner{position:absolute;top:26px;right:34px;opacity:.5;pointer-events:none;z-index:0}.pitch-bar{margin-left:auto;margin-right:auto}@media(min-width:1101px){.pitch-bar{width:calc(100% - 440px)}}@media(max-width:1100px){.globe-corner{display:none}}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
         {/* Top-right of the hero, behind the content and at low opacity. It is
             decorative: it signals reach at a glance without competing with the
             headline for attention. Hidden below 1100px, where the hero is
@@ -4818,7 +4888,7 @@ function QuraPitchBar() {
       background: "linear-gradient(100deg,#0A1730 0%,#0E8C7E 62%,#12A99A 100%)",
       borderRadius: 14, padding: "14px 22px", marginBottom: 28,
       boxShadow: "0 10px 30px rgba(10,23,48,.16)",
-    }}>
+    }} className="pitch-bar">
       <div className="row" style={{ justifyContent: "center", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
         <span style={{ fontSize: 10.5, letterSpacing: ".14em", textTransform: "uppercase", color: "rgba(255,255,255,.72)", fontWeight: 700 }}>{p.tag}</span>
         <span className="disp" style={{ fontSize: 20, fontWeight: 700, color: "#fff" }}>{p.title}</span>
