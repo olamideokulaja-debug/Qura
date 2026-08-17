@@ -16,15 +16,18 @@ import {
 // are rotated about the polar axis and hidden when they pass behind the sphere
 // — so the markets sit where they actually are on Earth and disappear round the
 // back as it turns.
+// Short labels, because the globe is 190px across and "United Kingdom" beside
+// "European Union" at that size is unreadable. Ireland is dropped: at this
+// scale its label collides with the UK's on every frame.
 const GLOBE_MARKETS = [
-  { name: "United Kingdom", lat: 54.0, lon: -2.0 },
-  { name: "European Union", lat: 50.8, lon: 4.4 },
-  { name: "United States", lat: 38.9, lon: -77.0 },
-  { name: "Australia", lat: -33.9, lon: 151.2 },
-  { name: "Middle East", lat: 25.2, lon: 55.3 },
-  { name: "Africa", lat: -1.3, lon: 36.8 },
-  { name: "Canada", lat: 45.4, lon: -75.7 },
-  { name: "Ireland", lat: 53.3, lon: -6.3 },
+  { name: "UK", lat: 54.0, lon: -2.0 },
+  { name: "EU", lat: 50.8, lon: 10.4 },
+  { name: "USA", lat: 38.9, lon: -95.0 },
+  { name: "CAN", lat: 56.0, lon: -106.0 },
+  { name: "AUS", lat: -25.0, lon: 134.0 },
+  { name: "UAE", lat: 24.0, lon: 54.0 },
+  { name: "AFR", lat: -1.3, lon: 36.8 },
+  { name: "NZ", lat: -41.0, lon: 174.0 },
 ];
 
 function WorldGlobe({ size = 190 }) {
@@ -94,7 +97,9 @@ function WorldGlobe({ size = 190 }) {
         ctx.stroke();
       }
 
-      // markets
+      // markets, with their labels
+      ctx.font = "600 9.5px Inter, system-ui, sans-serif";
+      ctx.textBaseline = "middle";
       for (const m of GLOBE_MARKETS) {
         const p = project(m.lat, m.lon, spin);
         if (p.z < 0.02) continue;
@@ -103,6 +108,18 @@ function WorldGlobe({ size = 190 }) {
         ctx.fillStyle = "rgba(0,194,184," + (0.18 * a) + ")"; ctx.fill();
         ctx.beginPath(); ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(14,140,126," + a + ")"; ctx.fill();
+
+        // Label on whichever side keeps it inside the disc, so it never runs
+        // off the edge as a point crosses the limb.
+        const left = p.x > CX;
+        ctx.textAlign = left ? "right" : "left";
+        const lx = p.x + (left ? -8 : 8);
+        // Faint halo so the text stays legible over the graticule.
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = "rgba(255,255,255," + (0.85 * a) + ")";
+        ctx.strokeText(m.name, lx, p.y);
+        ctx.fillStyle = "rgba(10,26,48," + (0.92 * a) + ")";
+        ctx.fillText(m.name, lx, p.y);
       }
       raf = requestAnimationFrame(draw);
     };
@@ -118,6 +135,23 @@ function WorldGlobe({ size = 190 }) {
     style={{ width: size, height: size, display: "block" }} />;
 }
 
+// Which tab a notice belongs under. Source is the reliable signal: it is set
+// at fetch time and never rewritten, whereas the stored `market` field is
+// coarse and stops at "International".
+function marketOf(n) {
+  const src = String((n && n.source) || "").toLowerCase();
+  const url = String((n && n.url) || "").toLowerCase();
+  if (src.includes("sam.gov") || url.includes("sam.gov")) return "United States";
+  if (src.includes("ted") || url.includes("ted.europa")) return "European Union";
+  if (src.includes("austender") || src.includes("tenders.gov.au") ||
+      src.includes("qtenders") || src.includes("buy nsw") || src.includes("healthshare") ||
+      url.includes(".gov.au")) return "Australia";
+  if (src.includes("canadabuys")) return "Canada";
+  if (n && n.market === "Private") return "Private UK";
+  if (n && (n.market === "NHS" || src.includes("find a tender") || src.includes("contracts finder"))) return "NHS UK";
+  return "International";
+}
+
 const MARKET_FLAG = {
   "All": "\u{1F30D}",
   "NHS UK": "\u{1F1EC}\u{1F1E7}",
@@ -126,6 +160,7 @@ const MARKET_FLAG = {
   "Australia": "\u{1F1E6}\u{1F1FA}",
   "United States": "\u{1F1FA}\u{1F1F8}",
   "European Union": "\u{1F1EA}\u{1F1FA}",
+  "Canada": "\u{1F1E8}\u{1F1E6}",
   "International": "\u{1F30F}",
   "Africa": "\u{1F30D}",
   "Middle East": "\u{1F54C}",
@@ -638,7 +673,10 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
   const saveOpp = async (o) => { const id = o.org + "|" + o.role; const entry = { id, org: o.org, role: o.role, market: o.market, val: o.val, loc: o.loc, close: o.close, source: o.source, score: o.score, pr: o.pr }; try { let list = []; try { const r = await window.storage?.get("qura_saved_opps"); if (r?.value) list = JSON.parse(r.value); } catch (e) {} if (!Array.isArray(list)) list = []; if (!list.some((x) => x.id === id)) { list = [entry, ...list]; await window.storage?.set("qura_saved_opps", JSON.stringify(list)); } } catch (e) {} setSavedIds((v) => v.includes(id) ? v : [...v, id]); if (onToast) onToast("Opportunity saved"); };
   const mapMkt = { all: "All", nhs: "NHS UK", private: "Private UK", international: "International" };
   useEffect(() => { setF(mapMkt[market] || "All"); }, [market]);
-  const markets = ["All", "NHS UK", "Private UK", "Australia", "United States", "European Union", "International", "Africa", "Middle East"];
+  // Only offer a tab that has something behind it. An empty tab reads as a
+  // broken filter, which is exactly what the United States tab did before the
+  // market was derived from source.
+  const MARKET_ORDER = ["All", "NHS UK", "Private UK", "Australia", "United States", "European Union", "Canada", "International", "Africa", "Middle East"];
   // Real procurement notices from the daily feed, shown above the illustrative
   // set. Until this, the web Clinical Demand page showed only examples while
   // the live notices sat in the API unread.
@@ -658,15 +696,12 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
         setLive(j.items.filter((n) => n.live && !n.seeded).map((n) => ({
           org: n.buyer, role: n.title, spec: n.profession || "Healthcare services",
           val: n.rate || "Value not stated",
-          // The harvester already tags market by source. Surface those as their
-          // own tabs rather than collapsing everything foreign into
-          // "International", which hid that a third of the feed is American.
-          market: n.market === "NHS" ? "NHS UK"
-                : n.market === "Private" ? "Private UK"
-                : n.market === "Australia" ? "Australia"
-                : n.market === "United States" ? "United States"
-                : n.market === "European Union" ? "European Union"
-                : "International",
+          // Derive the tab from SOURCE, not from n.market. The stored market
+          // field only ever holds "NHS", "Private" or "International" — the
+          // finer value the enrichment works out is never copied onto the
+          // item — so keying off it put every American notice under
+          // International and left the United States tab empty.
+          market: marketOf(n),
           loc: n.region || "UK", close: n.closes || "",
           pr: null, score: null, status: "Live", source: n.source, url: n.url || null,
           // the enrichment: what Qura knows that the portal does not
@@ -679,6 +714,11 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
     return () => { dead = true; };
   }, []);
   const ALL_OPPS = [...live, ...OPPS];
+  // Markets that actually have notices behind them, in a fixed order so the
+  // row does not reshuffle as the feed changes through the day.
+  const present = new Set(ALL_OPPS.map((o) => o.market));
+  const markets = MARKET_ORDER.filter((m) => m === "All" || present.has(m) ||
+    (m === "International" && ["Middle East", "Africa"].some((x) => present.has(x))));
 
   const list = ALL_OPPS.filter((o) => (f === "All" || o.market === f || (f === "International" && ["Middle East", "Africa"].includes(o.market))) && o.org.toLowerCase().includes(q.toLowerCase()));
   return (
