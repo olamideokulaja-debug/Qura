@@ -3815,13 +3815,13 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
 
       <div className="lb" data-view={view}>
       <div className="sec home" style={{ background: "radial-gradient(115% 85% at 50% -8%, #E6F4F2 0%, #F3F9FD 44%, #fff 100%)", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
-        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.globe-corner{position:absolute;top:26px;right:34px;opacity:.5;pointer-events:none;z-index:0}.pitch-bar{margin-left:auto;margin-right:auto}@media(min-width:1101px){.pitch-bar{width:calc(100% - 440px)}}@media(max-width:1100px){.globe-corner{display:none}}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
+        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.globe-corner{position:absolute;top:108px;right:30px;opacity:.42;pointer-events:none;z-index:0}.pitch-bar{margin-left:auto;margin-right:auto}@media(min-width:1101px){.pitch-bar{width:calc(100% - 512px)}}@media(max-width:1100px){.globe-corner{display:none}}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
         {/* Top-right of the hero, behind the content and at low opacity. It is
             decorative: it signals reach at a glance without competing with the
             headline for attention. Hidden below 1100px, where the hero is
             already tight and a phone has no room to spare. */}
         <div className="globe-corner" aria-hidden="true">
-          <WorldGlobe size={190} />
+          <WorldGlobe size={230} />
         </div>
         <div className="wrap" style={{ padding: "48px 24px 36px", textAlign: "center", position: "relative", zIndex: 1 }}>
           <QuraPitchBar />
