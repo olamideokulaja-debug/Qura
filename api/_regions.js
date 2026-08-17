@@ -19,6 +19,13 @@ const REGION_RULES = [
 
 export const UK_REGIONS = REGION_RULES.map((r) => r[0]);
 
+// Australian states and territories. Kept as a separate list because they are
+// not UK regions and must not appear in the same filter: a directory offering
+// "Yorkshire & Humber" next to "Queensland" in one dropdown is confusing.
+export const AU_REGIONS = ["New South Wales", "Victoria", "Queensland", "Western Australia",
+  "South Australia", "Tasmania", "Australian Capital Territory", "Northern Territory",
+  "Federal", "National"];
+
 export function regionOf(text) {
   const t = String(text || "");
   for (const [name, re] of REGION_RULES) if (re.test(t)) return name;

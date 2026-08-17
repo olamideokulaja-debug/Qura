@@ -8,6 +8,164 @@ import {
   Trophy, Link2, AlertCircle, Gauge, Activity, Ticket, Truck, BadgeCheck, ClipboardList, CalendarClock, Smartphone, Instagram, Twitter, Music2, Upload, Settings, Pencil, Trash2, Rss, Package, Inbox, ArrowUp, ArrowDown, ChevronDown, Lock,
   Play, GraduationCap,
 } from "lucide-react";
+
+// A rotating globe, drawn on a canvas. No library: three.js would add several
+// hundred KB to the bundle for one decorative element on the landing page.
+//
+// It is a real orthographic projection rather than a spinning picture — points
+// are rotated about the polar axis and hidden when they pass behind the sphere
+// — so the markets sit where they actually are on Earth and disappear round the
+// back as it turns.
+// Short labels, because the globe is 190px across and "United Kingdom" beside
+// "European Union" at that size is unreadable. Ireland is dropped: at this
+// scale its label collides with the UK's on every frame.
+const GLOBE_MARKETS = [
+  { name: "UK", lat: 54.0, lon: -2.0 },
+  { name: "EU", lat: 50.8, lon: 10.4 },
+  { name: "USA", lat: 38.9, lon: -95.0 },
+  { name: "CAN", lat: 56.0, lon: -106.0 },
+  { name: "AUS", lat: -25.0, lon: 134.0 },
+  { name: "UAE", lat: 24.0, lon: 54.0 },
+  { name: "AFR", lat: -1.3, lon: 36.8 },
+  { name: "NZ", lat: -41.0, lon: 174.0 },
+];
+
+function WorldGlobe({ size = 190 }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const cv = ref.current;
+    if (!cv) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = size * dpr; cv.height = size * dpr;
+    const ctx = cv.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+
+    const R = size / 2 - 12, CX = size / 2, CY = size / 2;
+    const rad = (d) => (d * Math.PI) / 180;
+    // Someone who has asked their system not to animate should get a static
+    // globe, not a spinning one they cannot switch off.
+    const still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // lat/lon -> screen. z > 0 is the near hemisphere; anything behind is culled.
+    const project = (lat, lon, spin) => {
+      // Tilt the north pole TOWARDS the viewer. A negative tilt leans it away
+      // and pushes North America behind the limb even when Greenwich faces us,
+      // which looked like a bug because it was one.
+      const la = rad(lat), lo = rad(lon + spin), tilt = rad(18);
+      const x = Math.cos(la) * Math.sin(lo);
+      const y = Math.sin(la);
+      const z = Math.cos(la) * Math.cos(lo);
+      const y2 = y * Math.cos(tilt) - z * Math.sin(tilt);
+      const z2 = y * Math.sin(tilt) + z * Math.cos(tilt);
+      return { x: CX + x * R, y: CY - y2 * R, z: z2 };
+    };
+
+    let spin = 0, raf = 0, last = performance.now();
+    const draw = (now) => {
+      const dt = Math.min(now - last, 60); last = now;
+      if (!still) spin += dt * 0.012;                 // ~4.3 deg/sec, slow
+      ctx.clearRect(0, 0, size, size);
+
+      // sphere
+      const g = ctx.createRadialGradient(CX - R * 0.35, CY - R * 0.4, R * 0.1, CX, CY, R);
+      g.addColorStop(0, "rgba(0,194,184,.20)");
+      g.addColorStop(1, "rgba(10,26,48,.10)");
+      ctx.beginPath(); ctx.arc(CX, CY, R, 0, Math.PI * 2);
+      ctx.fillStyle = g; ctx.fill();
+      ctx.strokeStyle = "rgba(10,26,48,.16)"; ctx.lineWidth = 1; ctx.stroke();
+
+      // graticule: parallels and meridians, drawn as point runs so the back of
+      // the sphere is hidden without any depth buffer
+      ctx.strokeStyle = "rgba(10,26,48,.13)";
+      for (let la = -60; la <= 60; la += 30) {
+        ctx.beginPath(); let on = false;
+        for (let lo = 0; lo <= 360; lo += 4) {
+          const p = project(la, lo, spin);
+          if (p.z < 0) { on = false; continue; }
+          if (!on) { ctx.moveTo(p.x, p.y); on = true; } else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+      }
+      for (let lo = 0; lo < 360; lo += 30) {
+        ctx.beginPath(); let on = false;
+        for (let la = -90; la <= 90; la += 4) {
+          const p = project(la, lo, spin);
+          if (p.z < 0) { on = false; continue; }
+          if (!on) { ctx.moveTo(p.x, p.y); on = true; } else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+      }
+
+      // markets, with their labels
+      ctx.font = "600 9.5px Inter, system-ui, sans-serif";
+      ctx.textBaseline = "middle";
+      for (const m of GLOBE_MARKETS) {
+        const p = project(m.lat, m.lon, spin);
+        if (p.z < 0.02) continue;
+        const a = Math.min(1, p.z * 1.6);
+        ctx.beginPath(); ctx.arc(p.x, p.y, 4.6, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(0,194,184," + (0.18 * a) + ")"; ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(14,140,126," + a + ")"; ctx.fill();
+
+        // Label on whichever side keeps it inside the disc, so it never runs
+        // off the edge as a point crosses the limb.
+        const left = p.x > CX;
+        ctx.textAlign = left ? "right" : "left";
+        const lx = p.x + (left ? -8 : 8);
+        // Faint halo so the text stays legible over the graticule.
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = "rgba(255,255,255," + (0.85 * a) + ")";
+        ctx.strokeText(m.name, lx, p.y);
+        ctx.fillStyle = "rgba(10,26,48," + (0.92 * a) + ")";
+        ctx.fillText(m.name, lx, p.y);
+      }
+      raf = requestAnimationFrame(draw);
+    };
+    raf = requestAnimationFrame(draw);
+
+    // Stop when the tab is hidden: an offscreen animation is pure battery cost.
+    const vis = () => { if (document.hidden) cancelAnimationFrame(raf); else { last = performance.now(); raf = requestAnimationFrame(draw); } };
+    document.addEventListener("visibilitychange", vis);
+    return () => { cancelAnimationFrame(raf); document.removeEventListener("visibilitychange", vis); };
+  }, [size]);
+
+  return <canvas ref={ref} width={size} height={size} aria-hidden="true"
+    style={{ width: size, height: size, display: "block" }} />;
+}
+
+// Which tab a notice belongs under. Source is the reliable signal: it is set
+// at fetch time and never rewritten, whereas the stored `market` field is
+// coarse and stops at "International".
+function marketOf(n) {
+  const src = String((n && n.source) || "").toLowerCase();
+  const url = String((n && n.url) || "").toLowerCase();
+  if (src.includes("sam.gov") || url.includes("sam.gov")) return "United States";
+  if (src.includes("ted") || url.includes("ted.europa")) return "European Union";
+  if (src.includes("austender") || src.includes("tenders.gov.au") ||
+      src.includes("qtenders") || src.includes("buy nsw") || src.includes("healthshare") ||
+      url.includes(".gov.au")) return "Australia";
+  if (src.includes("canadabuys")) return "Canada";
+  if (n && n.market === "Private") return "Private UK";
+  if (n && (n.market === "NHS" || src.includes("find a tender") || src.includes("contracts finder"))) return "NHS UK";
+  return "International";
+}
+
+const MARKET_FLAG = {
+  "All": "\u{1F30D}",
+  "NHS UK": "\u{1F1EC}\u{1F1E7}",
+  "Private UK": "\u{1F1EC}\u{1F1E7}",
+  "United Kingdom": "\u{1F1EC}\u{1F1E7}",
+  "Australia": "\u{1F1E6}\u{1F1FA}",
+  "United States": "\u{1F1FA}\u{1F1F8}",
+  "European Union": "\u{1F1EA}\u{1F1FA}",
+  "Canada": "\u{1F1E8}\u{1F1E6}",
+  "International": "\u{1F30F}",
+  "Africa": "\u{1F30D}",
+  "Middle East": "\u{1F54C}",
+};
+const flagFor = (m) => MARKET_FLAG[m] || "\u{1F30D}";
 // Charts live in their own file and are loaded only when a signed-in screen
 // needs them, so visitors to the public site never download the charting
 // library. See src/components/charts.jsx.
@@ -515,7 +673,10 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
   const saveOpp = async (o) => { const id = o.org + "|" + o.role; const entry = { id, org: o.org, role: o.role, market: o.market, val: o.val, loc: o.loc, close: o.close, source: o.source, score: o.score, pr: o.pr }; try { let list = []; try { const r = await window.storage?.get("qura_saved_opps"); if (r?.value) list = JSON.parse(r.value); } catch (e) {} if (!Array.isArray(list)) list = []; if (!list.some((x) => x.id === id)) { list = [entry, ...list]; await window.storage?.set("qura_saved_opps", JSON.stringify(list)); } } catch (e) {} setSavedIds((v) => v.includes(id) ? v : [...v, id]); if (onToast) onToast("Opportunity saved"); };
   const mapMkt = { all: "All", nhs: "NHS UK", private: "Private UK", international: "International" };
   useEffect(() => { setF(mapMkt[market] || "All"); }, [market]);
-  const markets = ["All", "NHS UK", "Private UK", "International", "Africa", "Middle East"];
+  // Only offer a tab that has something behind it. An empty tab reads as a
+  // broken filter, which is exactly what the United States tab did before the
+  // market was derived from source.
+  const MARKET_ORDER = ["All", "NHS UK", "Private UK", "Australia", "United States", "European Union", "Canada", "International", "Africa", "Middle East"];
   // Real procurement notices from the daily feed, shown above the illustrative
   // set. Until this, the web Clinical Demand page showed only examples while
   // the live notices sat in the API unread.
@@ -535,7 +696,12 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
         setLive(j.items.filter((n) => n.live && !n.seeded).map((n) => ({
           org: n.buyer, role: n.title, spec: n.profession || "Healthcare services",
           val: n.rate || "Value not stated",
-          market: n.market === "NHS" ? "NHS UK" : n.market === "Private" ? "Private UK" : "International",
+          // Derive the tab from SOURCE, not from n.market. The stored market
+          // field only ever holds "NHS", "Private" or "International" — the
+          // finer value the enrichment works out is never copied onto the
+          // item — so keying off it put every American notice under
+          // International and left the United States tab empty.
+          market: marketOf(n),
           loc: n.region || "UK", close: n.closes || "",
           pr: null, score: null, status: "Live", source: n.source, url: n.url || null,
           // the enrichment: what Qura knows that the portal does not
@@ -548,6 +714,11 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
     return () => { dead = true; };
   }, []);
   const ALL_OPPS = [...live, ...OPPS];
+  // Markets that actually have notices behind them, in a fixed order so the
+  // row does not reshuffle as the feed changes through the day.
+  const present = new Set(ALL_OPPS.map((o) => o.market));
+  const markets = MARKET_ORDER.filter((m) => m === "All" || present.has(m) ||
+    (m === "International" && ["Middle East", "Africa"].some((x) => present.has(x))));
 
   const list = ALL_OPPS.filter((o) => (f === "All" || o.market === f || (f === "International" && ["Middle East", "Africa"].includes(o.market))) && o.org.toLowerCase().includes(q.toLowerCase()));
   return (
@@ -555,7 +726,7 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
       <PageHead title="Opportunities" sub={live.length ? `${live.length} live procurement notices, refreshed daily, plus ${OPPS.length} illustrative examples` : `${OPPS.length} opportunities across your markets`} right={CURRENCY[market].rate !== 1 ? <span className="chip" style={{ background: "var(--cyan-soft)", color: "#06776F" }}>Converted at {CURRENCY[market].sym}{CURRENCY[market].rate}/£</span> : null} />
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
         <div className="row" style={{ gap: 10, marginBottom: 12, flexWrap: "wrap" }}><div className="row" style={{ flex: 1, minWidth: 220, gap: 8, border: "1px solid var(--line)", borderRadius: 999, padding: "0 14px", background: "var(--bg2)" }}><Search size={16} className="faint" /><input className="in" style={{ border: "none", boxShadow: "none", padding: "10px 0" }} placeholder="Search organisations" value={q} onChange={(e) => setQ(e.target.value)} /></div></div>
-        <div className="row scrollx" style={{ gap: 8, overflowX: "auto", paddingBottom: 4 }}>{markets.map((m) => (<button key={m} onClick={() => setF(m)} className="chip" style={{ padding: "7px 14px", whiteSpace: "nowrap", background: f === m ? "var(--blue)" : "#EEF1F7", color: f === m ? "#fff" : "#5A6783" }}>{m}</button>))}</div>
+        <div className="row scrollx" style={{ gap: 8, overflowX: "auto", paddingBottom: 4 }}>{markets.map((m) => (<button key={m} onClick={() => setF(m)} className="chip" style={{ padding: "7px 14px", whiteSpace: "nowrap", background: f === m ? "var(--blue)" : "#EEF1F7", color: f === m ? "#fff" : "#5A6783" }}>{flagFor(m)} {m}</button>))}</div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {list.map((o, i) => (
@@ -608,6 +779,7 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
   const [favOnly, setFavOnly] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [srcF, setSrcF] = useState("All");
+  const [mkt, setMkt] = useState("All");
   const [openContact, setOpenContact] = useState(null);
   const [revealed, setRevealed] = useState({});
   const [pick, setPick] = useState([]);
@@ -687,6 +859,7 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
     (sp === "All" || (sp === "__none" ? !d.spec : d.spec === sp)) &&
     (org === "All" || d.org === org) &&
     (reg === "All" || (reg === "__none" ? !d.region : d.region === reg)) &&
+    (mkt === "All" || (d.market || "United Kingdom") === mkt) &&
     (otype === "All" || d.orgType === otype) &&
     (srcF === "All" ||
       (srcF === "Notices" ? (d.source && d.source !== "Founder research")
@@ -697,12 +870,17 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
   );
 
   const cats = Array.from(new Set(DMS.map((d) => d.spec).filter(Boolean))).sort();
-  const orgs = Array.from(new Set(DMS.map((d) => d.org).filter(Boolean))).sort();
+  const markets = Array.from(new Set(DMS.map((d) => d.market || "United Kingdom"))).sort();
+  // Regions are scoped to the chosen market. Offering "Yorkshire & Humber"
+  // beside "Queensland" in one list is confusing and mostly produces empty
+  // results.
+  const inMarket = mkt === "All" ? DMS : DMS.filter((d) => (d.market || "United Kingdom") === mkt);
+  const orgs = Array.from(new Set(inMarket.map((d) => d.org).filter(Boolean))).sort();
   // Counted from the register the page has just loaded, never hardcoded. The
   // old constant read 890 while the list showed 916: a merge or a harvest
   // changes the register, and nothing changes a number typed into a file.
   const orgCount = orgs.length;
-  const regs = Array.from(new Set(DMS.map((d) => d.region).filter(Boolean))).sort();
+  const regs = Array.from(new Set(inMarket.map((d) => d.region).filter(Boolean))).sort();
   const types = Array.from(new Set(DMS.map((d) => d.orgType).filter(Boolean))).sort();
   const favCount = Object.keys(favs).length;
   const clearAll = () => { setSp("All"); setOrg("All"); setReg("All"); setOtype("All"); setRecent(false); setFavOnly(false); setQ(""); };
@@ -777,6 +955,19 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search a name, organisation or job title"
             style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 15, color: "var(--text)" }} />
           {q ? <button onClick={() => setQ("")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", fontSize: 18, lineHeight: 1 }}>×</button> : null}
+        </div>
+
+        {/* Market chips, matching the tenders page. A dropdown renders flags
+            inconsistently across platforms; a button does not. Placed above the
+            other filters because it scopes them. */}
+        <div className="row scrollx" style={{ gap: 8, marginTop: 14, overflowX: "auto", paddingBottom: 2 }}>
+          {["All", ...markets].map((m) => (
+            <button key={m} onClick={() => { setMkt(m); setReg("All"); setOrg("All"); }} className="chip"
+              style={{ padding: "7px 14px", whiteSpace: "nowrap", cursor: "pointer", border: "none",
+                background: mkt === m ? "var(--blue)" : "#EEF1F7", color: mkt === m ? "#fff" : "#5A6783" }}>
+              {flagFor(m === "All" ? "All" : m)} {m === "All" ? "All markets" : m}
+            </button>
+          ))}
         </div>
 
         <div className="row" style={{ gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
@@ -3345,6 +3536,13 @@ const FOOTER_LINKS = [
 // bookmarked, and the browser back button behaves. The rendering itself is
 // unchanged: the sections are still shown and hidden the same way. This only
 // keeps the address bar and the view in step with each other.
+// One flag per market, defined once. Regional-indicator pairs render on every
+// platform; the England subdivision flag does not on Windows, so the UK markets
+// use the union flag.
+
+
+
+
 const ROUTES = [
   ["/", "home"],
   ["/for-clinicians", "clinicians"],
@@ -3547,8 +3745,15 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
 
       <div className="lb" data-view={view}>
       <div className="sec home" style={{ background: "radial-gradient(115% 85% at 50% -8%, #E6F4F2 0%, #F3F9FD 44%, #fff 100%)", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
-        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
-        <div className="wrap" style={{ padding: "48px 24px 36px", textAlign: "center" }}>
+        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.globe-corner{position:absolute;top:26px;right:34px;opacity:.5;pointer-events:none;z-index:0}@media(max-width:1100px){.globe-corner{display:none}}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
+        {/* Top-right of the hero, behind the content and at low opacity. It is
+            decorative: it signals reach at a glance without competing with the
+            headline for attention. Hidden below 1100px, where the hero is
+            already tight and a phone has no room to spare. */}
+        <div className="globe-corner" aria-hidden="true">
+          <WorldGlobe size={190} />
+        </div>
+        <div className="wrap" style={{ padding: "48px 24px 36px", textAlign: "center", position: "relative", zIndex: 1 }}>
           <QuraPitchBar />
           <div className="reveal"><span className="chip chip-cyan" style={{ padding: "7px 15px" }}><Sparkles size={14} /> Commercial intelligence and connectivity for healthcare · 24/7 live</span></div>
 
@@ -3560,7 +3765,21 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
             <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>One connected healthcare ecosystem.</span>
           </h1>
 
-          <div className="reveal faint" style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: ".09em", marginTop: 20, textTransform: "uppercase" }}>Built for healthcare, across every setting</div>
+          {/* Markets, stated on the first screen. Without this a visitor reads
+              NHS and assumes a UK-only platform, which is the single most
+              costly wrong assumption the page can create. Flags rather than a
+              spinning globe: they name the actual markets, they cost nothing to
+              render, and they do not move while someone is trying to read. */}
+          <div className="reveal row" style={{ gap: 7, justifyContent: "center", flexWrap: "wrap", marginTop: 22 }}>
+            {[["\u{1F1EC}\u{1F1E7}", "United Kingdom"], ["\u{1F1E6}\u{1F1FA}", "Australia"],
+              ["\u{1F1FA}\u{1F1F8}", "United States"], ["\u{1F1EA}\u{1F1FA}", "European Union"],
+              ["\u{1F30D}", "50+ countries"]].map(([fl, label]) => (
+              <span key={label} className="chip" style={{ padding: "6px 12px", fontSize: 12.5, background: "var(--card)", border: "1px solid var(--line)", color: "var(--muted)" }}>
+                <span style={{ marginRight: 6, fontSize: 14 }} aria-hidden="true">{fl}</span>{label}
+              </span>
+            ))}
+          </div>
+          <div className="reveal faint" style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: ".09em", marginTop: 18, textTransform: "uppercase" }}>Built for healthcare, across every setting</div>
           <p className="reveal" style={{ fontSize: 17.5, lineHeight: 1.55, margin: "8px auto 0", maxWidth: 640, color: "var(--muted)" }}>One live platform spanning the NHS, private and international healthcare markets.</p>
 
           {/* Context first, then the ask. The box stays above the fold either
