@@ -21,6 +21,7 @@ import { limited } from "./_ratelimit.js";
 
 import { CONTACTS } from "./_contacts.js";
 import { regionOf } from "./_regions.js";
+import { buildRegister } from "./_register.js";
 import { categorise, orgTypeOf, initialsOf } from "./_categorise.js";
 
 function maskEmail(e) {
@@ -89,11 +90,10 @@ export default async function handler(req, res) {
   const unlocked = ENTITLEMENTS.intelligence(plan);
 
   // Newest additions first, then the register.
-  // Researched register first, so a person already in it is never displaced by
-  // a notice-harvested duplicate of the same name at the same organisation.
-  const seen = new Set([...added, ...CONTACTS].map((c) => (String(c.name || "").toLowerCase() + "|" + String(c.org || "").toLowerCase())));
-  const harvested = noticeContacts.filter((c) => !seen.has(String(c.name || "").toLowerCase() + "|" + String(c.org || "").toLowerCase()));
-  const ALL = [...added, ...CONTACTS, ...harvested];
+  // A person already in the register is enriched by the notice rather than
+  // duplicated: a published email or phone fills whatever the register lacks.
+  const built = buildRegister(CONTACTS, added, noticeContacts);
+  const ALL = built.list;
   const contacts = ALL.filter((c) => !removedNames.has(c.name.toLowerCase())).map((c) => ({
     name: c.name,
     org: c.org,
@@ -127,7 +127,10 @@ export default async function handler(req, res) {
     contacts,
     // How many of the total came from procurement notices rather than founder
     // research, so the front end can label the source filter honestly.
-    harvested: harvested.length,
+    // How many records came from notices, and how many existing records a
+    // notice improved. Both are worth seeing in the founder view.
+    harvested: built.harvestedNew,
+    enriched: built.enrichedCount,
     total: contacts.length,
     removed: removedNames.size,
     withContactDetails: contacts.filter((c) => c.hasEmail || c.hasPhone).length,
