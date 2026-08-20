@@ -1,6 +1,7 @@
 import { getUser, kvGet, kvSet } from "./_auth.js";
 import { CONTACTS } from "./_contacts.js";
 import { regionOf } from "./_regions.js";
+import { buildRegister } from "./_register.js";
 import { ENTITLEMENTS, planOf } from "./_entitlements.js";
 import { limited } from "./_ratelimit.js";
 import { alertFounders } from "./_alert.js";
@@ -53,16 +54,33 @@ export default async function handler(req, res) {
     removed = new Set((Array.isArray(log) ? log : []).map((r) => String(r.name || "").toLowerCase()));
   } catch (e) {}
 
-  const rows = CONTACTS
-    .filter((c) => !removed.has(c.name.toLowerCase()))
+  // The export used to read CONTACTS alone, so the CSV held fewer people than
+  // the screen it was downloaded from — manual additions and everyone named on
+  // a procurement notice were missing. Same builder as contacts.js now, so the
+  // two can no longer drift.
+  let additions = [];
+  try {
+    const a = (await kvGet("shared", "contact_additions")) || [];
+    additions = Array.isArray(a) ? a : [];
+  } catch (e) {}
+  let harvested = [];
+  try {
+    const h = (await kvGet("shared", "notice_contacts")) || [];
+    harvested = Array.isArray(h) ? h : [];
+  } catch (e) {}
+  const built = buildRegister(CONTACTS, additions, harvested);
+
+  const rows = built.list
+    .filter((c) => !removed.has(String(c.name || "").toLowerCase()))
     .slice(0, MAX_ROWS)
     .map((c) => [
       c.name, c.role, c.org, c.orgType || "",
-      regionOf(c.org + " " + (c.role || "")) || "",
+      c.region || regionOf(c.org + " " + (c.role || "")) || "",
+      c.market || "United Kingdom",
       c.spec || "", c.email || "", c.phone || "",
     ]);
 
-  const header = ["Name", "Job title", "Organisation", "Organisation type", "Region", "Category", "Email", "Phone"];
+  const header = ["Name", "Job title", "Organisation", "Organisation type", "Region", "Market", "Category", "Email", "Phone"];
   const stamp = new Date().toISOString();
   const lines = [
     header.map(csvCell).join(","),
