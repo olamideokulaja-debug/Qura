@@ -1967,6 +1967,7 @@ function AdminOps() {
   const [queue, setQueue] = useState(null);
   const [removals, setRemovals] = useState(null);
   const [waitlist, setWaitlist] = useState(null);
+  const [clinicians, setClinicians] = useState(null);
   const [busy, setBusy] = useState("");
   const [nc, setNc] = useState({ name: "", org: "", role: "", email: "", phone: "" });
   const [ncMsg, setNcMsg] = useState("");
@@ -1979,17 +1980,33 @@ function AdminOps() {
     try {
       const t = await token();
       const h = { authorization: "Bearer " + t };
-      const [qi, qr, qw] = await Promise.all([
+      const [qi, qr, qw, qc] = await Promise.all([
         fetch("/api/admin?view=intros", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=removals", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=waitlist", { headers: h }).then((r) => r.json()),
+        fetch("/api/admin?view=clinicians", { headers: h }).then((r) => r.json()),
       ]);
       setQueue(qi.queue || []);
       setRemovals(qr.removals || []);
       setWaitlist(qw.waitlist || []);
-    } catch (e) { setQueue([]); setRemovals([]); setWaitlist([]); }
+      setClinicians(qc.clinicians || []);
+    } catch (e) { setQueue([]); setRemovals([]); setWaitlist([]); setClinicians([]); }
   };
   useEffect(() => { load(); }, []);
+
+  // The register check. This is the whole promise: a person opens the official
+  // public register, finds the clinician, and only then are they visible to
+  // hospitals and suppliers.
+  const verifyClinician = async (owner, on) => {
+    setBusy("cl" + owner);
+    try {
+      const t = await token();
+      await fetch("/api/admin", { method: "POST", headers: { authorization: "Bearer " + t, "content-type": "application/json" },
+        body: JSON.stringify({ action: on ? "clinician-verify" : "clinician-unverify", owner }) });
+      await load();
+    } catch (e) {}
+    setBusy("");
+  };
 
   const act = async (introId, status) => {
     setBusy(introId + status);
@@ -2044,7 +2061,7 @@ function AdminOps() {
   return (
     <div style={{ marginBottom: 28 }}>
       <div className="row" style={{ gap: 8, marginBottom: 14 }}>
-        {[["intros", "Introduction queue"], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
+        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
           <button key={k} className={"btn " + (tab === k ? "btn-primary" : "btn-light")} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -2075,6 +2092,63 @@ function AdminOps() {
               </div>
             </div>
           ))}
+        </div>
+      ) : tab === "clinicians" ? (
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          {clinicians === null ? <div style={{ padding: 18 }} className="muted">Loading...</div>
+          : !clinicians.length ? <div style={{ padding: 18 }} className="muted">No clinician profiles yet.</div>
+          : clinicians.map((c) => {
+            // Three states: waiting on a check, verified, or still incomplete.
+            const ready = c.registeredAt && !c.missing.length;
+            const state = c.verifiedAt ? "verified" : ready ? "awaiting" : "incomplete";
+            return (
+              <div key={c.owner} style={{ padding: 16, borderBottom: "1px solid var(--line)" }}>
+                <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontWeight: 700, fontSize: 15 }}>{c.email || "(no email)"}</span>
+                      {state === "verified" ? <span className="chip chip-cyan" style={{ fontSize: 11 }}>Verified</span>
+                       : state === "awaiting" ? <span className="chip" style={{ fontSize: 11, background: "var(--amber-bg)", color: "var(--amber)" }}>Awaiting check</span>
+                       : <span className="chip" style={{ fontSize: 11 }}>Incomplete</span>}
+                    </div>
+                    <div className="muted" style={{ fontSize: 13.5, marginTop: 4 }}>
+                      {[c.profession, c.category, c.country].filter(Boolean).join(" · ")}
+                    </div>
+                    <div style={{ fontSize: 13.5, marginTop: 5 }}>
+                      <b>{c.regBody || "No body"}</b>{c.regNumber ? " · " + c.regNumber : ""}
+                      {c.experienceYears ? " · " + c.experienceYears : ""}
+                      {c.cvUploaded ? " · CV on file" : " · no CV"}
+                    </div>
+                    {c.missing.length ? (
+                      <div className="muted" style={{ fontSize: 12.5, marginTop: 5 }}>Still missing: {c.missing.join(", ")}</div>
+                    ) : null}
+                  </div>
+                  <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                    {c.registerUrl ? (
+                      <a className="btn btn-light" style={{ fontSize: 13 }} href={c.registerUrl} target="_blank" rel="noreferrer">
+                        Open {c.regBody} register
+                      </a>
+                    ) : null}
+                    {state === "verified" ? (
+                      <button className="btn btn-light" style={{ fontSize: 13 }} disabled={busy === "cl" + c.owner}
+                        onClick={() => verifyClinician(c.owner, false)}>Withdraw</button>
+                    ) : (
+                      <button className="btn btn-primary" style={{ fontSize: 13 }}
+                        disabled={!ready || busy === "cl" + c.owner}
+                        title={ready ? "" : "This profile is not complete yet"}
+                        onClick={() => verifyClinician(c.owner, true)}>
+                        {busy === "cl" + c.owner ? "Saving..." : "Mark verified"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          <div className="muted" style={{ fontSize: 12.5, padding: "12px 16px" }}>
+            Open the official register, find the clinician, and only then mark them
+            verified. Until you do, they are not visible to hospitals or suppliers.
+          </div>
         </div>
       ) : tab === "waitlist" ? (
         <div className="card" style={{ padding: 18 }}>
