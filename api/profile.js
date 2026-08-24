@@ -4,13 +4,43 @@ import { getUser, kvGet, kvSet } from "./_auth.js";
 // POST /api/profile {..}   -> save/merge the profile
 const KEY = "clinician_profile";
 
+// What a clinician must supply to count as registered.
+//
+// cvUploaded is NOT in here. It was, and the effect was that a clinician who
+// had finished registering was still shown as incomplete, and could never reach
+// 100% without finding and uploading a CV. The CV is genuinely useful to a
+// hospital, so it is still asked for — but as an optional extra that improves a
+// profile, not as a gate on being registered at all.
+const REQUIRED = ["category", "profession", "regBody", "regNumber", "country", "experienceYears"];
+
+// Optional fields that make a profile stronger. They count towards the strength
+// score a clinician sees, so there is a visible reason to come back and finish,
+// but a missing one never blocks registration or verification.
+const OPTIONAL = ["cvUploaded", "availableFrom", "dayRate", "sector"];
+
 function completeness(p) {
-  const req = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded"];
-  const done = req.filter((k) => {
+  const has = (k) => {
     const v = p ? p[k] : undefined;
     return v !== undefined && v !== null && v !== "" && v !== false;
-  });
-  return { done: done.length, total: req.length, verified: done.length === req.length, missing: req.filter((k) => !done.includes(k)) };
+  };
+  const done = REQUIRED.filter(has);
+  const extras = OPTIONAL.filter(has);
+  const missing = REQUIRED.filter((k) => !has(k));
+  return {
+    done: done.length,
+    total: REQUIRED.length,
+    // "verified" here means the required set is complete. Actual verification
+    // is still a founder checking the registration number by hand.
+    verified: missing.length === 0,
+    missing,
+    // Strength is required fields plus whatever optional detail has been added,
+    // so a registered clinician starts high and can reach 100% by adding a CV,
+    // availability and a rate.
+    strength: Math.round(
+      ((done.length / REQUIRED.length) * 0.75 + (extras.length / OPTIONAL.length) * 0.25) * 100
+    ),
+    optionalMissing: OPTIONAL.filter((k) => !has(k)),
+  };
 }
 
 export default async function handler(req, res) {
@@ -56,8 +86,8 @@ export default async function handler(req, res) {
     if (current.registeredAt) clean.registeredAt = current.registeredAt;
 
     // registeredAt is set once, on the explicit "Complete registration" press,
-    // and only if the profile really is complete. Every other POST is a draft
-    // save from someone still typing.
+    // and only if the required fields really are there. Every other POST is a
+    // draft save from someone still typing.
     if (incoming.submit === true && !clean.registeredAt) {
       const st = completeness(clean);
       if (!st.verified) return res.status(400).json({ error: "Some items are still missing.", missing: st.missing });
