@@ -111,18 +111,21 @@ function drawFlag(ctx, code, x, y, w, a) {
   ctx.globalAlpha = 1;
 }
 
-function WorldGlobe({ size = 190 }) {
+function WorldGlobe({ size = 190, hero = false }) {
   const ref = useRef(null);
+  const wrapRef = useRef(null);
   useEffect(() => {
     const cv = ref.current;
     if (!cv) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Cap DPR harder in hero mode. At 900px a 3x buffer is 2700px square and
+    // costs more per frame than the effect is worth on a laptop.
+    const dpr = Math.min(window.devicePixelRatio || 1, hero ? 1.5 : 2);
     cv.width = size * dpr; cv.height = size * dpr;
     const ctx = cv.getContext("2d");
     if (!ctx) return;
     ctx.scale(dpr, dpr);
 
-    const R = size / 2 - 12, CX = size / 2, CY = size / 2;
+    const R = size / 2 - (hero ? size * 0.06 : 12), CX = size / 2, CY = size / 2;
     const rad = (d) => (d * Math.PI) / 180;
     // Someone who has asked their system not to animate should get a static
     // globe, not a spinning one they cannot switch off.
@@ -142,6 +145,31 @@ function WorldGlobe({ size = 190 }) {
       return { x: CX + x * R, y: CY - y2 * R, z: z2 };
     };
 
+    // In hero mode the globe reads as connectivity, not as a map, so the
+    // markets are joined. Pairs are fixed rather than every-to-every: 8 points
+    // fully connected is 28 lines and looks like a cat's cradle.
+    const LINKS = hero ? [[0,1],[0,2],[0,4],[2,3],[1,5],[4,7],[0,5],[2,6]] : [];
+
+    // Great-circle-ish arc between two points, lifted off the surface so it
+    // reads as a connection rather than a chord across the disc.
+    const arc = (a, b, t) => {
+      ctx.beginPath();
+      let on = false;
+      for (let s = 0; s <= 1.0001; s += 0.05) {
+        const lat = a.lat + (b.lat - a.lat) * s;
+        // shortest way round, so a UK-to-Australia link does not cross the disc
+        let dl = b.lon - a.lon;
+        if (dl > 180) dl -= 360; if (dl < -180) dl += 360;
+        const lon = a.lon + dl * s;
+        const p = project(lat, lon, t);
+        if (p.z < 0.02) { on = false; continue; }
+        const lift = 1 + Math.sin(s * Math.PI) * 0.12;
+        const x = CX + (p.x - CX) * lift, y = CY + (p.y - CY) * lift;
+        if (!on) { ctx.moveTo(x, y); on = true; } else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    };
+
     let spin = 0, raf = 0, last = performance.now();
     const draw = (now) => {
       const dt = Math.min(now - last, 60); last = now;
@@ -150,15 +178,17 @@ function WorldGlobe({ size = 190 }) {
 
       // sphere
       const g = ctx.createRadialGradient(CX - R * 0.35, CY - R * 0.4, R * 0.1, CX, CY, R);
-      g.addColorStop(0, "rgba(0,194,184,.20)");
-      g.addColorStop(1, "rgba(10,26,48,.10)");
+      g.addColorStop(0, hero ? "rgba(0,194,184,.13)" : "rgba(0,194,184,.20)");
+      g.addColorStop(1, hero ? "rgba(14,140,126,.05)" : "rgba(10,26,48,.10)");
       ctx.beginPath(); ctx.arc(CX, CY, R, 0, Math.PI * 2);
       ctx.fillStyle = g; ctx.fill();
-      ctx.strokeStyle = "rgba(10,26,48,.16)"; ctx.lineWidth = 1; ctx.stroke();
+      ctx.strokeStyle = hero ? "rgba(14,140,126,.18)" : "rgba(10,26,48,.16)";
+      ctx.lineWidth = 1; ctx.stroke();
 
       // graticule: parallels and meridians, drawn as point runs so the back of
       // the sphere is hidden without any depth buffer
-      ctx.strokeStyle = "rgba(10,26,48,.13)";
+      ctx.strokeStyle = hero ? "rgba(14,140,126,.16)" : "rgba(10,26,48,.13)";
+      ctx.lineWidth = hero ? 1.1 : 1;
       for (let la = -60; la <= 60; la += 30) {
         ctx.beginPath(); let on = false;
         for (let lo = 0; lo <= 360; lo += 4) {
@@ -178,12 +208,29 @@ function WorldGlobe({ size = 190 }) {
         ctx.stroke();
       }
 
-      // markets, each with its flag
+      // connection arcs, hero only
+      if (LINKS.length) {
+        ctx.strokeStyle = "rgba(0,194,184,.30)";
+        ctx.lineWidth = 1.3;
+        for (const [a, b] of LINKS) arc(GLOBE_MARKETS[a], GLOBE_MARKETS[b], spin);
+      }
+
+      // markets
       const FW = 14;
       for (const m of GLOBE_MARKETS) {
         const p = project(m.lat, m.lon, spin);
         if (p.z < 0.02) continue;
         const a = Math.min(1, p.z * 1.6);
+        if (hero) {
+          // No flags at hero scale: eight flags across a 900px sphere read as
+          // clutter behind a headline, and this globe is atmosphere rather
+          // than a legend. A soft halo carries the same "here" signal.
+          ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(0,194,184," + (0.13 * a) + ")"; ctx.fill();
+          ctx.beginPath(); ctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(14,140,126," + (0.85 * a) + ")"; ctx.fill();
+          continue;
+        }
         ctx.beginPath(); ctx.arc(p.x, p.y, 2.0, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(14,140,126," + a + ")"; ctx.fill();
         // Flag on whichever side keeps it inside the disc, so it never runs off
@@ -198,29 +245,51 @@ function WorldGlobe({ size = 190 }) {
     // Stop when the tab is hidden: an offscreen animation is pure battery cost.
     const vis = () => { if (document.hidden) cancelAnimationFrame(raf); else { last = performance.now(); raf = requestAnimationFrame(draw); } };
     document.addEventListener("visibilitychange", vis);
-    return () => { cancelAnimationFrame(raf); document.removeEventListener("visibilitychange", vis); };
-  }, [size]);
 
-  return <canvas ref={ref} width={size} height={size} aria-hidden="true"
+    // Scrolling away should let the next section arrive cleanly, so the globe
+    // fades and drifts as the hero leaves. Written straight to style rather
+    // than through state: this fires on every scroll frame and a re-render per
+    // frame would be far more expensive than the animation itself.
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking || !hero) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        const el = wrapRef.current;
+        if (el) {
+          const y = window.scrollY || 0;
+          const p = Math.min(1, y / 520);
+          el.style.opacity = String(1 - p);
+          el.style.transform = "translateY(" + (-p * 70) + "px) scale(" + (1 - p * 0.10) + ")";
+        }
+        ticking = false;
+      });
+    };
+    if (hero) window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      document.removeEventListener("visibilitychange", vis);
+      if (hero) window.removeEventListener("scroll", onScroll);
+    };
+  }, [size, hero]);
+
+  const canvas = <canvas ref={ref} width={size} height={size} aria-hidden="true"
     style={{ width: size, height: size, display: "block" }} />;
+  if (!hero) return canvas;
+
+  // The soft edge. A radial mask fades the disc into the page background so it
+  // reads as an illuminated watermark rather than a large image dropped behind
+  // the copy. -webkit- included for Safari, which still needs the prefix.
+  return (
+    <div ref={wrapRef} style={{
+      willChange: "opacity, transform",
+      WebkitMaskImage: "radial-gradient(circle at 50% 50%, #000 46%, rgba(0,0,0,.55) 68%, transparent 84%)",
+      maskImage: "radial-gradient(circle at 50% 50%, #000 46%, rgba(0,0,0,.55) 68%, transparent 84%)",
+    }}>{canvas}</div>
+  );
 }
 
-// Which tab a notice belongs under. Source is the reliable signal: it is set
-// at fetch time and never rewritten, whereas the stored `market` field is
-// coarse and stops at "International".
-function marketOf(n) {
-  const src = String((n && n.source) || "").toLowerCase();
-  const url = String((n && n.url) || "").toLowerCase();
-  if (src.includes("sam.gov") || url.includes("sam.gov")) return "United States";
-  if (src.includes("ted") || url.includes("ted.europa")) return "European Union";
-  if (src.includes("austender") || src.includes("tenders.gov.au") ||
-      src.includes("qtenders") || src.includes("buy nsw") || src.includes("healthshare") ||
-      url.includes(".gov.au")) return "Australia";
-  if (src.includes("canadabuys")) return "Canada";
-  if (n && n.market === "Private") return "Private UK";
-  if (n && (n.market === "NHS" || src.includes("find a tender") || src.includes("contracts finder"))) return "NHS UK";
-  return "International";
-}
 
 const MARKET_FLAG = {
   "All": "\u{1F30D}",
@@ -3648,6 +3717,21 @@ function routeFromPath(path) {
 }
 
 function Landing({ onEnter, onDemo, earlyFocus }) {
+  // The hero globe is sized off the viewport rather than fixed, so it fills the
+  // first screen on a laptop and a large monitor alike. Capped at 980 because
+  // beyond that the arcs spread out and it stops reading as one object, and
+  // floored at 420 so it still reads as a globe on a phone.
+  const [globeSize, setGlobeSize] = useState(760);
+  useEffect(() => {
+    const fit = () => {
+      const w = window.innerWidth || 1200, h = window.innerHeight || 800;
+      setGlobeSize(Math.max(420, Math.min(980, Math.min(w * 0.82, h * 1.02))));
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, []);
+
   const initial = (typeof window !== "undefined" && routeFromPath(window.location.pathname)) || null;
   const [view, setView] = useState(initial ? initial.view : "home");
   const [howSec, setHowSec] = useState(initial && initial.howSec ? initial.howSec : "walk");
@@ -3817,13 +3901,13 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
 
       <div className="lb" data-view={view}>
       <div className="sec home" style={{ background: "radial-gradient(115% 85% at 50% -8%, #E6F4F2 0%, #F3F9FD 44%, #fff 100%)", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
-        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.globe-corner{position:absolute;top:108px;right:30px;opacity:.42;pointer-events:none;z-index:0}.pitch-bar{margin-left:auto;margin-right:auto}@media(min-width:1101px){.pitch-bar{width:calc(100% - 512px)}}@media(max-width:1100px){.globe-corner{display:none}}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
+        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.globe-hero{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);margin-top:-40px;opacity:.55;pointer-events:none;z-index:0;display:grid;place-items:center}@media(max-width:700px){.globe-hero{opacity:.34;margin-top:-20px}}.pitch-bar{margin-left:auto;margin-right:auto}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
         {/* Top-right of the hero, behind the content and at low opacity. It is
             decorative: it signals reach at a glance without competing with the
             headline for attention. Hidden below 1100px, where the hero is
             already tight and a phone has no room to spare. */}
-        <div className="globe-corner" aria-hidden="true">
-          <WorldGlobe size={230} />
+        <div className="globe-hero" aria-hidden="true">
+          <WorldGlobe size={globeSize} hero />
         </div>
         <div className="wrap" style={{ padding: "48px 24px 36px", textAlign: "center", position: "relative", zIndex: 1 }}>
           <QuraPitchBar />
