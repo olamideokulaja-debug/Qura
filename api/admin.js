@@ -167,8 +167,12 @@ export default async function handler(req, res) {
       };
       const list = (rows || []).map(({ owner, value }) => {
         const p = value || {};
-        const req7 = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded"];
-        const missing = req7.filter((k) => { const v = p[k]; return v === undefined || v === null || v === "" || v === false; });
+        // The CV is no longer required to register, so it must not count as
+        // missing here either — otherwise a clinician who has completed
+        // registration is shown to the founder as incomplete and never gets
+        // checked. Tracked separately so it is still visible at a glance.
+        const REQ = ["category", "profession", "regBody", "regNumber", "country", "experienceYears"];
+        const missing = REQ.filter((k) => { const v = p[k]; return v === undefined || v === null || v === "" || v === false; });
         return {
           owner,
           email: p.email || "",

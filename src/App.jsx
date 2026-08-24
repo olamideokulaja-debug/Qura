@@ -2892,7 +2892,12 @@ function ClinicianRegistration({ onToast }) {
     try {
       const r = await fetch("/api/clinician-register", {
         method: "POST", headers: await authHeaders(true),
-        body: JSON.stringify({ ...f, years: Number(f.years) }),
+        // submit: true is what turns a draft into a registration. Without it the
+        // endpoint saves the answers and returns ok, and the clinician is shown
+        // "Registration complete" while registeredAt is never set — so they
+        // never appear as registered in the founder panel. Tiago hit exactly
+        // this.
+        body: JSON.stringify({ ...f, years: Number(f.years), submit: true }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) {
@@ -2900,8 +2905,21 @@ function ClinicianRegistration({ onToast }) {
         setBusy(false);
         return;
       }
-      setDone(true);
-      if (onToast) onToast("Registration complete. You are now registered on Qura.");
+      // Only claim registration when the server confirms it. Anything else is
+      // a saved draft, and saying otherwise is how someone ends up believing
+      // they have registered when they have not.
+      const reg = j.registration || {};
+      if (reg.status === "registered" || reg.registeredAt) {
+        setDone(true);
+        if (onToast) onToast("Registration complete. You are now registered on Qura.");
+      } else {
+        setErr("Your answers are saved, but the registration did not complete. "
+          + (Array.isArray(reg.missing) && reg.missing.length
+             ? "Still needed: " + reg.missing.join(", ") + "."
+             : "Please try again, or email support@qurahealth.org."));
+        setBusy(false);
+        return;
+      }
     } catch (e) {
       setErr("We could not reach Qura to save your registration. Nothing has been lost, please try again.");
     }
