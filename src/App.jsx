@@ -178,16 +178,16 @@ function WorldGlobe({ size = 190, hero = false }) {
 
       // sphere
       const g = ctx.createRadialGradient(CX - R * 0.35, CY - R * 0.4, R * 0.1, CX, CY, R);
-      g.addColorStop(0, hero ? "rgba(0,194,184,.13)" : "rgba(0,194,184,.20)");
-      g.addColorStop(1, hero ? "rgba(14,140,126,.05)" : "rgba(10,26,48,.10)");
+      g.addColorStop(0, hero ? "rgba(0,194,184,.20)" : "rgba(0,194,184,.20)");
+      g.addColorStop(1, hero ? "rgba(14,140,126,.09)" : "rgba(10,26,48,.10)");
       ctx.beginPath(); ctx.arc(CX, CY, R, 0, Math.PI * 2);
       ctx.fillStyle = g; ctx.fill();
-      ctx.strokeStyle = hero ? "rgba(14,140,126,.18)" : "rgba(10,26,48,.16)";
+      ctx.strokeStyle = hero ? "rgba(14,140,126,.30)" : "rgba(10,26,48,.16)";
       ctx.lineWidth = 1; ctx.stroke();
 
       // graticule: parallels and meridians, drawn as point runs so the back of
       // the sphere is hidden without any depth buffer
-      ctx.strokeStyle = hero ? "rgba(14,140,126,.16)" : "rgba(10,26,48,.13)";
+      ctx.strokeStyle = hero ? "rgba(14,140,126,.26)" : "rgba(10,26,48,.13)";
       ctx.lineWidth = hero ? 1.1 : 1;
       for (let la = -60; la <= 60; la += 30) {
         ctx.beginPath(); let on = false;
@@ -210,7 +210,7 @@ function WorldGlobe({ size = 190, hero = false }) {
 
       // connection arcs, hero only
       if (LINKS.length) {
-        ctx.strokeStyle = "rgba(0,194,184,.30)";
+        ctx.strokeStyle = "rgba(0,194,184,.42)";
         ctx.lineWidth = 1.3;
         for (const [a, b] of LINKS) arc(GLOBE_MARKETS[a], GLOBE_MARKETS[b], spin);
       }
@@ -222,13 +222,17 @@ function WorldGlobe({ size = 190, hero = false }) {
         if (p.z < 0.02) continue;
         const a = Math.min(1, p.z * 1.6);
         if (hero) {
-          // No flags at hero scale: eight flags across a 900px sphere read as
-          // clutter behind a headline, and this globe is atmosphere rather
-          // than a legend. A soft halo carries the same "here" signal.
-          ctx.beginPath(); ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(0,194,184," + (0.13 * a) + ")"; ctx.fill();
-          ctx.beginPath(); ctx.arc(p.x, p.y, 3.2, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(14,140,126," + (0.85 * a) + ")"; ctx.fill();
+          // Flags stay at hero scale. Without them this is a generic spinning
+          // sphere; with them it is Qura's markets. Scaled with the globe and
+          // drawn at full opacity so they stay legible through the layer's
+          // own transparency.
+          const HW = Math.max(16, Math.round(size * 0.026));
+          ctx.beginPath(); ctx.arc(p.x, p.y, HW * 0.62, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(0,194,184," + (0.16 * a) + ")"; ctx.fill();
+          ctx.beginPath(); ctx.arc(p.x, p.y, 3.0, 0, Math.PI * 2);
+          ctx.fillStyle = "rgba(14,140,126," + (0.95 * a) + ")"; ctx.fill();
+          const lft = p.x > CX;
+          drawFlag(ctx, m.code, lft ? p.x - 9 - HW : p.x + 9, p.y - HW * 0.32, HW, Math.min(1, a * 1.25));
           continue;
         }
         ctx.beginPath(); ctx.arc(p.x, p.y, 2.0, 0, Math.PI * 2);
@@ -284,8 +288,8 @@ function WorldGlobe({ size = 190, hero = false }) {
   return (
     <div ref={wrapRef} style={{
       willChange: "opacity, transform",
-      WebkitMaskImage: "radial-gradient(circle at 50% 50%, #000 46%, rgba(0,0,0,.55) 68%, transparent 84%)",
-      maskImage: "radial-gradient(circle at 50% 50%, #000 46%, rgba(0,0,0,.55) 68%, transparent 84%)",
+      WebkitMaskImage: "radial-gradient(circle at 50% 50%, #000 62%, rgba(0,0,0,.72) 80%, transparent 94%)",
+      maskImage: "radial-gradient(circle at 50% 50%, #000 62%, rgba(0,0,0,.72) 80%, transparent 94%)",
     }}>{canvas}</div>
   );
 }
@@ -3901,7 +3905,7 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
 
       <div className="lb" data-view={view}>
       <div className="sec home" style={{ background: "radial-gradient(115% 85% at 50% -8%, #E6F4F2 0%, #F3F9FD 44%, #fff 100%)", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
-        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.globe-hero{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);margin-top:-40px;opacity:.55;pointer-events:none;z-index:0;display:grid;place-items:center}@media(max-width:700px){.globe-hero{opacity:.34;margin-top:-20px}}.pitch-bar{margin-left:auto;margin-right:auto}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
+        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.globe-hero{position:absolute;top:330px;left:50%;transform:translate(-50%,-50%);opacity:.78;pointer-events:none;z-index:0;display:grid;place-items:center}@media(max-width:700px){.globe-hero{top:260px;opacity:.52}}.pitch-bar{margin-left:auto;margin-right:auto}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
         {/* Top-right of the hero, behind the content and at low opacity. It is
             decorative: it signals reach at a glance without competing with the
             headline for attention. Hidden below 1100px, where the hero is

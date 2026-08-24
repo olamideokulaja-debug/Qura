@@ -24,7 +24,9 @@ const authHeaders = async (json) => {
   return h;
 };
 
-const lessonId = (moduleId, i) => moduleId + "-l" + i;
+// Lesson ids come from the content itself now (QE-L01 and so on), so
+// progress survives any reordering of the curriculum.
+
 
 function Ring({ pct, size = 44, accent }) {
   const r = size / 2 - 4, c = 2 * Math.PI * r;
@@ -44,7 +46,7 @@ export default function Academy({ role, onToast }) {
   const [progress, setProgress] = useState({});
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(null);      // course being studied
-  const [lesson, setLesson] = useState(null);  // { moduleIdx, lessonIdx }
+  const [lesson, setLesson] = useState(null);  // index into course.lessons
   const [quiz, setQuiz] = useState(null);      // { questions, passMark }
   const [answers, setAnswers] = useState({});
   const [qi, setQi] = useState(0);
@@ -66,7 +68,7 @@ export default function Academy({ role, onToast }) {
   const mine = ACADEMY_COURSES.filter((c) => !role || c.lenses.includes(role));
   const others = ACADEMY_COURSES.filter((c) => role && !c.lenses.includes(role));
 
-  const lessonsOf = (c) => c.modules.reduce((n, m) => n + m.lessons.length, 0);
+  const lessonsOf = (c) => c.lessons.length;
   const doneOf = (c) => {
     const p = progress[c.id];
     if (!p || !p.lessons) return 0;
@@ -237,47 +239,62 @@ export default function Academy({ role, onToast }) {
   }
 
   // ----------------------------------------------------------- lesson
-  if (open && lesson) {
-    const c = open, m = c.modules[lesson.moduleIdx];
-    const id = lessonId(m.id, lesson.lessonIdx);
-    const done = ((progress[c.id] || {}).lessons || {})[id];
-    const last = lesson.moduleIdx === c.modules.length - 1 && lesson.lessonIdx === m.lessons.length - 1;
+  if (open && lesson !== null) {
+    const c = open, L = c.lessons[lesson];
+    const done = ((progress[c.id] || {}).lessons || {})[L.id];
+    const last = lesson === c.lessons.length - 1;
     const next = () => {
-      markLesson(c, id);
-      if (lesson.lessonIdx + 1 < m.lessons.length) setLesson({ ...lesson, lessonIdx: lesson.lessonIdx + 1 });
-      else if (lesson.moduleIdx + 1 < c.modules.length) setLesson({ moduleIdx: lesson.moduleIdx + 1, lessonIdx: 0 });
-      else setLesson(null);
+      markLesson(c, L.id);
+      if (!last) setLesson(lesson + 1); else setLesson(null);
     };
+    // The seven parts of a lesson, in the order the blueprint sets out. Kept as
+    // data so a lesson is never half-rendered when a field is missing.
+    const parts = [
+      ["Core principle", L.principle],
+      ["What this means", L.explanation],
+      ["Why it matters", L.why],
+      ["How to apply it", L.apply],
+      ["In practice", L.example],
+      ["Common mistake", L.mistake],
+    ].filter(([, v]) => v);
     return (
-      <div className="wrap" style={{ maxWidth: 760, padding: "28px 24px 60px" }}>
+      <div className="wrap" style={{ maxWidth: 720, padding: "28px 24px 60px" }}>
         <button className="btn btn-light" style={{ marginBottom: 16 }} onClick={() => setLesson(null)}>
           <ArrowLeft size={16} /> {c.name}
         </button>
         <div className="faint" style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".08em" }}>
-          MODULE {m.n} · {m.title.toUpperCase()}
+          {L.id} · LESSON {lesson + 1} OF {c.lessons.length}
         </div>
-        <h2 className="disp" style={{ fontSize: 25, fontWeight: 700, margin: "10px 0 6px", lineHeight: 1.25 }}>
-          {m.lessons[lesson.lessonIdx]}
+        <h2 className="disp" style={{ fontSize: 26, fontWeight: 700, margin: "10px 0 20px", lineHeight: 1.25 }}>
+          {L.title}
         </h2>
-        <div className="muted" style={{ fontSize: 14.5 }}>{m.outcome}</div>
 
-        {/* Lesson bodies are still to be written — 112 of them. Rather than
-            fake content, the player says so plainly and still lets a member
-            move through the structure. */}
-        <div className="card" style={{ padding: 22, marginTop: 20, borderStyle: "dashed" }}>
-          <div className="faint" style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: ".07em" }}>LESSON CONTENT</div>
-          <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.65, margin: "8px 0 0" }}>
-            This lesson is being written. The structure, assessment and credential
-            are live — the teaching content for this module is still in production.
-          </p>
-        </div>
+        {parts.map(([label, text], n) => (
+          <div key={label} className="card" style={{
+            padding: 20, marginBottom: 12,
+            borderLeft: n === 0 ? "3px solid " + c.accent : undefined,
+            background: label === "Common mistake" ? "var(--amber-bg)" : undefined,
+          }}>
+            <div className="faint" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em" }}>
+              {label.toUpperCase()}
+            </div>
+            <p style={{ fontSize: 15, lineHeight: 1.68, margin: "7px 0 0", color: "var(--text)" }}>{text}</p>
+          </div>
+        ))}
 
-        <div className="row" style={{ justifyContent: "space-between", marginTop: 22 }}>
-          <span className="muted" style={{ fontSize: 13 }}>
-            Lesson {lesson.lessonIdx + 1} of {m.lessons.length}{done ? " · completed" : ""}
-          </span>
+        {L.takeaway ? (
+          <div className="card" style={{ padding: 20, background: c.accent + "0F", borderColor: c.accent }}>
+            <p style={{ fontSize: 15.5, lineHeight: 1.6, margin: 0, fontWeight: 600 }}>{L.takeaway}</p>
+          </div>
+        ) : null}
+
+        <div className="row" style={{ justifyContent: "space-between", marginTop: 24, gap: 10, flexWrap: "wrap" }}>
+          <button className="btn btn-light" disabled={lesson === 0} onClick={() => setLesson(lesson - 1)}>
+            <ArrowLeft size={16} /> Previous
+          </button>
+          <span className="muted" style={{ fontSize: 13 }}>{done ? "Completed" : ""}</span>
           <button className="btn btn-primary" onClick={next}>
-            {last ? "Finish module" : "Mark complete and continue"} <ArrowRight size={16} />
+            {last ? "Mark complete and finish" : "Mark complete and continue"} <ArrowRight size={16} />
           </button>
         </div>
       </div>
@@ -316,36 +333,31 @@ export default function Academy({ role, onToast }) {
         ) : null}
 
         <div style={{ marginTop: 24 }}>
-          {c.modules.map((m, mi) => (
-            <div key={m.id} className="card" style={{ padding: 18, marginBottom: 12 }}>
-              <div className="row" style={{ justifyContent: "space-between" }}>
-                <div>
-                  <div className="faint" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em" }}>MODULE {m.n}</div>
-                  <div style={{ fontWeight: 700, fontSize: 16, marginTop: 3 }}>{m.title}</div>
-                  <div className="muted" style={{ fontSize: 13.5, marginTop: 4 }}>{m.outcome}</div>
-                </div>
-              </div>
-              <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
-                {m.lessons.map((l, li) => {
-                  const id = lessonId(m.id, li);
-                  const isDone = Boolean((p.lessons || {})[id]);
-                  return (
-                    <button key={id} onClick={() => { setOpen(c); setLesson({ moduleIdx: mi, lessonIdx: li }); }}
-                      className="row" style={{
-                        gap: 10, padding: "9px 11px", borderRadius: 9, cursor: "pointer", textAlign: "left",
-                        border: "1px solid var(--line)", background: isDone ? c.accent + "0D" : "var(--card)",
-                      }}>
-                      <span style={{
-                        width: 18, height: 18, borderRadius: 999, flexShrink: 0, display: "grid", placeItems: "center",
-                        background: isDone ? c.accent : "var(--line)",
-                      }}>{isDone ? <Check size={12} color="#fff" /> : null}</span>
-                      <span style={{ fontSize: 14 }}>{l}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+          <div className="faint" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", marginBottom: 10 }}>
+            CURRICULUM · {c.lessons.length} LESSONS
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+            {c.lessons.map((L, li) => {
+              const isDone = Boolean((p.lessons || {})[L.id]);
+              return (
+                <button key={L.id} onClick={() => setLesson(li)} className="row"
+                  style={{
+                    gap: 12, padding: "12px 14px", borderRadius: 10, cursor: "pointer", textAlign: "left",
+                    border: "1px solid " + (isDone ? c.accent + "55" : "var(--line)"),
+                    background: isDone ? c.accent + "0D" : "var(--card)",
+                  }}>
+                  <span style={{
+                    width: 20, height: 20, borderRadius: 999, flexShrink: 0, display: "grid", placeItems: "center",
+                    background: isDone ? c.accent : "var(--line)",
+                  }}>{isDone ? <Check size={13} color="#fff" /> : null}</span>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ fontSize: 14.5, fontWeight: 600, display: "block" }}>{L.title}</span>
+                    <span className="faint" style={{ fontSize: 12 }}>{L.id}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="card" style={{ padding: 20, marginTop: 8 }}>
@@ -388,7 +400,7 @@ export default function Academy({ role, onToast }) {
             <div className="disp" style={{ fontSize: 19, fontWeight: 700, marginTop: 10 }}>{c.name}</div>
             <div className="muted" style={{ fontSize: 13.5, marginTop: 5, lineHeight: 1.55 }}>{c.blurb}</div>
             <div className="faint" style={{ fontSize: 12.5, marginTop: 9 }}>
-              {c.modules.length} modules · {lessonsOf(c)} lessons · {c.questionsAsked}-question assessment
+              {lessonsOf(c)} lessons · {c.questionsAsked}-question assessment · {c.passMark}% to pass
             </div>
           </div>
           <Ring pct={pctOf(c)} accent={c.accent} />
