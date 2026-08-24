@@ -2875,9 +2875,13 @@ function ClinicianRegistration({ onToast }) {
     { k: "Country of residence", ok: !!f.country },
     { k: "Minimum " + minYears + " years' experience", ok: yearsOk },
     { k: "NHS or private experience", ok: !isUK || !!f.sector },
-    { k: "CV uploaded", ok: !!f.cv },
     { k: "Declaration", ok: f.declare },
   ];
+  // The CV is asked for but does NOT gate registration. It was required, and
+  // the result was that clinicians reached this screen and left: finding and
+  // uploading a CV on a phone, minutes after arriving from a LinkedIn post, is
+  // where people stop. It is shown as an optional extra below the checklist and
+  // requested again once they are in.
   const complete = checks.every((c) => c.ok);
   // The old version of this function set a local flag and told the clinician
   // they were registered. Nothing was written anywhere. The success screen is
@@ -2941,7 +2945,11 @@ function ClinicianRegistration({ onToast }) {
 
           <div style={{ height: 1, background: "var(--line)", margin: "22px 0" }} />
           <SectionHead title="3. Proof of experience" />
-          <label style={lab}>Upload your CV (PDF or Word)</label>
+          <label style={lab}>Upload your CV (PDF or Word) — optional</label>
+          <div className="muted" style={{ fontSize: 12.5, marginBottom: 8, lineHeight: 1.5 }}>
+            Not needed to register. You can add it now or later from your profile,
+            and hospitals see far more of you once it is there.
+          </div>
           <label className="btn btn-light" style={{ cursor: "pointer", justifyContent: "center", width: "100%" }}><FileText size={15} /> {cvBusy ? "Uploading..." : (f.cv ? "Replace CV" : "Choose file")}<input type="file" accept=".pdf,.doc,.docx" onChange={onCv} style={{ display: "none" }} /></label>
           {f.cv ? <div className="row" style={{ gap: 8, marginTop: 8, fontSize: 13 }}><Check size={15} color="#0E8C7E" /> {f.cv}{f.cvPath ? <span className="faint" style={{ fontSize: 11.5 }}>(stored securely)</span> : null}</div> : null}
           <label className="row" style={{ gap: 9, fontSize: 13, cursor: "pointer", marginTop: 18, alignItems: "flex-start", lineHeight: 1.45 }}><input type="checkbox" checked={f.declare} onChange={(e) => upd("declare", e.target.checked)} style={{ marginTop: 2 }} /> I confirm the information provided is accurate, my registration is current, and I consent to Qura holding this data in line with the privacy notice.</label>
