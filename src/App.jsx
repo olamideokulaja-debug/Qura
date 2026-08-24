@@ -295,6 +295,48 @@ function WorldGlobe({ size = 190, hero = false }) {
 }
 
 
+// Domains people mistype constantly. An account created against one of these
+// can never be confirmed, because the confirmation email goes nowhere, and the
+// person is then told their login is invalid. Caught at sign-up instead.
+const EMAIL_TYPOS = {
+  "gmial.com": "gmail.com", "gmai.com": "gmail.com", "gmaill.com": "gmail.com",
+  "gmail.co": "gmail.com", "gnail.com": "gmail.com", "gamil.com": "gmail.com",
+  "hotmial.com": "hotmail.com", "hotmai.com": "hotmail.com",
+  "outlok.com": "outlook.com", "outllook.com": "outlook.com",
+  "yaho.com": "yahoo.com", "yahooo.com": "yahoo.com",
+  "nhs.ne": "nhs.net", "nhs.uk": "nhs.net",
+};
+function emailTypo(addr) {
+  const at = String(addr || "").split("@");
+  if (at.length !== 2) return null;
+  const fix = EMAIL_TYPOS[at[1].trim().toLowerCase()];
+  return fix ? at[0] + "@" + fix : null;
+}
+
+// Supabase returns "Invalid login credentials" whether the password is wrong OR
+// the account simply has not been confirmed yet. Someone who has just created
+// an account and cannot get in is told their password is wrong, which sends
+// them to Forgot Password, which also does nothing. Say what is actually true.
+function authMessage(msg) {
+  const m = String(msg || "").toLowerCase();
+  if (m.includes("email not confirmed") || m.includes("not confirmed")) {
+    return "Your account exists but the email address has not been confirmed yet. Check your inbox, and your spam folder, for the confirmation link.";
+  }
+  if (m.includes("invalid login credentials")) {
+    return "That email and password did not match. If you have only just signed up, check your inbox for the confirmation link first, since an unconfirmed account cannot sign in.";
+  }
+  if (m.includes("user already registered") || m.includes("already been registered")) {
+    return "There is already an account with that email address. Try signing in instead, or use Forgot password.";
+  }
+  if (m.includes("rate limit") || m.includes("too many")) {
+    return "Too many attempts in a short time. Please wait a few minutes and try again.";
+  }
+  if (m.includes("password should be")) {
+    return "That password is too short. Please use at least 6 characters.";
+  }
+  return msg;
+}
+
 const MARKET_FLAG = {
   "All": "\u{1F30D}",
   "NHS UK": "\u{1F1EC}\u{1F1E7}",
@@ -4779,6 +4821,14 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
         // Store the name on the account so the first screen after sign-up can
         // greet the person by name rather than falling back to anything else.
         const fullName = (first.trim() + " " + last.trim()).replace(/\s+/g, " ");
+        // A mistyped domain means the confirmation email is undeliverable and
+        // the account is unusable from the moment it is created.
+        const fix = emailTypo(email);
+        if (fix) {
+          setMsg("Did you mean " + fix + "? Please check the email address before continuing.");
+          setBusy(false);
+          return;
+        }
         const { error } = await supabase.auth.signUp({
           email, password: pw,
           options: {
@@ -4788,10 +4838,17 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
             data: { full_name: fullName, first_name: first.trim(), last_name: last.trim() },
           },
         });
-        if (error) setMsg(error.message); else setMsg("Account created. If asked, check your email to confirm, then sign in.");
+        if (error) setMsg(authMessage(error.message));
+        else setMsg("Account created. Check your inbox for the confirmation link, then sign in. It can take a minute, and it sometimes lands in spam.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
-        if (error) setMsg(error.message);
+        if (error) {
+          setMsg(authMessage(error.message));
+          // Offer the resend only where it could plausibly help, so it does not
+          // appear every time someone fats-fingers a password.
+          const m = String(error.message || "").toLowerCase();
+          setCanResend(m.includes("confirm") || m.includes("invalid login credentials"));
+        } else setCanResend(false);
       }
     } catch (e) { setMsg(String(e)); }
     setBusy(false);
@@ -4848,8 +4905,43 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
         <div className="login-field"><Mail size={16} className="faint" /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@qurahealth.org" /></div>
         <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "16px 0 0" }}>Password</label>
         <div className="login-field"><ShieldCheck size={16} className="faint" /><input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="••••••••" onKeyDown={(e) => e.key === "Enter" && submit()} /></div>
-        {!up && <div className="row" style={{ justifyContent: "flex-end", marginTop: 12, fontSize: 12.5 }}><span style={{ color: "var(--teal)", fontWeight: 600, cursor: "pointer" }} onClick={soon}>Forgot password?</span></div>}
+        {/* This was wired to the coming-soon handler, so anyone locked out was
+            told to wait rather than being helped. reset-password.html already
+            exists and is what the founder approval emails use. */}
+        {!up && <div className="row" style={{ justifyContent: "flex-end", marginTop: 12, fontSize: 12.5 }}>
+          <span style={{ color: "var(--teal)", fontWeight: 600, cursor: "pointer" }} onClick={async () => {
+            const addr = String(email || "").trim();
+            if (!addr || !addr.includes("@")) { setMsg("Enter your email address above first, then press Forgot password."); return; }
+            const fix = emailTypo(addr);
+            if (fix) { setMsg("Did you mean " + fix + "?"); return; }
+            setBusy(true);
+            try {
+              await supabase.auth.resetPasswordForEmail(addr, {
+                redirectTo: window.location.origin + "/reset-password.html",
+              });
+            } catch (e) {}
+            setBusy(false);
+            // Deliberately does not say whether the account exists.
+            setMsg("If there is an account for that address, a reset link is on its way. It can take a minute, and it sometimes lands in spam.");
+          }}>Forgot password?</span>
+        </div>}
         {msg && <div className="muted" style={{ fontSize: 13, marginTop: 14, background: "var(--bg)", padding: "10px 12px", borderRadius: 10, lineHeight: 1.45 }}>{msg}</div>}
+        {canResend && !resent ? (
+          <div style={{ marginTop: 10, textAlign: "center" }}>
+            <button className="btn btn-light" style={{ fontSize: 13 }} onClick={async () => {
+              // Resends the confirmation link. Supabase does not reveal whether
+              // the address exists, so this is safe to offer to anyone.
+              try {
+                await supabase.auth.resend({
+                  type: "signup", email,
+                  options: { emailRedirectTo: window.location.origin + "/confirmed.html" },
+                });
+              } catch (e) {}
+              setResent(true);
+              setMsg("If that address has an unconfirmed account, a new confirmation link is on its way. It can take a minute, and it sometimes lands in spam.");
+            }}>Resend the confirmation email</button>
+          </div>
+        ) : null}
         <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 18, padding: 13 }} onClick={submit} disabled={busy}>{busy ? "Please wait..." : (up ? "Create account" : "Sign in")} <ArrowRight size={16} /></button>
         <div className="row" style={{ gap: 12, margin: "18px 0", color: "var(--faint)", fontSize: 12 }}><div style={{ flex: 1, height: 1, background: "var(--line)" }} /> or continue with <div style={{ flex: 1, height: 1, background: "var(--line)" }} /></div>
         <div className="row" style={{ gap: 10 }}><button className="btn btn-light" style={{ flex: 1, justifyContent: "center", background: "var(--bg)" }} onClick={soon}><ShieldCheck size={15} /> SSO</button><button className="btn btn-light" style={{ flex: 1, justifyContent: "center", background: "var(--bg)" }} onClick={soon}><Mail size={15} /> NHS Mail</button></div>
