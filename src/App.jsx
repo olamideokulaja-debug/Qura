@@ -4818,6 +4818,12 @@ function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSi
   const [first, setFirst] = useState("");
   const [last, setLast] = useState("");
   const [msg, setMsg] = useState("");
+  // Shown only after a sign-in failure that an unconfirmed account could
+  // explain. Declared here, in the component that renders it: an earlier
+  // version had the state in one component and the render in another, which
+  // crashed the whole sign-in screen.
+  const [canResend, setCanResend] = useState(false);
+  const [resent, setResent] = useState(false);
   const [busy, setBusy] = useState(false);
   const submit = async () => {
     if (!supabase) { setMsg("Accounts are not switched on yet."); return; }
