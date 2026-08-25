@@ -54,9 +54,9 @@ export function earnedRating(supplier) {
   const stars = Math.min(5, Math.round(raw * 2) / 2);   // half stars
   return {
     stars,
-    met: met.map((sig) => ({ label: sig.label, why: sig.why })),
+    met: met.map((sig) => ({ key: sig.key, label: sig.label, why: sig.why })),
     missing: SIGNALS.filter((sig) => !has(supplier, sig.key))
-      .map((sig) => ({ label: sig.label, why: sig.why, points: sig.points })),
+      .map((sig) => ({ key: sig.key, label: sig.label, why: sig.why, points: sig.points })),
   };
 }
 
