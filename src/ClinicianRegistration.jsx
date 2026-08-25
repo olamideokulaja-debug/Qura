@@ -10,8 +10,11 @@
 //     gate registration.
 
 import React, { useState, useEffect } from "react";
-import { Check, FileText, ShieldCheck } from "lucide-react";
+import { Check, FileText, ShieldCheck, Upload } from "lucide-react";
 import { PageHead, SectionHead } from "./components/ui.jsx";
+// The profession lists and registration bodies the form is built from.
+import { AHP_TYPES, DOCTOR_SPECIALTIES, NURSE_TYPES, PROTECTED_LIST,
+         REG_BODY, RESIDENCE_LIST, SCIENCE_TYPES } from "./data/clinical.js";
 import { supabase } from "./supabase.js";
 
 export default function ClinicianRegistration({ onToast }) {

@@ -5,7 +5,8 @@
 // since nothing else uses them.
 
 import React, { useState } from "react";
-import { ArrowRight, Mail, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Mail, ShieldCheck, Sparkles } from "lucide-react";
+import { APP_NAME } from "./constants.js";
 import { Wordmark } from "./components/ui.jsx";
 import { supabase } from "./supabase.js";
 import { seedActive } from "./launch.js";
