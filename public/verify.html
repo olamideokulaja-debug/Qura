@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Verify a Qura credential</title>
+<meta name="robots" content="noindex" />
+<style>
+  :root { --navy:#0A1A30; --teal:#0E8C7E; --line:#E7ECF4; --muted:#586683; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif;
+       background:#EBF0F7;color:var(--navy);display:grid;place-items:center;min-height:100vh;padding:24px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;max-width:560px;width:100%;
+        padding:32px;box-shadow:0 18px 50px rgba(10,26,48,.10)}
+  h1{font-size:21px;margin:0 0 6px}
+  p.sub{color:var(--muted);font-size:14.5px;margin:0 0 22px;line-height:1.55}
+  label{display:block;font-size:12.5px;font-weight:700;margin-bottom:6px}
+  input{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:10px;font-size:15px}
+  button{margin-top:12px;width:100%;padding:12px;border:none;border-radius:10px;background:var(--teal);
+         color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+  .row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+  .row span:first-child{color:var(--muted)}
+  .ok{background:#E6F5EE;color:#0B6B45;padding:12px 14px;border-radius:10px;font-weight:700;margin-bottom:14px}
+  .no{background:#FBEAEB;color:#A32027;padding:12px 14px;border-radius:10px;font-weight:700}
+  a{color:var(--teal)}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Verify a Qura credential</h1>
+  <!-- Deliberately public and account-free: someone holding a printed
+       certificate has no reason to have a Qura login. -->
+  <p class="sub">Enter the certificate ID, or scan the QR code on the certificate. No account needed.</p>
+  <label for="id">Certificate ID</label>
+  <input id="id" placeholder="QA-ESSE-A1B2-3C4D5" autocomplete="off" />
+  <button id="go">Check this credential</button>
+  <div id="out" style="margin-top:20px"></div>
+</div>
+<script>
+  const q = new URLSearchParams(location.search).get("id");
+  const el = (id) => document.getElementById(id);
+  if (q) el("id").value = q;
+
+  async function check() {
+    const id = el("id").value.trim();
+    if (!id) return;
+    el("out").innerHTML = '<p class="sub">Checking…</p>';
+    try {
+      const r = await fetch("/api/certificate?verify=" + encodeURIComponent(id));
+      const j = await r.json();
+      if (!j.valid) {
+        el("out").innerHTML = '<div class="no">' + (j.message || "Not a recognised credential.") + "</div>";
+        return;
+      }
+      const d = j.issuedAt ? new Date(j.issuedAt).toLocaleDateString("en-GB",
+        { day: "numeric", month: "long", year: "numeric" }) : "";
+      el("out").innerHTML =
+        '<div class="ok">✓ Genuine Qura Academy credential</div>' +
+        '<div class="row"><span>Name</span><b>' + j.name + "</b></div>" +
+        '<div class="row"><span>Course</span><b>' + j.course + "</b></div>" +
+        '<div class="row"><span>Issued</span><b>' + d + "</b></div>" +
+        '<div class="row"><span>Certificate ID</span><b>' + j.credentialId + "</b></div>" +
+        (j.score != null ? '<div class="row"><span>Assessment score</span><b>' + j.score + "%</b></div>" : "") +
+        '<p class="sub" style="margin-top:16px">Issued by Qura. <a href="/">qurahealth.org</a></p>';
+    } catch (e) {
+      el("out").innerHTML = '<div class="no">Could not reach Qura. Please try again.</div>';
+    }
+  }
+  el("go").addEventListener("click", check);
+  el("id").addEventListener("keydown", (e) => { if (e.key === "Enter") check(); });
+  if (q) check();
+</script>
+</body>
+</html>

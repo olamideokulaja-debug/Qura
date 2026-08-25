@@ -12,6 +12,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { GraduationCap, Check, Lock, ArrowRight, ArrowLeft, Award, Share2, RefreshCw, AlertCircle } from "lucide-react";
 import { ACADEMY_COURSES } from "./data/academy.js";
 import { supabase } from "./supabase.js";
+import Certificate from "./Certificate.jsx";
 
 const authHeaders = async (json) => {
   let t = "";
@@ -53,6 +54,8 @@ export default function Academy({ role, onToast }) {
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  // The issued certificate, fetched only once a course is passed.
+  const [cert, setCert] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -110,6 +113,12 @@ export default function Academy({ role, onToast }) {
       setResult({ ...j, course: quiz.course });
       setQuiz(null);
       load();
+      if (j.passed) {
+        try {
+          const cr = await fetch("/api/certificate?course=" + quiz.course.id, { headers: await authHeaders(false) });
+          if (cr.ok) setCert(await cr.json());
+        } catch (e) {}
+      }
     } catch (e) { setErr("Could not submit. Your answers are still on screen."); }
     setBusy(false);
   };
@@ -140,13 +149,15 @@ export default function Academy({ role, onToast }) {
                 <div className="faint" style={{ fontSize: 11.5, letterSpacing: ".08em", fontWeight: 700 }}>CREDENTIAL ID</div>
                 <div style={{ fontSize: 17, fontWeight: 700, marginTop: 4, letterSpacing: ".04em" }}>{result.credentialId}</div>
               </div>
-              <div className="row" style={{ gap: 10, justifyContent: "center", marginTop: 22, flexWrap: "wrap" }}>
-                <a className="btn lift" style={{ background: c.accent, color: "#fff", fontWeight: 700 }}
-                  target="_blank" rel="noreferrer"
-                  href={"https://www.linkedin.com/sharing/share-offsite/?url=" + encodeURIComponent("https://www.qurahealth.org/academy")}>
-                  <Share2 size={16} /> Share on LinkedIn
-                </a>
-                <button className="btn btn-light" onClick={() => { setResult(null); setOpen(null); }}>Back to Academy</button>
+              {cert ? (
+                <div style={{ marginTop: 26 }}>
+                  <Certificate cert={cert} />
+                </div>
+              ) : (
+                <div className="muted" style={{ fontSize: 13, marginTop: 18 }}>Preparing your certificate...</div>
+              )}
+              <div className="row" style={{ gap: 10, justifyContent: "center", marginTop: 18 }}>
+                <button className="btn btn-light" onClick={() => { setResult(null); setCert(null); setOpen(null); }}>Back to Academy</button>
               </div>
             </>
           ) : (
@@ -322,12 +333,20 @@ export default function Academy({ role, onToast }) {
 
         {p.passedAt ? (
           <div className="card" style={{ padding: 16, marginTop: 20, borderColor: c.accent }}>
-            <div className="row" style={{ gap: 10 }}>
-              <Award size={20} color={c.accent} />
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>Credential earned</div>
-                <div className="muted" style={{ fontSize: 12.5 }}>{p.credentialId}</div>
+            <div className="row" style={{ gap: 10, justifyContent: "space-between", flexWrap: "wrap" }}>
+              <div className="row" style={{ gap: 10 }}>
+                <Award size={20} color={c.accent} />
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>Credential earned</div>
+                  <div className="muted" style={{ fontSize: 12.5 }}>{p.credentialId}</div>
+                </div>
               </div>
+              <button className="btn btn-light" style={{ fontSize: 13 }} onClick={async () => {
+                try {
+                  const r = await fetch("/api/certificate?course=" + c.id, { headers: await authHeaders(false) });
+                  if (r.ok) { setCert(await r.json()); setResult({ passed: true, course: c, score: p.lastScore, correct: 0, of: 0, passMark: c.passMark, credentialId: p.credentialId, review: [] }); }
+                } catch (e) {}
+              }}>View certificate</button>
             </div>
           </div>
         ) : null}
