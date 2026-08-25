@@ -137,7 +137,7 @@ export default function SupplierRating({ supplier, canRate = false, isFounder = 
               </div>
               {isFounder ? (
                 <button className="btn btn-ghost" style={{ fontSize: 11.5, marginLeft: "auto" }} disabled={busy}
-                  onClick={() => setSignal(Object.keys(signals).find(() => false) || m.key, false)}>Remove</button>
+                  onClick={() => setSignal(m.key, false)}>Remove</button>
               ) : null}
             </div>
           ))}
@@ -206,7 +206,7 @@ export default function SupplierRating({ supplier, canRate = false, isFounder = 
                   background: signals[k] ? "var(--cyan-soft)" : "#EEF1F7",
                   color: signals[k] ? "var(--teal)" : "#5A6783",
                 }}>
-                {signals[k] ? "✓ " : ""}{k}
+                {signals[k] ? "\u2713 " : ""}{k}
               </button>
             ))}
           </div>
