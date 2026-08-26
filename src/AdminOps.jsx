@@ -8,6 +8,10 @@
 
 import React, { useState, useEffect } from "react";
 import { SectionHead } from "./components/ui.jsx";
+// Setting a supplier's signals is a founder job, so the same panel a hospital
+// sees is reused here with the founder controls switched on.
+import SupplierRating from "./SupplierRating.jsx";
+import { AGENCIES } from "./data/marketplace.js";
 import { supabase } from "./supabase.js";
 
 export default function AdminOps() {
@@ -109,7 +113,7 @@ export default function AdminOps() {
   return (
     <div style={{ marginBottom: 28 }}>
       <div className="row" style={{ gap: 8, marginBottom: 14 }}>
-        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
+        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["suppliers", "Supplier ratings"], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
           <button key={k} className={"btn " + (tab === k ? "btn-primary" : "btn-light")} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -140,6 +144,26 @@ export default function AdminOps() {
               </div>
             </div>
           ))}
+        </div>
+      ) : tab === "suppliers" ? (
+        <div>
+          <div className="muted" style={{ fontSize: 13, marginBottom: 12, lineHeight: 1.55, maxWidth: 640 }}>
+            A supplier's rating is earned from facts you have confirmed, not typed in.
+            Set only what you have actually checked: each signal is shown to hospitals
+            with the claim it represents. Provider ratings start counting once three
+            organisations have rated a supplier.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {AGENCIES.map((a) => (
+              <div key={a.name}>
+                <div className="row" style={{ gap: 9, marginBottom: 6, flexWrap: "wrap" }}>
+                  <span style={{ fontWeight: 700, fontSize: 15 }}>{a.name}</span>
+                  <span className="faint" style={{ fontSize: 12.5 }}>{a.spec}{a.loc ? " · " + a.loc : ""}</span>
+                </div>
+                <SupplierRating supplier={a} isFounder />
+              </div>
+            ))}
+          </div>
         </div>
       ) : tab === "clinicians" ? (
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
