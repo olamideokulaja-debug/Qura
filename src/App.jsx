@@ -336,6 +336,9 @@ import Academy from "./Academy.jsx";
 // Split out of this file: it had grown past 550 KB, which made every change
 // expensive to review and impossible to commit through tooling.
 import AdminOps from "./AdminOps.jsx";
+// Real matched demand, replacing a list of agency staffing contracts that
+// were shown to clinicians as if they were roles.
+import MyOpportunities from "./MyOpportunities.jsx";
 // The rating a hospital sees. Replaces the invented numbers that used to sit
 // on the supplier records: every point now traces to a checkable fact.
 // A supplier's own standing. The rating belongs here, not on the private
@@ -1860,12 +1863,7 @@ const ClinicianProfile = ({ name = "Your account", profile = {} }) => {
   </div>
   );
 };
-const MyOpportunities = () => (
-  <div>
-    <PageHead title="Opportunities for me" sub="Roles matched to your specialty, location and availability" />
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{OPPS.filter((o) => ["NHS UK", "Private UK"].includes(o.market)).map((o, i) => (<div key={i} className="card row lift" style={{ padding: 18, justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><div className="row" style={{ gap: 9 }}><span style={{ fontWeight: 600, fontSize: 15 }}>{o.role}</span><span className="chip chip-cyan"><Sparkles size={11} /> {o.score}% fit</span></div><div className="muted" style={{ fontSize: 13, marginTop: 3 }}>{o.org} · {o.loc}</div></div><div className="row" style={{ gap: 12 }}><span className="chip chip-low">{o.close} left</span><button className="btn btn-primary">Express interest</button></div></div>))}</div>
-  </div>
-);
+
 // The six people here are invented. Unlabelled and permanent they read as a
 // real network; labelled and expiring they read as a sample.
 const NetworkScreen = () => (
