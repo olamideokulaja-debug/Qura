@@ -22,6 +22,9 @@ export default function AdminOps() {
   const [clinicians, setClinicians] = useState(null);
   // Evidence suppliers have submitted, waiting on a founder.
   const [claims, setClaims] = useState(null);
+  // Accounts asking to be linked to an organisation. Approving one is how a
+  // supplier gets to see and improve their own rating at all.
+  const [orgClaims, setOrgClaims] = useState(null);
   const [busy, setBusy] = useState("");
   const [nc, setNc] = useState({ name: "", org: "", role: "", email: "", phone: "" });
   const [ncMsg, setNcMsg] = useState("");
@@ -34,19 +37,21 @@ export default function AdminOps() {
     try {
       const t = await token();
       const h = { authorization: "Bearer " + t };
-      const [qi, qr, qw, qc, qcl] = await Promise.all([
+      const [qi, qr, qw, qc, qcl, qo] = await Promise.all([
         fetch("/api/admin?view=intros", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=removals", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=waitlist", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=clinicians", { headers: h }).then((r) => r.json()),
         fetch("/api/supplier-rating?claims=1", { headers: h }).then((r) => r.json()),
+        fetch("/api/supplier-org?pending=1", { headers: h }).then((r) => r.json()),
       ]);
       setQueue(qi.queue || []);
       setRemovals(qr.removals || []);
       setWaitlist(qw.waitlist || []);
       setClinicians(qc.clinicians || []);
       setClaims(qcl.claims || []);
-    } catch (e) { setQueue([]); setRemovals([]); setWaitlist([]); setClinicians([]); setClaims([]); }
+      setOrgClaims(qo.claims || []);
+    } catch (e) { setQueue([]); setRemovals([]); setWaitlist([]); setClinicians([]); setClaims([]); setOrgClaims([]); }
   };
   useEffect(() => { load(); }, []);
 
@@ -56,6 +61,21 @@ export default function AdminOps() {
   // Approving evidence is two judgements at once: that this account really
   // represents the supplier, and that the evidence holds. Qura has no
   // account-to-organisation link yet, so the founder is the link.
+  // Approving an organisation claim is the moment Qura learns that an account
+  // represents a company. Everything about supplier standing hangs off it, and
+  // nothing else verifies it, so this is the check.
+  const decideOrg = async (id, decision) => {
+    setBusy("og" + id);
+    try {
+      const t = await token();
+      await fetch("/api/supplier-org", { method: "POST",
+        headers: { authorization: "Bearer " + t, "content-type": "application/json" },
+        body: JSON.stringify({ claimId: id, decision }) });
+      await load();
+    } catch (e) {}
+    setBusy("");
+  };
+
   const decideClaim = async (id, decision) => {
     setBusy("cm" + id);
     try {
@@ -132,7 +152,7 @@ export default function AdminOps() {
   return (
     <div style={{ marginBottom: 28 }}>
       <div className="row" style={{ gap: 8, marginBottom: 14 }}>
-        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["suppliers", "Supplier ratings" + (claims && claims.length ? " (" + claims.length + ")" : "")], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
+        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["orgs", "Organisation claims" + (orgClaims && orgClaims.length ? " (" + orgClaims.length + ")" : "")], ["suppliers", "Supplier ratings" + (claims && claims.length ? " (" + claims.length + ")" : "")], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
           <button key={k} className={"btn " + (tab === k ? "btn-primary" : "btn-light")} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -163,6 +183,48 @@ export default function AdminOps() {
               </div>
             </div>
           ))}
+        </div>
+      ) : tab === "orgs" ? (
+        <div>
+          <div className="muted" style={{ fontSize: 13, marginBottom: 14, lineHeight: 1.55, maxWidth: 660 }}>
+            Someone is asking to be linked to an organisation on Qura. Approving means
+            you are satisfied this person represents that company. It is the only check
+            there is: once linked, they can see that organisation's rating and submit
+            evidence against it.
+            <br /><br />
+            <b>Look at the email address first.</b> A named agency claimed from a personal
+            address deserves a question before you approve it.
+          </div>
+          {orgClaims === null ? <div className="muted">Loading...</div>
+          : !orgClaims.length ? <div className="muted">No organisation claims waiting.</div>
+          : (
+            <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+              {orgClaims.map((c) => (
+                <div key={c.id} style={{ padding: 16, borderBottom: "1px solid var(--line)" }}>
+                  <div style={{ fontWeight: 700, fontSize: 15.5 }}>{c.org}</div>
+                  <div style={{ fontSize: 13.5, marginTop: 4 }}>
+                    <b>{c.email}</b>{c.role ? " · " + c.role : ""}
+                  </div>
+                  <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+                    Requested {String(c.at).slice(0, 10)}
+                  </div>
+                  {c.note ? (
+                    <div style={{ fontSize: 13.5, marginTop: 9, padding: "10px 12px", borderRadius: 10, background: "var(--bg)", whiteSpace: "pre-wrap" }}>
+                      {c.note}
+                    </div>
+                  ) : null}
+                  <div className="row" style={{ gap: 8, marginTop: 11 }}>
+                    <button className="btn btn-primary" style={{ fontSize: 13 }} disabled={busy === "og" + c.id}
+                      onClick={() => decideOrg(c.id, "approve")}>
+                      {busy === "og" + c.id ? "Saving..." : "Approve the link"}
+                    </button>
+                    <button className="btn btn-light" style={{ fontSize: 13 }} disabled={busy === "og" + c.id}
+                      onClick={() => decideOrg(c.id, "decline")}>Decline</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       ) : tab === "suppliers" ? (
         <div>
