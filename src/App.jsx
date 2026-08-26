@@ -338,7 +338,9 @@ import Academy from "./Academy.jsx";
 import AdminOps from "./AdminOps.jsx";
 // The rating a hospital sees. Replaces the invented numbers that used to sit
 // on the supplier records: every point now traces to a checkable fact.
-import SupplierRating from "./SupplierRating.jsx";
+// A supplier's own standing. The rating belongs here, not on the private
+// clinics directory, which lists customers rather than suppliers.
+import SupplierStanding from "./SupplierStanding.jsx";
 import AuthPanel from "./AuthPanel.jsx";
 import ClinicianRegistration from "./ClinicianRegistration.jsx";
 import { CLIN_TAGLINES, CLIN_UNIVERSAL, CLIN_TABS, CLIN_COUNTRIES, ClinicianSection } from "./pages/clinician.jsx";
@@ -1606,7 +1608,7 @@ function SuppliersScreen({ onBook, onToast, role }) {
           <div className="muted" style={{ fontSize: 12.5 }}>{s.type} · {s.loc}</div>
           <p style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.55, margin: "10px 0 0" }}>{s.tag}</p>
           <div className="row" style={{ gap: 6, flexWrap: "wrap", marginTop: 12 }}>{s.cats.slice(0, 3).map((c, i) => (<span key={i} className="chip chip-grey" style={{ fontSize: 11 }}>{c}</span>))}</div>
-          {(() => { const pf = dynamicPerf(s.id); return pf.isNew ? null : (<div className="row" style={{ gap: 6, flexWrap: "wrap", marginTop: 12 }}>{pf.winRate != null && <span className="chip" style={{ background: "var(--ok-bg)", color: "#0C7A47", fontSize: 11 }}>{pf.winRate}% win rate</span>}{pf.avgFill != null && <span className="chip chip-grey" style={{ fontSize: 11 }}>{pf.avgFill}d avg fill</span>}{pf.freshWins > 0 && <span className="chip chip-cyan" style={{ fontSize: 11 }}>+{pf.freshWins} recent</span>}</div>); })()}<div className="row" style={{ justifyContent: "space-between", marginTop: 14, alignItems: "center" }}><SupplierRating supplier={s} compact /><span className="row faint" style={{ gap: 4, fontSize: 12.5 }}>{s.kit.length} products <ChevronRight size={14} /></span></div>
+          {(() => { const pf = dynamicPerf(s.id); return pf.isNew ? null : (<div className="row" style={{ gap: 6, flexWrap: "wrap", marginTop: 12 }}>{pf.winRate != null && <span className="chip" style={{ background: "var(--ok-bg)", color: "#0C7A47", fontSize: 11 }}>{pf.winRate}% win rate</span>}{pf.avgFill != null && <span className="chip chip-grey" style={{ fontSize: 11 }}>{pf.avgFill}d avg fill</span>}{pf.freshWins > 0 && <span className="chip chip-cyan" style={{ fontSize: 11 }}>+{pf.freshWins} recent</span>}</div>); })()}<div className="row" style={{ justifyContent: "space-between", marginTop: 14, alignItems: "center" }}><span className="row num" style={{ gap: 5, fontSize: 13, fontWeight: 700 }}><Star size={13} color="#F59E0B" fill="#F59E0B" /> {s.rating != null ? s.rating : "New"}</span><span className="row faint" style={{ gap: 4, fontSize: 12.5 }}>{s.kit.length} products <ChevronRight size={14} /></span></div>
         </div>
       ))}</div>
       {sel && (<><div onClick={() => setOpenId(null)} style={{ position: "fixed", inset: 0, background: "rgba(10,23,51,.4)", zIndex: 60 }} /><div className="fade" style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "min(460px, 94vw)", background: "#fff", zIndex: 61, boxShadow: "var(--sh-lg)", display: "flex", flexDirection: "column" }}>
@@ -1617,15 +1619,7 @@ function SuppliersScreen({ onBook, onToast, role }) {
         </div>
         <div style={{ padding: 22, flex: 1, overflowY: "auto" }}>
           <p style={{ fontSize: 14, lineHeight: 1.6, marginTop: 0 }}>{sel.tag}</p>
-          {/* The full rating, with its basis and the signals behind it. A
-              provider can rate a supplier they have used; a founder can set
-              the objective signals from the same panel. */}
-          <div style={{ marginBottom: 18 }}>
-            <SupplierRating supplier={sel}
-              canRate={["hospital", "gp", "care"].includes(role)}
-              isFounder={role === "operator"}
-              canClaim={role === "agency"} />
-          </div>
+          
           {pf && !pf.isNew && (<><SectionHead title="Performance" /><div className="row" style={{ gap: 10 }}>{[["Win rate", pf.winRate != null ? pf.winRate + "%" : "—"], ["Avg time to fill", pf.avgFill != null ? pf.avgFill + "d" : "—"], ["Won", pf.wins]].map(([l, v]) => (<div key={l} className="card" style={{ padding: 12, flex: 1, textAlign: "center", background: "var(--bg)", border: "none" }}><div className="num disp" style={{ fontSize: 18, fontWeight: 700 }}>{v}</div><div className="muted" style={{ fontSize: 11, marginTop: 2 }}>{l}</div></div>))}</div><div style={{ height: 8, borderRadius: 6, background: "#EDF1F8", margin: "12px 0 16px", overflow: "hidden" }}><div style={{ height: "100%", width: (pf.winRate || 0) + "%", background: "linear-gradient(90deg,var(--teal),var(--cyan))", borderRadius: 6 }} /></div></>)}
           {pf && pf.isNew && (<div className="card" style={{ padding: 14, background: "var(--bg)", border: "none", marginBottom: 16 }}><div className="muted" style={{ fontSize: 12.5 }}>No performance history yet. Win rate and time to fill will appear as you close opportunities.</div></div>)}
           <SectionHead title="Equipment & services" />
@@ -4083,7 +4077,7 @@ const NAVS = {
     { k: "register", l: "Register a company", i: ClipboardList }, { k: "whyqura", l: "Why Qura wins", i: Trophy }, { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "staffing", l: "Site staffing", i: Building2 }, { k: "mobileunits", l: "Mobile units", i: Truck }, { k: "brand", l: "Brand channels", i: Sparkles }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
   agency: [
-    { k: "howto", l: "How to use Qura", i: GraduationCap }, { k: "academy", l: "Qura Academy", i: Award }, { k: "dashboard", l: "Dashboard", i: LayoutDashboard }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Private clinics", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Enquiry inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target }, { k: "savedOpps", l: "Saved", i: Star }, { k: "talentpool", l: "Talent pipeline", i: Users },
+    { k: "howto", l: "How to use Qura", i: GraduationCap }, { k: "academy", l: "Qura Academy", i: Award }, { k: "dashboard", l: "Dashboard", i: LayoutDashboard }, { k: "standing", l: "Your Qura standing", i: ShieldCheck }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Private clinics", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Enquiry inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target }, { k: "savedOpps", l: "Saved", i: Star }, { k: "talentpool", l: "Talent pipeline", i: Users },
     { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "execs", l: "Executive network", i: Briefcase }, { k: "aibot", l: "AI assistant", i: Sparkles }, { k: "whyswitch", l: "Why switch", i: Award }, { k: "marketmap", l: "Market map", i: Radar }, { k: "outreach", l: "Outreach", i: Send },
     { k: "proposals", l: "Proposals", i: FileText }, { k: "meetings", l: "Meetings", i: Calendar },
     { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "weekly", l: "Weekly report", i: FileText }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "accommodation", l: "Accommodation", i: Home }, { k: "news", l: "Industry news", i: Rss },
@@ -4258,6 +4252,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "ops": return <OwnerOps isOwner={isOwner} />;
       case "news": return <IndustryNews />;
       case "feed": return <LiveFeedScreen role={role} displayName={displayName} go={go} market={market} onMarket={setMarket} onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
+      case "standing": return <SupplierStanding />;
       case "suppliers": return <SuppliersScreen role={role} onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "leaderboard": return <Leaderboard go={go} market={market} />;
       case "inbox": return <SupplierInbox go={go} market={market} onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
