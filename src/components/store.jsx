@@ -3,9 +3,13 @@ import { Play } from "lucide-react";
 
 // Extracted from App.jsx on 27 July 2026. Behaviour unchanged.
 
+// Empty while a listing is not live. The badge then renders greyed and is not
+// clickable, so the site never points anyone at a dead store page.
 export const APPSTORE_URL = "";
 
-export const PLAYSTORE_URL = "";
+// Live on Google Play from 25 August 2026. Verified against the listing:
+// "Qura: Healthcare Careers".
+export const PLAYSTORE_URL = "https://play.google.com/store/apps/details?id=org.qurahealth.app";
 
 export const APP_LAUNCH = "22 September 2026";
 
@@ -21,7 +25,14 @@ export function StoreBadge({ href, children }) {
 }
 
 export function StoreBadges({ compact }) {
-  const live = !!APPSTORE_URL || !!PLAYSTORE_URL;
+  // Android is live, iOS is not. Saying "Launching 22 September" under a badge
+  // people can already download from would be wrong, so the note now describes
+  // only what is still to come.
+  const androidLive = !!PLAYSTORE_URL;
+  const iosLive = !!APPSTORE_URL;
+  const note = androidLive && !iosLive ? "Available now on Android. iOS to follow."
+    : !androidLive && !iosLive ? "Launching " + APP_LAUNCH
+    : "";
   return (
     <div>
     <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: compact ? "flex-start" : "center" }}>
@@ -34,8 +45,8 @@ export function StoreBadges({ compact }) {
           <div style={{ textAlign: "left" }}><div style={{ fontSize: 9, opacity: .85 }}>GET IT ON</div><div style={{ fontSize: 16, fontWeight: 700, lineHeight: 1 }}>Google Play</div></div>
       </StoreBadge>
     </div>
-    {!live ? (
-      <div style={{ fontSize: 12, opacity: .8, marginTop: 10, textAlign: compact ? "left" : "center" }}>Launching {APP_LAUNCH}</div>
+    {note ? (
+      <div style={{ fontSize: 12, opacity: .8, marginTop: 10, textAlign: compact ? "left" : "center" }}>{note}</div>
     ) : null}
     </div>
   );
