@@ -11,6 +11,7 @@ import { SectionHead } from "./components/ui.jsx";
 // Setting a supplier's signals is a founder job, so the same panel a hospital
 // sees is reused here with the founder controls switched on.
 import SupplierRating from "./SupplierRating.jsx";
+import { FRAMEWORK_STATUS, frameworkLabel } from "./data/frameworks.js";
 import { AGENCIES } from "./data/marketplace.js";
 import { supabase } from "./supabase.js";
 
@@ -25,6 +26,8 @@ export default function AdminOps() {
   // Accounts asking to be linked to an organisation. Approving one is how a
   // supplier gets to see and improve their own rating at all.
   const [orgClaims, setOrgClaims] = useState(null);
+  // Framework positions with a certificate attached, awaiting a check.
+  const [fwEntries, setFwEntries] = useState(null);
   const [busy, setBusy] = useState("");
   const [nc, setNc] = useState({ name: "", org: "", role: "", email: "", phone: "" });
   const [ncMsg, setNcMsg] = useState("");
@@ -37,13 +40,14 @@ export default function AdminOps() {
     try {
       const t = await token();
       const h = { authorization: "Bearer " + t };
-      const [qi, qr, qw, qc, qcl, qo] = await Promise.all([
+      const [qi, qr, qw, qc, qcl, qo, qf] = await Promise.all([
         fetch("/api/admin?view=intros", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=removals", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=waitlist", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=clinicians", { headers: h }).then((r) => r.json()),
         fetch("/api/supplier-rating?claims=1", { headers: h }).then((r) => r.json()),
         fetch("/api/supplier-org?pending=1", { headers: h }).then((r) => r.json()),
+        fetch("/api/frameworks?pending=1", { headers: h }).then((r) => r.json()),
       ]);
       setQueue(qi.queue || []);
       setRemovals(qr.removals || []);
@@ -51,7 +55,8 @@ export default function AdminOps() {
       setClinicians(qc.clinicians || []);
       setClaims(qcl.claims || []);
       setOrgClaims(qo.claims || []);
-    } catch (e) { setQueue([]); setRemovals([]); setWaitlist([]); setClinicians([]); setClaims([]); setOrgClaims([]); }
+      setFwEntries(qf.entries || []);
+    } catch (e) { setQueue([]); setRemovals([]); setWaitlist([]); setClinicians([]); setClaims([]); setOrgClaims([]); setFwEntries([]); }
   };
   useEffect(() => { load(); }, []);
 
@@ -64,6 +69,31 @@ export default function AdminOps() {
   // Approving an organisation claim is the moment Qura learns that an account
   // represents a company. Everything about supplier standing hangs off it, and
   // nothing else verifies it, so this is the check.
+  // Opens the certificate through a link that expires in five minutes, so a
+  // framework document never ends up on a URL anyone can keep.
+  const openCert = async (entryId) => {
+    setBusy("fd" + entryId);
+    try {
+      const t = await token();
+      const r = await fetch("/api/frameworks?download=" + encodeURIComponent(entryId), { headers: { authorization: "Bearer " + t } });
+      const j = await r.json();
+      if (r.ok && j.url) window.open(j.url, "_blank", "noopener");
+    } catch (e) {}
+    setBusy("");
+  };
+
+  const decideFramework = async (entryId, decision, note) => {
+    setBusy("fw" + entryId);
+    try {
+      const t = await token();
+      await fetch("/api/frameworks", { method: "POST",
+        headers: { authorization: "Bearer " + t, "content-type": "application/json" },
+        body: JSON.stringify({ entryId, decision, note }) });
+      await load();
+    } catch (e) {}
+    setBusy("");
+  };
+
   const decideOrg = async (id, decision) => {
     setBusy("og" + id);
     try {
@@ -152,7 +182,7 @@ export default function AdminOps() {
   return (
     <div style={{ marginBottom: 28 }}>
       <div className="row" style={{ gap: 8, marginBottom: 14 }}>
-        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["orgs", "Organisation claims" + (orgClaims && orgClaims.length ? " (" + orgClaims.length + ")" : "")], ["suppliers", "Supplier ratings" + (claims && claims.length ? " (" + claims.length + ")" : "")], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
+        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["orgs", "Organisation claims" + (orgClaims && orgClaims.length ? " (" + orgClaims.length + ")" : "")], ["frameworks", "Frameworks" + (fwEntries && fwEntries.length ? " (" + fwEntries.length + ")" : "")], ["suppliers", "Supplier ratings" + (claims && claims.length ? " (" + claims.length + ")" : "")], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
           <button key={k} className={"btn " + (tab === k ? "btn-primary" : "btn-light")} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -223,6 +253,56 @@ export default function AdminOps() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      ) : tab === "frameworks" ? (
+        <div>
+          <div className="muted" style={{ fontSize: 13, marginBottom: 14, lineHeight: 1.55, maxWidth: 660 }}>
+            Framework positions agencies have declared. Open the certificate, check it
+            says what they say it says, then verify. Only Awarded and Subcontractor move
+            a rating; the rest are recorded but count for nothing.
+          </div>
+          {fwEntries === null ? <div className="muted">Loading...</div>
+          : !fwEntries.length ? <div className="muted">Nothing waiting.</div>
+          : (
+            <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+              {fwEntries.map((e) => {
+                const st = FRAMEWORK_STATUS.find((s2) => s2.id === e.status);
+                return (
+                  <div key={e.id} style={{ padding: 16, borderBottom: "1px solid var(--line)" }}>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>{frameworkLabel(e)}</div>
+                    <div className="muted" style={{ fontSize: 12.5, marginTop: 3 }}>
+                      {e.orgSlug} · {[st && st.label, e.reference,
+                        e.lots && e.lots.length ? "Lots: " + e.lots.join(", ") : ""].filter(Boolean).join(" · ")}
+                    </div>
+                    <div className="faint" style={{ fontSize: 12, marginTop: 3 }}>
+                      Added by {e.addedBy}
+                      {e.awardedOn ? " · awarded " + e.awardedOn : ""}
+                      {e.expiresOn ? " · expires " + e.expiresOn : ""}
+                    </div>
+                    <div className="row" style={{ gap: 8, marginTop: 11, flexWrap: "wrap" }}>
+                      {e.file ? (
+                        <button className="btn btn-light" style={{ fontSize: 13 }} disabled={busy === "fd" + e.id}
+                          onClick={() => openCert(e.id)}>
+                          {busy === "fd" + e.id ? "Opening..." : "Open certificate"}
+                        </button>
+                      ) : (
+                        <span className="chip" style={{ fontSize: 11 }}>No certificate attached</span>
+                      )}
+                      <button className="btn btn-primary" style={{ fontSize: 13 }}
+                        disabled={!e.file || busy === "fw" + e.id}
+                        title={e.file ? "" : "Nothing to check yet"}
+                        onClick={() => decideFramework(e.id, "verify")}>Verify</button>
+                      <button className="btn btn-light" style={{ fontSize: 13 }} disabled={busy === "fw" + e.id}
+                        onClick={() => {
+                          const why = window.prompt("Why is this not accepted? The agency sees this.");
+                          if (why) decideFramework(e.id, "reject", why);
+                        }}>Not accepted</button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

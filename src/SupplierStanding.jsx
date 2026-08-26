@@ -14,6 +14,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Building2, ShieldCheck, Clock } from "lucide-react";
 import { PageHead } from "./components/ui.jsx";
 import SupplierRating from "./SupplierRating.jsx";
+import Frameworks from "./Frameworks.jsx";
 import { supabase } from "./supabase.js";
 
 const authHeaders = async (json) => {
@@ -82,6 +83,12 @@ export default function SupplierStanding() {
         {/* canClaim turns on the evidence controls: a supplier can ask for a
             signal, never grant themselves one. */}
         <SupplierRating supplier={{ name: link.org }} canClaim />
+
+        {/* Frameworks sit under the rating because they are the main thing that
+            moves it, and the one an agency can act on today. */}
+        <div style={{ marginTop: 18 }}>
+          <Frameworks />
+        </div>
 
         <div className="muted" style={{ fontSize: 12.5, marginTop: 14, lineHeight: 1.6, maxWidth: 620 }}>
           Press <b>Why this rating</b> to see every signal, including the ones you have

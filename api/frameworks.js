@@ -21,6 +21,12 @@ import { getUser, kvGet, kvSet } from "./_auth.js";
 // carries company detail an agency has handed over in confidence, and there is
 // no version of this where it sits on a public URL.
 
+// Which positions actually count as an award. Kept here rather than imported
+// from src/, because an API function crossing into the client bundle is a
+// bundling risk for the sake of five words. It must stay in step with
+// FRAMEWORK_STATUS in src/data/frameworks.js.
+const COUNTING_STATUS = new Set(["awarded", "subcontractor"]);
+
 const BUCKET = "framework-evidence";
 const KEY = (slug) => "frameworks_" + slug;
 const LINK_KEY = "supplier_org";
@@ -122,6 +128,22 @@ export default async function handler(req, res) {
       if (body.decision === "verify") { e.verifiedAt = now; e.verifiedBy = user.email; e.rejectedAt = null; }
       else { e.rejectedAt = now; e.rejectedBy = user.email; e.verifiedAt = null; e.rejectReason = clean(body.note, 300); }
       await kvSet("shared", KEY(s), list);
+
+      // Keep the rating in step. "Framework approved" is true when at least one
+      // verified entry has a status that counts, and false when none does — so
+      // withdrawing the last one takes the signal away too, rather than leaving
+      // a hospital reading a claim that expired.
+      try {
+        const counts = list.some((x) => x.verifiedAt && COUNTING_STATUS.has(x.status));
+        const cur = (await kvGet("shared", "supplier_signals_" + s)) || {};
+        if (Boolean(cur.framework) !== counts) {
+          await kvSet("shared", "supplier_signals_" + s, {
+            ...cur, framework: counts, setBy: user.email, setAt: now,
+          });
+        }
+      } catch (err) {
+        console.error("[frameworks] signal sync failed: " + (err && err.message));
+      }
       return res.status(200).json({ ok: true, entry: e });
     }
     return res.status(404).json({ error: "No such entry." });
