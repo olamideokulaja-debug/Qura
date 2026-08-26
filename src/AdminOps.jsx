@@ -20,6 +20,8 @@ export default function AdminOps() {
   const [removals, setRemovals] = useState(null);
   const [waitlist, setWaitlist] = useState(null);
   const [clinicians, setClinicians] = useState(null);
+  // Evidence suppliers have submitted, waiting on a founder.
+  const [claims, setClaims] = useState(null);
   const [busy, setBusy] = useState("");
   const [nc, setNc] = useState({ name: "", org: "", role: "", email: "", phone: "" });
   const [ncMsg, setNcMsg] = useState("");
@@ -32,23 +34,40 @@ export default function AdminOps() {
     try {
       const t = await token();
       const h = { authorization: "Bearer " + t };
-      const [qi, qr, qw, qc] = await Promise.all([
+      const [qi, qr, qw, qc, qcl] = await Promise.all([
         fetch("/api/admin?view=intros", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=removals", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=waitlist", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=clinicians", { headers: h }).then((r) => r.json()),
+        fetch("/api/supplier-rating?claims=1", { headers: h }).then((r) => r.json()),
       ]);
       setQueue(qi.queue || []);
       setRemovals(qr.removals || []);
       setWaitlist(qw.waitlist || []);
       setClinicians(qc.clinicians || []);
-    } catch (e) { setQueue([]); setRemovals([]); setWaitlist([]); setClinicians([]); }
+      setClaims(qcl.claims || []);
+    } catch (e) { setQueue([]); setRemovals([]); setWaitlist([]); setClinicians([]); setClaims([]); }
   };
   useEffect(() => { load(); }, []);
 
   // The register check. This is the whole promise: a person opens the official
   // public register, finds the clinician, and only then are they visible to
   // hospitals and suppliers.
+  // Approving evidence is two judgements at once: that this account really
+  // represents the supplier, and that the evidence holds. Qura has no
+  // account-to-organisation link yet, so the founder is the link.
+  const decideClaim = async (id, decision) => {
+    setBusy("cm" + id);
+    try {
+      const t = await token();
+      await fetch("/api/supplier-rating", { method: "POST",
+        headers: { authorization: "Bearer " + t, "content-type": "application/json" },
+        body: JSON.stringify({ claimId: id, decision }) });
+      await load();
+    } catch (e) {}
+    setBusy("");
+  };
+
   const verifyClinician = async (owner, on) => {
     setBusy("cl" + owner);
     try {
@@ -113,7 +132,7 @@ export default function AdminOps() {
   return (
     <div style={{ marginBottom: 28 }}>
       <div className="row" style={{ gap: 8, marginBottom: 14 }}>
-        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["suppliers", "Supplier ratings"], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
+        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["suppliers", "Supplier ratings" + (claims && claims.length ? " (" + claims.length + ")" : "")], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
           <button key={k} className={"btn " + (tab === k ? "btn-primary" : "btn-light")} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -147,6 +166,34 @@ export default function AdminOps() {
         </div>
       ) : tab === "suppliers" ? (
         <div>
+          {claims && claims.length ? (
+            <div className="card" style={{ padding: 0, overflow: "hidden", marginBottom: 18, borderColor: "var(--amber)" }}>
+              <div style={{ padding: "12px 16px", background: "var(--amber-bg)", fontWeight: 700, fontSize: 14, color: "var(--amber)" }}>
+                Evidence awaiting review ({claims.length})
+              </div>
+              {claims.map((c) => (
+                <div key={c.id} style={{ padding: 16, borderTop: "1px solid var(--line)" }}>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>{c.supplierName}</div>
+                  <div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>
+                    Claiming <b>{c.signal}</b> · submitted by {c.claimedBy} · {String(c.at).slice(0, 10)}
+                  </div>
+                  <div style={{ fontSize: 13.5, marginTop: 8, padding: "10px 12px", borderRadius: 10, background: "var(--bg)", whiteSpace: "pre-wrap" }}>
+                    {c.evidence}
+                  </div>
+                  <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>
+                    Approving confirms both that this account represents {c.supplierName} and that
+                    the evidence holds.
+                  </div>
+                  <div className="row" style={{ gap: 8, marginTop: 10 }}>
+                    <button className="btn btn-primary" style={{ fontSize: 13 }} disabled={busy === "cm" + c.id}
+                      onClick={() => decideClaim(c.id, "approve")}>Approve</button>
+                    <button className="btn btn-light" style={{ fontSize: 13 }} disabled={busy === "cm" + c.id}
+                      onClick={() => decideClaim(c.id, "decline")}>Decline</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <div className="muted" style={{ fontSize: 13, marginBottom: 12, lineHeight: 1.55, maxWidth: 640 }}>
             A supplier's rating is earned from facts you have confirmed, not typed in.
             Set only what you have actually checked: each signal is shown to hospitals

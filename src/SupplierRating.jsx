@@ -38,7 +38,7 @@ export function Stars({ value, size = 15 }) {
   );
 }
 
-export default function SupplierRating({ supplier, canRate = false, isFounder = false, compact = false }) {
+export default function SupplierRating({ supplier, canRate = false, isFounder = false, canClaim = false, compact = false }) {
   const slug = slugify(supplier && supplier.name);
   const [data, setData] = useState(null);
   const [open, setOpen] = useState(false);
@@ -46,6 +46,9 @@ export default function SupplierRating({ supplier, canRate = false, isFounder = 
   const [mine, setMine] = useState(0);
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState("");
+  // Which signal the supplier is submitting evidence for, and the evidence.
+  const [claiming, setClaiming] = useState("");
+  const [evidence, setEvidence] = useState("");
 
   const load = useCallback(async () => {
     if (!slug) return;
@@ -78,6 +81,25 @@ export default function SupplierRating({ supplier, canRate = false, isFounder = 
       const j = await r.json();
       if (!r.ok) setMsg(j.error || "Could not save that rating.");
       else { setMsg(j.updated ? "Your rating has been updated." : "Thank you. Your rating has been recorded."); setNote(""); load(); }
+    } catch (e) { setMsg("Could not reach Qura. Please try again."); }
+    setBusy(false);
+  };
+
+  const submitClaim = async () => {
+    if (!claiming) return;
+    setBusy(true); setMsg("");
+    try {
+      const r = await fetch("/api/supplier-rating", {
+        method: "POST", headers: await authHeaders(true),
+        body: JSON.stringify({ supplier: slug, supplierName: supplier.name,
+                               claim: { signal: claiming, evidence } }),
+      });
+      const j = await r.json();
+      if (!r.ok) setMsg(j.error || "Could not submit that.");
+      else {
+        setMsg("Evidence sent to the Qura team. They will review it and your rating updates if it is accepted.");
+        setClaiming(""); setEvidence(""); load();
+      }
     } catch (e) { setMsg("Could not reach Qura. Please try again."); }
     setBusy(false);
   };
@@ -141,15 +163,44 @@ export default function SupplierRating({ supplier, canRate = false, isFounder = 
               ) : null}
             </div>
           ))}
-          {rating.earned.missing.map((m) => (
-            <div key={m.label} className="row" style={{ gap: 9, padding: "6px 0", alignItems: "flex-start", opacity: 0.6 }}>
-              <X size={15} color="var(--faint)" style={{ marginTop: 2, flexShrink: 0 }} />
-              <div>
-                <div style={{ fontSize: 13.5, fontWeight: 600 }}>{m.label}</div>
-                <div className="muted" style={{ fontSize: 12.5 }}>{m.why}</div>
+          {rating.earned.missing.map((m) => {
+            const pending = ((data && data.pendingSignals) || []).includes(m.key);
+            // Qura Verified is awarded, never requested, so no evidence button.
+            const askable = canClaim && !pending && m.key !== "quraVerified";
+            return (
+              <div key={m.label} style={{ padding: "6px 0", opacity: pending ? 0.85 : 0.6 }}>
+                <div className="row" style={{ gap: 9, alignItems: "flex-start" }}>
+                  <X size={15} color="var(--faint)" style={{ marginTop: 2, flexShrink: 0 }} />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600 }}>{m.label}</div>
+                    <div className="muted" style={{ fontSize: 12.5 }}>{m.why}</div>
+                  </div>
+                  {pending ? (
+                    <span className="chip" style={{ marginLeft: "auto", fontSize: 11, background: "var(--amber-bg)", color: "var(--amber)" }}>With Qura</span>
+                  ) : askable ? (
+                    <button className="btn btn-light" style={{ fontSize: 11.5, marginLeft: "auto" }}
+                      onClick={() => { setClaiming(m.key); setEvidence(""); setMsg(""); }}>Provide evidence</button>
+                  ) : null}
+                </div>
+                {claiming === m.key ? (
+                  <div style={{ marginTop: 8, marginLeft: 24, padding: 12, borderRadius: 10, background: "var(--bg)" }}>
+                    <div className="muted" style={{ fontSize: 12.5, marginBottom: 7, lineHeight: 1.5 }}>
+                      Describe the evidence, or paste a link to it. A member of the Qura team
+                      checks it before anything changes on your rating.
+                    </div>
+                    <textarea value={evidence} onChange={(e) => setEvidence(e.target.value)} rows={3}
+                      placeholder="e.g. Framework: NHS Workforce Alliance, ref 12345, expires March 2028. Certificate at ..."
+                      style={{ width: "100%", padding: "10px 12px", border: "1px solid var(--line)", borderRadius: 10, fontSize: 13.5, boxSizing: "border-box", fontFamily: "inherit" }} />
+                    <div className="row" style={{ gap: 8, marginTop: 8 }}>
+                      <button className="btn btn-primary" style={{ fontSize: 12.5 }} disabled={busy || evidence.trim().length < 15}
+                        onClick={submitClaim}>{busy ? "Sending..." : "Send for review"}</button>
+                      <button className="btn btn-light" style={{ fontSize: 12.5 }} onClick={() => setClaiming("")}>Cancel</button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {rating.reported.count && rating.reported.count < REVIEW_FLOOR ? (
             <div className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>
@@ -157,6 +208,8 @@ export default function SupplierRating({ supplier, canRate = false, isFounder = 
               towards the score at {REVIEW_FLOOR}, so that one opinion cannot move it.
             </div>
           ) : null}
+
+          {canClaim && msg ? <div className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>{msg}</div> : null}
 
           {rating.override ? (
             <div style={{ marginTop: 12, padding: "10px 12px", borderRadius: 10, background: "var(--amber-bg)" }}>
@@ -198,9 +251,6 @@ export default function SupplierRating({ supplier, canRate = false, isFounder = 
             <ShieldCheck size={15} color="var(--teal)" />
             <span style={{ fontSize: 12.5, fontWeight: 700 }}>Founder controls</span>
           </div>
-          {/* Driven from SIGNALS so these read as the claim they represent —
-              "Qura Verified", not "quraVerified" — and so a new signal never has
-              to be added here by hand. */}
           <div className="row" style={{ gap: 7, flexWrap: "wrap", marginTop: 9 }}>
             {SIGNALS.map((sig) => (
               <button key={sig.key} disabled={busy} onClick={() => setSignal(sig.key, !signals[sig.key])}

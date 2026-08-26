@@ -1623,7 +1623,8 @@ function SuppliersScreen({ onBook, onToast, role }) {
           <div style={{ marginBottom: 18 }}>
             <SupplierRating supplier={sel}
               canRate={["hospital", "gp", "care"].includes(role)}
-              isFounder={role === "operator"} />
+              isFounder={role === "operator"}
+              canClaim={role === "agency"} />
           </div>
           {pf && !pf.isNew && (<><SectionHead title="Performance" /><div className="row" style={{ gap: 10 }}>{[["Win rate", pf.winRate != null ? pf.winRate + "%" : "—"], ["Avg time to fill", pf.avgFill != null ? pf.avgFill + "d" : "—"], ["Won", pf.wins]].map(([l, v]) => (<div key={l} className="card" style={{ padding: 12, flex: 1, textAlign: "center", background: "var(--bg)", border: "none" }}><div className="num disp" style={{ fontSize: 18, fontWeight: 700 }}>{v}</div><div className="muted" style={{ fontSize: 11, marginTop: 2 }}>{l}</div></div>))}</div><div style={{ height: 8, borderRadius: 6, background: "#EDF1F8", margin: "12px 0 16px", overflow: "hidden" }}><div style={{ height: "100%", width: (pf.winRate || 0) + "%", background: "linear-gradient(90deg,var(--teal),var(--cyan))", borderRadius: 6 }} /></div></>)}
           {pf && pf.isNew && (<div className="card" style={{ padding: 14, background: "var(--bg)", border: "none", marginBottom: 16 }}><div className="muted" style={{ fontSize: 12.5 }}>No performance history yet. Win rate and time to fill will appear as you close opportunities.</div></div>)}
