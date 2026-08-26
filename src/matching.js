@@ -33,6 +33,8 @@ const PROFESSION_TERMS = {
   "Paramedic": ["paramedic", "ambulance"],
   "Midwife": ["midwif", "maternity", "obstetric"],
   "Mental Health Nurse": ["mental health", "psychiatr", "camhs"],
+  "Psychologist": ["psycholog", "talking therap", "cbt", "iapt"],
+  "Clinical Laboratory Scientist": ["laborator", "clinical scientist"],
   "General Practice (GP)": ["general practice", "primary care", "gp ", "gp,"],
   "Theatre Nurse": ["theatre", "perioperative", "surgical"],
   "ICU Nurse": ["intensive care", "critical care", "icu"],
@@ -43,7 +45,12 @@ const PROFESSION_TERMS = {
 const CATEGORY_TERMS = {
   "Doctor": ["consultant", "physician", "medical staffing", "locum doctor", "clinician"],
   "Nurse / Midwife": ["nurse", "nursing", "midwif"],
-  "Allied Health Professional": ["allied health", "ahp", "therap", "diagnostic"],
+  // "therap" alone is too loose: it matches "Talking Therapies", which is
+  // psychological and has nothing to do with a physiotherapist. Named
+  // therapies only.
+  "Allied Health Professional": ["allied health", "ahp", "diagnostic",
+    "physiotherap", "occupational therap", "speech and language",
+    "radiograph", "sonograph", "dietit", "podiatr", "orthopt"],
   "Pharmacy & Healthcare Science": ["pharmac", "laborator", "pathology", "healthcare science"],
 };
 
