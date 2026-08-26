@@ -6,7 +6,7 @@ import { StoreBadges } from "../components/store.jsx";
 
 export const CLIN_TAGLINES = [
   "Take your career into your own hands and track your application process in real time.",
-  "No more sending your CV and hoping, without any visibility.",
+  "No more sending your CV and hoping. Build your verified profile once and be visible to the organisations looking for your skills.",
   "Step by step updates on your application to the most reputable hospitals globally, via Qura.",
 ];
 
@@ -77,7 +77,21 @@ export function ClinicianSection({ onEnter }) {
       <div className="wrap">
         <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 10px" }}>
           <span className="chip chip-cyan" style={{ background: "rgba(0,194,184,.15)", color: "var(--cyan)" }}>For clinicians</span>
-          <h2 className="disp" style={{ fontSize: "clamp(26px,4vw,40px)", fontWeight: 700, margin: "16px 0 8px", lineHeight: 1.1 }}>Your move abroad, in your hands.</h2>
+          <h2 className="disp" style={{ fontSize: "clamp(26px,4vw,40px)", fontWeight: 700, margin: "16px 0 8px", lineHeight: 1.1 }}>Get verified once. Be seen everywhere.</h2>
+          <p style={{ fontSize: 16.5, lineHeight: 1.6, color: "#C6D4E8", margin: "0 auto", maxWidth: 640 }}>
+            One healthcare profile connecting you with opportunities across the NHS,
+            private healthcare and internationally.
+          </p>
+          {/* The journey, so a clinician can see at a glance that this is not a
+              jobs board they have to keep checking. */}
+          <div className="row" style={{ gap: 8, justifyContent: "center", flexWrap: "wrap", marginTop: 16 }}>
+            {["Search", "Match", "Be discovered", "Apply", "Track"].map((step, i) => (
+              <span key={step} className="row" style={{ gap: 8, fontSize: 13, color: "#AEBED6" }}>
+                {i ? <span style={{ color: "var(--cyan)" }}>&rsaquo;</span> : null}
+                <span style={{ fontWeight: 600 }}>{step}</span>
+              </span>
+            ))}
+          </div>
         </div>
 
         <ClinicianFilm onEnter={onEnter} />
@@ -89,6 +103,17 @@ export function ClinicianSection({ onEnter }) {
         </div>
         <div style={{ maxWidth: 820, margin: "0 auto 26px", textAlign: "center", color: "#AEBED6", fontSize: 14.5, lineHeight: 1.65 }}>
           Clinical managers rarely give feedback in the time frames shown in adverts. It is not that they do not want to, they are overwhelmed with work and cannot keep up. Qura has stepped in to filter the talent. If your CV matches the requirements, Qura has increased the likelihood of you being found. Sign up today and start getting notified.
+        </div>
+
+        {/* The strongest clinician argument, and the one the site was not making:
+            you do not have to be job hunting for Qura to be worth joining. */}
+        <div style={{ maxWidth: 820, margin: "0 auto 26px", background: "rgba(0,194,184,.08)", border: "1px solid rgba(0,194,184,.25)", borderRadius: 18, padding: "22px 24px" }}>
+          <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8 }}>Happy where you are? Stay discoverable.</div>
+          <div style={{ fontSize: 14.5, lineHeight: 1.65, color: "#C6D4E8" }}>
+            You do not have to be looking to be worth finding. Keep a verified profile,
+            set your profession, specialty and preferences, and let relevant opportunities
+            come to you. You choose what happens next, and nothing is shared without you.
+          </div>
         </div>
 
         <div style={{ maxWidth: 900, margin: "0 auto", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 22 }}>
@@ -118,12 +143,32 @@ export function ClinicianSection({ onEnter }) {
               ))}
             </div>
           </div>
+          {/* Naming the parts is what makes the badge worth something. A single
+              generic tick tells a hospital nothing about what was checked. */}
+          <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,.1)" }}>
+            <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6, textAlign: "center" }}>What Qura Verified means</div>
+            <div style={{ fontSize: 13.5, color: "#AEBED6", textAlign: "center", marginBottom: 14, lineHeight: 1.6 }}>
+              Not an automated tick. A member of the Qura team opens the official public
+              register and finds you, before any organisation can see your profile.
+            </div>
+            <div className="row" style={{ gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+              {["Registration number checked against the official register",
+                "Profession and specialty confirmed",
+                "Experience and country of residence recorded"].map((t) => (
+                <span key={t} className="row" style={{ gap: 7, fontSize: 13, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 999, padding: "7px 14px" }}>
+                  <Check size={13} color="var(--cyan)" />{t}
+                </span>
+              ))}
+            </div>
+          </div>
+
           <div style={{ textAlign: "center", marginTop: 22 }}>
-            <button className="btn btn-primary" onClick={onEnter} style={{ padding: "12px 28px", fontSize: 15 }}>Check my eligibility & sign up</button>
+            <button className="btn btn-primary" onClick={onEnter} style={{ padding: "12px 28px", fontSize: 15 }}>Create my free clinician profile</button>
+            <div style={{ fontSize: 13.5, color: "var(--cyan)", marginTop: 12, fontWeight: 600 }}>Joining and applying on Qura is free. Always.</div>
             <div style={{ fontSize: 12, color: "#8697B0", marginTop: 10, marginBottom: 22 }}>Guidance only, not immigration advice. Requirements are confirmed during verification.</div>
             <div style={{ fontSize: 13.5, color: "#AEBED6", marginBottom: 14, fontWeight: 600 }}>Track your applications in real time. Get the app.</div>
             <StoreBadges />
-            <div style={{ fontSize: 12, color: "#8697B0", marginTop: 12 }}>Available on iOS and Android.</div>
+            <div style={{ fontSize: 12, color: "#8697B0", marginTop: 12 }}>Free on Android. iOS to follow.</div>
           </div>
         </div>
       </div>
