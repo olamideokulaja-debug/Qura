@@ -10,7 +10,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Star, ShieldCheck, Check, X, ChevronDown, ChevronUp } from "lucide-react";
-import { quraRating, REVIEW_FLOOR } from "./supplierRating.js";
+import { quraRating, REVIEW_FLOOR, SIGNALS } from "./supplierRating.js";
 import { supabase } from "./supabase.js";
 
 const slugify = (s) => String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -198,21 +198,26 @@ export default function SupplierRating({ supplier, canRate = false, isFounder = 
             <ShieldCheck size={15} color="var(--teal)" />
             <span style={{ fontSize: 12.5, fontWeight: 700 }}>Founder controls</span>
           </div>
+          {/* Driven from SIGNALS so these read as the claim they represent —
+              "Qura Verified", not "quraVerified" — and so a new signal never has
+              to be added here by hand. */}
           <div className="row" style={{ gap: 7, flexWrap: "wrap", marginTop: 9 }}>
-            {["quraVerified", "framework", "cqc", "specialtiesEvidenced", "regionsCovered", "respondsFast", "compliancePack"].map((k) => (
-              <button key={k} disabled={busy} onClick={() => setSignal(k, !signals[k])}
+            {SIGNALS.map((sig) => (
+              <button key={sig.key} disabled={busy} onClick={() => setSignal(sig.key, !signals[sig.key])}
+                title={sig.why}
                 className="chip" style={{
                   cursor: "pointer", border: "none", fontSize: 11.5, fontWeight: 600,
-                  background: signals[k] ? "var(--cyan-soft)" : "#EEF1F7",
-                  color: signals[k] ? "var(--teal)" : "#5A6783",
+                  background: signals[sig.key] ? "var(--cyan-soft)" : "#EEF1F7",
+                  color: signals[sig.key] ? "var(--teal)" : "#5A6783",
                 }}>
-                {signals[k] ? "\u2713 " : ""}{k}
+                {signals[sig.key] ? "\u2713 " : ""}{sig.label} <span style={{ opacity: .6 }}>+{sig.points}</span>
               </button>
             ))}
           </div>
           <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>
-            Only set a signal you have actually checked. Each one is shown to hospitals
-            with the claim it represents.
+            Click a signal to turn it on or off. The number is what it adds to the
+            rating. Only set what you have actually checked: each one is shown to
+            hospitals as the claim it represents, and hovering shows that claim.
           </div>
         </div>
       ) : null}
