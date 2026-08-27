@@ -311,6 +311,7 @@ const MARKET_FLAG = {
   "International": "\u{1F30F}",
   "Africa": "\u{1F30D}",
   "United Arab Emirates": "\u{1F1E6}\u{1F1EA}",
+  "Nigeria": "\u{1F1F3}\u{1F1EC}",
   "Middle East": "\u{1F1E6}\u{1F1EA}",
 };
 const flagFor = (m) => MARKET_FLAG[m] || "\u{1F30D}";
@@ -840,7 +841,7 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
   // Only offer a tab that has something behind it. An empty tab reads as a
   // broken filter, which is exactly what the United States tab did before the
   // market was derived from source.
-  const MARKET_ORDER = ["All", "NHS UK", "Private UK", "Australia", "United States", "European Union", "Canada", "United Arab Emirates", "International", "Africa", "Middle East"];
+  const MARKET_ORDER = ["All", "NHS UK", "Private UK", "Australia", "United States", "European Union", "Canada", "United Arab Emirates", "Nigeria", "International", "Africa", "Middle East"];
   // Real procurement notices from the daily feed, shown above the illustrative
   // set. Until this, the web Clinical Demand page showed only examples while
   // the live notices sat in the API unread.
