@@ -102,7 +102,19 @@ export function ClinicianSection({ onEnter }) {
           ))}
         </div>
         <div style={{ maxWidth: 820, margin: "0 auto 26px", textAlign: "center", color: "#AEBED6", fontSize: 14.5, lineHeight: 1.65 }}>
-          Clinical managers rarely give feedback in the time frames shown in adverts. It is not that they do not want to, they are overwhelmed with work and cannot keep up. Qura has stepped in to filter the talent. If your CV matches the requirements, Qura has increased the likelihood of you being found. Sign up today and start getting notified.
+          Clinical managers rarely give feedback in the time frames shown in adverts. It is not that they do not want to, they are overwhelmed and cannot keep up. Qura puts your verified profile in front of them, so the people hiring can find you rather than losing you in a pile of applications. You stay in control of what happens next.
+        </div>
+
+        {/* Discoverability without a clear answer on control is a reason not to
+            join. Said plainly and near the sign-up, not buried in a policy. */}
+        <div style={{ maxWidth: 820, margin: "0 auto 26px", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: "20px 22px" }}>
+          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>You control who sees you</div>
+          <div style={{ fontSize: 14, lineHeight: 1.65, color: "#C6D4E8" }}>
+            Your profile is only visible to verified healthcare organisations on Qura, and
+            only once a person has checked your registration. Your contact details are never
+            shown until you accept an introduction. You can pause your visibility or delete
+            your profile at any time, and nothing is sold to anyone.
+          </div>
         </div>
 
         {/* The strongest clinician argument, and the one the site was not making:
@@ -117,7 +129,11 @@ export function ClinicianSection({ onEnter }) {
         </div>
 
         <div style={{ maxWidth: 900, margin: "0 auto", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 22 }}>
-          <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14, textAlign: "center" }}>Where do you want to work? Check what it takes.</div>
+          <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4, textAlign: "center" }}>Where can your skills take you?</div>
+          <div className="muted" style={{ fontSize: 13.5, textAlign: "center", marginBottom: 16, color: "#AEBED6" }}>
+            Regulators, requirements and routes, country by country. Useful whether you are
+            moving, considering it, or just want to know what your registration is worth elsewhere.
+          </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 20 }}>
             {CLIN_TABS.map((t) => (
               <button key={t} onClick={() => setCountry(t)} style={{ cursor: "pointer", padding: "8px 14px", borderRadius: 999, fontSize: 13, fontWeight: 600,

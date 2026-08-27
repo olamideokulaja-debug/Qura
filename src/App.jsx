@@ -339,6 +339,10 @@ import AdminOps from "./AdminOps.jsx";
 // Real matched demand, replacing a list of agency staffing contracts that
 // were shown to clinicians as if they were roles.
 import MyOpportunities from "./MyOpportunities.jsx";
+// Stops a trust negotiating twice: shows when a colleague in another
+// department is already engaging the same supplier.
+import CrossDepartment, { CrossDepartmentTag } from "./CrossDepartment.jsx";
+import SupplierRating from "./SupplierRating.jsx";
 // The rating a hospital sees. Replaces the invented numbers that used to sit
 // on the supplier records: every point now traces to a checkable fact.
 // A supplier's own standing. The rating belongs here, not on the private
@@ -714,7 +718,7 @@ function ProposalGenerator({ onSaved, initialOpp }) {
     summary: `${APP_NAME} proposes a fully managed staffing solution for the ${o.role.toLowerCase()} requirement at ${o.org}, mobilising pre-vetted, compliance-ready clinicians against a ${o.val} contract within your timeline.`,
     understanding: `We understand ${o.org} needs reliable, credentialed cover for ${o.role.toLowerCase()} in ${o.loc}, with a decision window of ${o.close}. Continuity of care and compliance are the priority.`,
     solution: ["Dedicated account lead with weekly delivery reporting", "Registered clinicians matched to your specialty and grade", "Single managed contract with full audit trail and SLAs"],
-    clinicians: ["Dr. Sarah Ahmed, Consultant (98% match)", "Maria Santos, ICU Nurse (93% match)"],
+    clinicians: ["Registered clinicians verified against the official register", "Matched on profession, specialty and location"],
     pricing: `Indicative value ${o.val}, billed against agreed framework rates with no upfront platform fee.`,
     next: "A 30-minute call this week to confirm scope and mobilisation dates.",
   });
@@ -1817,6 +1821,7 @@ function ClinicianNetwork({ onToast, isOwner }) {
 }
 const FindAgencies = () => {
   const [f, setF] = useState("All");
+  const [open, setOpen] = useState("");
   const list = AGENCIES.filter((a) => f === "All" || (f === "Framework" && a.framework) || (f === "Non-framework" && !a.framework) || (f === "CQC" && a.cqc) || (f === "Non-CQC" && !a.cqc));
   return (
     <div>
@@ -1828,13 +1833,26 @@ const FindAgencies = () => {
             <div className="row" style={{ gap: 14 }}>
               <div style={{ width: 46, height: 46, borderRadius: 12, background: "var(--navy)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{a.name[0]}</div>
               <div>
-                <div className="row" style={{ gap: 9, flexWrap: "wrap" }}><span style={{ fontWeight: 600, fontSize: 15.5 }}>{a.name}</span><span className="chip chip-cyan">{a.spec}</span></div>
+                <div className="row" style={{ gap: 9, flexWrap: "wrap" }}><span style={{ fontWeight: 600, fontSize: 15.5 }}>{a.name}</span><span className="chip chip-cyan">{a.spec}</span><CrossDepartmentTag supplier={a} /></div>
                 <div className="muted" style={{ fontSize: 13, marginTop: 3 }}>{a.spec} · {a.loc}</div>
                 <div className="row" style={{ gap: 7, marginTop: 7, flexWrap: "wrap" }}><span className={"chip " + (a.framework ? "chip-low" : "chip-grey")}><BadgeCheck size={12} /> {a.framework ? "Framework" : "Non-framework"}</span><span className={"chip " + (a.cqc ? "chip-blue" : "chip-grey")}><ShieldCheck size={12} /> {a.cqc ? "CQC registered" : "Non-CQC"}</span></div>
               </div>
             </div>
-            <div className="row" style={{ gap: 14 }}><span className="row faint" style={{ fontSize: 13, gap: 4 }}>{a.loc}</span><button className="btn btn-primary">Connect</button></div>
+            <div className="row" style={{ gap: 14 }}><span className="row faint" style={{ fontSize: 13, gap: 4 }}>{a.loc}</span>
+              <button className="btn btn-light" style={{ fontSize: 13 }} onClick={() => setOpen(open === a.name ? "" : a.name)}>
+                {open === a.name ? "Hide detail" : "View detail"}
+              </button>
+              <button className="btn btn-primary">Connect</button></div>
           </div>
+          {open === a.name ? (
+            <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 12 }}>
+              {/* Shown first: if a colleague is already talking to this
+                  supplier, that changes the conversation before anything else
+                  on the page matters. */}
+              <CrossDepartment supplier={a} specialty={a.spec} kind="viewed" />
+              <SupplierRating supplier={a} canRate />
+            </div>
+          ) : null}
         </div>
       ))}</div>
     </div>
@@ -4305,7 +4323,13 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   };
   const Side = (
     <div style={{ width: 258, background: "linear-gradient(192deg,#0E2342,#0A1730 56%,#070F22)", display: "flex", flexDirection: "column", height: "100%", padding: 16, borderRight: "1px solid rgba(255,255,255,.06)" }}>
-      <button style={{ padding: "8px 8px 20px", textAlign: "left" }} onClick={onHome}><Wordmark light /></button>
+      {/* CRM describes what a supplier buys. A clinician is not running a
+          pipeline, and telling them they are is the wrong first impression. */}
+      <button style={{ padding: "8px 8px 20px", textAlign: "left" }} onClick={onHome}>
+        <Wordmark light sub={role === "clinician" ? "HEALTHCARE CAREERS"
+          : role === "hospital" || role === "gp" || role === "care" ? "HEALTHCARE WORKFORCE"
+          : "HEALTHCARE GROWTH CRM"} />
+      </button>
       <div className="scrollx" style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, overflowY: "auto" }}>{nav.map((n) => (<button key={n.k} className={"navitem" + (active === n.k ? " active" : "")} onClick={() => go(n.k)}><n.i size={17} /><span style={{ flex: 1 }}>{n.l}</span>{n.k === "inbox" && inboxNew > 0 && <span style={{ background: "var(--cyan)", color: "#05201E", fontWeight: 700, fontSize: 10.5, minWidth: 18, height: 18, borderRadius: 999, display: "grid", placeItems: "center", padding: "0 5px" }}>{inboxNew}</span>}{premiumScreens.includes(n.k) && !((PLAN_ACCESS[plan] || []).includes(n.k)) && <Lock size={12} style={{ opacity: 0.55, flexShrink: 0 }} />}</button>))}</div>
       <button onClick={() => go("pricing")} style={{ display: "block", width: "100%", textAlign: "left", background: "linear-gradient(135deg,rgba(0,194,184,.18),rgba(0,194,184,.05))", border: "1px solid rgba(0,194,184,.24)", borderRadius: 14, padding: 14, margin: "10px 0", cursor: "pointer" }}><div className="row" style={{ gap: 8 }}><Sparkles size={15} color="#5FE6DC" /><span style={{ color: "#fff", fontWeight: 600, fontSize: 13 }}>Upgrade your plan</span></div><div style={{ color: "#9FB0D0", fontSize: 12, marginTop: 4 }}>AI proposals, full database and live intel.</div><div className="row" style={{ gap: 5, marginTop: 9, color: "#5FE6DC", fontWeight: 600, fontSize: 12 }}>View plans <ArrowRight size={13} /></div></button>
       <button className="navitem" onClick={onLogout}><LogOut size={17} /> Sign out</button>
