@@ -24,26 +24,36 @@ export const INTL_OPPS = [
 
 export const OPPS = [...REAL_OPPS, ...INTL_OPPS];
 
+// No match field here either. These profiles are illustrative and labelled as
+// such in the interface; a match score on them implied a matching that had
+// never run. Real matching lives in src/matching.js and scores a clinician
+// against live demand, with the reasons shown.
 export const CLINICIANS = [
-  { name: "Dr. Sarah Ahmed", spec: "Sonographer (NOUS)", exp: "12 yrs", yrs: 12, loc: "London, UK", country: "United Kingdom", flag: "🇬🇧", sector: "NHS", rate: "£62/hr", avail: "From 14 Jul", match: 98, rating: 5.0, reviews: 14, last: "King's College Hospital" },
-  { name: "Tunde Bakare", spec: "Audiologist (Paeds)", exp: "8 yrs", yrs: 8, loc: "London, UK", country: "United Kingdom", flag: "🇬🇧", sector: "Private", rate: "£48/hr", avail: "Immediate", match: 95, rating: 4.9, reviews: 11, last: "Imperial College Healthcare" },
-  { name: "Maria Santos", spec: "Echocardiographer", exp: "10 yrs", yrs: 10, loc: "Manchester, UK", country: "United Kingdom", flag: "🇬🇧", sector: "NHS", rate: "£55/hr", avail: "From 1 Aug", match: 93, rating: 4.8, reviews: 9, last: "Guy's & St Thomas'" },
-  { name: "Dr. Omar Farouk", spec: "Radiologist", exp: "15 yrs", yrs: 15, loc: "Birmingham, UK", country: "United Kingdom", flag: "🇬🇧", sector: "Both", rate: "£110/hr", avail: "Immediate", match: 90, rating: 5.0, reviews: 18, last: "Barts Health NHS Trust" },
-  { name: "Emily Thompson", spec: "Sonographer (MSK)", exp: "6 yrs", yrs: 6, loc: "Auckland, NZ", country: "New Zealand", flag: "🇳🇿", sector: "Both", rate: "£58/hr", avail: "From 1 Sep", match: 92, rating: 4.9, reviews: 8, last: "Auckland City Hospital" },
-  { name: "James Wilson", spec: "Radiographer (CT)", exp: "9 yrs", yrs: 9, loc: "Sydney, AU", country: "Australia", flag: "🇦🇺", sector: "Both", rate: "£54/hr", avail: "From 15 Aug", match: 89, rating: 4.8, reviews: 10, last: "Royal Prince Alfred" },
-  { name: "Thabo Nkosi", spec: "Echocardiographer", exp: "11 yrs", yrs: 11, loc: "Cape Town, ZA", country: "South Africa", flag: "🇿🇦", sector: "Both", rate: "£52/hr", avail: "Immediate", match: 88, rating: 4.7, reviews: 7, last: "Groote Schuur Hospital" },
-  { name: "Ava Reyes", spec: "ICU Nurse (RGN)", exp: "7 yrs", yrs: 7, loc: "Manila, PH", country: "Philippines", flag: "🇵🇭", sector: "Both", rate: "£28/hr", avail: "From 1 Oct", match: 86, rating: 4.8, reviews: 6, last: "St. Luke's Medical Center" },
-  { name: "Chidi Okonkwo", spec: "Radiographer (MRI)", exp: "10 yrs", yrs: 10, loc: "Lagos, NG", country: "Nigeria", flag: "🇳🇬", sector: "Both", rate: "£30/hr", avail: "Immediate", match: 84, rating: 4.7, reviews: 5, last: "Lagos University Teaching Hospital", direct: true },
-  { name: "Grace Bennett", spec: "Biomedical Scientist", exp: "9 yrs", yrs: 9, loc: "Leeds, UK", country: "United Kingdom", flag: "🇬🇧", sector: "NHS", rate: "£40/hr", avail: "From 21 Jul", match: 88, rating: 4.7, reviews: 6, last: "Cambridge University Hospitals" },
-  { name: "Daniel Cole", spec: "Speech & Language Therapist", exp: "7 yrs", yrs: 7, loc: "Bristol, UK", country: "United Kingdom", flag: "🇬🇧", sector: "Private", rate: "£44/hr", avail: "Immediate", match: 85, rating: 4.6, reviews: 5, last: "Aneurin Bevan UHB" },
+  { name: "Dr. Sarah Ahmed", spec: "Sonographer (NOUS)", exp: "12 yrs", yrs: 12, loc: "London, UK", country: "United Kingdom", flag: "🇬🇧", sector: "NHS", rate: "£62/hr", avail: "From 14 Jul", reviews: 14, last: "King's College Hospital" },
+  { name: "Tunde Bakare", spec: "Audiologist (Paeds)", exp: "8 yrs", yrs: 8, loc: "London, UK", country: "United Kingdom", flag: "🇬🇧", sector: "Private", rate: "£48/hr", avail: "Immediate", reviews: 11, last: "Imperial College Healthcare" },
+  { name: "Maria Santos", spec: "Echocardiographer", exp: "10 yrs", yrs: 10, loc: "Manchester, UK", country: "United Kingdom", flag: "🇬🇧", sector: "NHS", rate: "£55/hr", avail: "From 1 Aug", reviews: 9, last: "Guy's & St Thomas'" },
+  { name: "Dr. Omar Farouk", spec: "Radiologist", exp: "15 yrs", yrs: 15, loc: "Birmingham, UK", country: "United Kingdom", flag: "🇬🇧", sector: "Both", rate: "£110/hr", avail: "Immediate", reviews: 18, last: "Barts Health NHS Trust" },
+  { name: "Emily Thompson", spec: "Sonographer (MSK)", exp: "6 yrs", yrs: 6, loc: "Auckland, NZ", country: "New Zealand", flag: "🇳🇿", sector: "Both", rate: "£58/hr", avail: "From 1 Sep", reviews: 8, last: "Auckland City Hospital" },
+  { name: "James Wilson", spec: "Radiographer (CT)", exp: "9 yrs", yrs: 9, loc: "Sydney, AU", country: "Australia", flag: "🇦🇺", sector: "Both", rate: "£54/hr", avail: "From 15 Aug", reviews: 10, last: "Royal Prince Alfred" },
+  { name: "Thabo Nkosi", spec: "Echocardiographer", exp: "11 yrs", yrs: 11, loc: "Cape Town, ZA", country: "South Africa", flag: "🇿🇦", sector: "Both", rate: "£52/hr", avail: "Immediate", reviews: 7, last: "Groote Schuur Hospital" },
+  { name: "Ava Reyes", spec: "ICU Nurse (RGN)", exp: "7 yrs", yrs: 7, loc: "Manila, PH", country: "Philippines", flag: "🇵🇭", sector: "Both", rate: "£28/hr", avail: "From 1 Oct", reviews: 6, last: "St. Luke's Medical Center" },
+  { name: "Chidi Okonkwo", spec: "Radiographer (MRI)", exp: "10 yrs", yrs: 10, loc: "Lagos, NG", country: "Nigeria", flag: "🇳🇬", sector: "Both", rate: "£30/hr", avail: "Immediate", reviews: 5, last: "Lagos University Teaching Hospital", direct: true },
+  { name: "Grace Bennett", spec: "Biomedical Scientist", exp: "9 yrs", yrs: 9, loc: "Leeds, UK", country: "United Kingdom", flag: "🇬🇧", sector: "NHS", rate: "£40/hr", avail: "From 21 Jul", reviews: 6, last: "Cambridge University Hospitals" },
+  { name: "Daniel Cole", spec: "Speech & Language Therapist", exp: "7 yrs", yrs: 7, loc: "Bristol, UK", country: "United Kingdom", flag: "🇬🇧", sector: "Private", rate: "£44/hr", avail: "Immediate", reviews: 5, last: "Aneurin Bevan UHB" },
 ];
 
+// No rating field here. A supplier's rating is computed in src/supplierRating.js
+// from signals a founder has actually verified — framework place, CQC
+// registration, evidenced specialties — and from provider ratings once there
+// are enough to mean anything. The numbers that used to sit here (4.9, 4.8,
+// 4.7) were invented, and a made-up rating is the one thing a marketplace
+// cannot afford.
 export const AGENCIES = [
-  { name: "Apex Allied Health", spec: "AHP & diagnostics staffing", match: 98, rating: 4.9, deals: "120+ NHS placements", loc: "UK + International", framework: true, cqc: true },
-  { name: "HCL Workforce", spec: "Nursing & care", match: 96, rating: 4.8, deals: "Framework approved", loc: "UK", framework: true, cqc: true },
-  { name: "Pulse Healthcare", spec: "Mental health", match: 95, rating: 4.7, deals: "Rapid mobilisation", loc: "UK", framework: false, cqc: true },
-  { name: "Sahel Medical Partners", spec: "Diagnostics & nursing", match: 92, rating: 4.6, deals: "International specialist", loc: "International", framework: false, cqc: false },
-  { name: "Meridian Health Staffing", spec: "Imaging & physiology", match: 90, rating: 4.7, deals: "CDC delivery", loc: "UK + Gulf", framework: true, cqc: false },
+  { name: "Apex Allied Health", spec: "AHP & diagnostics staffing", deals: "120+ NHS placements", loc: "UK + International", framework: true, cqc: true },
+  { name: "HCL Workforce", spec: "Nursing & care", deals: "Framework approved", loc: "UK", framework: true, cqc: true },
+  { name: "Pulse Healthcare", spec: "Mental health", deals: "Rapid mobilisation", loc: "UK", framework: false, cqc: true },
+  { name: "Sahel Medical Partners", spec: "Diagnostics & nursing", deals: "International specialist", loc: "International", framework: false, cqc: false },
+  { name: "Meridian Health Staffing", spec: "Imaging & physiology", deals: "CDC delivery", loc: "UK + Gulf", framework: true, cqc: false },
 ];
 
 export const MEETINGS = [

@@ -1803,7 +1803,10 @@ function ClinicianNetwork({ onToast, isOwner }) {
         <div className="muted" style={{ fontSize: 13 }}>{c.spec}</div>
         <div className="row" style={{ gap: 6, marginTop: 8, flexWrap: "wrap" }}><span className="chip chip-grey" style={{ fontSize: 11.5 }}>{c.flag} {c.country}</span><span className="chip chip-grey" style={{ fontSize: 11.5 }}>{c.exp}</span><span className={"chip " + (c.sector === "NHS" ? "chip-blue" : c.sector === "Private" ? "chip-violet" : "chip-low")} style={{ fontSize: 11.5 }}>{c.sector === "Both" ? "NHS & Private" : c.sector}</span></div>
         {c.direct ? <div className="row" style={{ gap: 6, marginTop: 8, fontSize: 11.5, color: "#9A5E00", background: "var(--amber-bg)", padding: "5px 9px", borderRadius: 8, lineHeight: 1.4 }}><ShieldCheck size={12} style={{ flexShrink: 0, marginTop: 1 }} /> Direct application only (protected-countries list)</div> : null}
-        <div className="row" style={{ gap: 7, marginTop: 9, alignItems: "center" }}><Stars n={c.rating} /><span style={{ fontWeight: 700, fontSize: 13 }}>{c.rating.toFixed(1)}</span><span className="faint" style={{ fontSize: 11.5 }}>· {c.reviews} reviews</span></div>
+        {/* A star rating on a clinician profile was invented, and nobody has
+            ever rated a clinician on Qura. Verification is the real signal, and
+            it is one a hospital can check. */}
+        {c.verified ? <div className="row" style={{ gap: 6, marginTop: 9, alignItems: "center" }}><ShieldCheck size={14} color="var(--teal)" /><span style={{ fontWeight: 600, fontSize: 12.5, color: "var(--teal)" }}>Qura Verified</span></div> : null}
         <div className="faint row" style={{ fontSize: 12, gap: 5, marginTop: 9 }}><BadgeCheck size={12} /> Last placed: {c.last}</div>
         <div className="row" style={{ justifyContent: "space-between", marginTop: 10 }}><span style={{ fontWeight: 600, fontSize: 14 }}>{c.rate}</span><span className="chip chip-low">{c.avail}</span></div>
         <button onClick={() => save(c)} disabled={on} className={"btn " + (on ? "btn-light" : "btn-ghost")} style={{ width: "100%", justifyContent: "center", marginTop: 12, padding: "9px" }}>{on ? <><Check size={14} /> Saved to shortlist</> : <><UserCheck size={14} /> Shortlist</>}</button>
@@ -1825,12 +1828,12 @@ const FindAgencies = () => {
             <div className="row" style={{ gap: 14 }}>
               <div style={{ width: 46, height: 46, borderRadius: 12, background: "var(--navy)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{a.name[0]}</div>
               <div>
-                <div className="row" style={{ gap: 9, flexWrap: "wrap" }}><span style={{ fontWeight: 600, fontSize: 15.5 }}>{a.name}</span><span className="chip chip-cyan">{a.match}% match</span></div>
+                <div className="row" style={{ gap: 9, flexWrap: "wrap" }}><span style={{ fontWeight: 600, fontSize: 15.5 }}>{a.name}</span><span className="chip chip-cyan">{a.spec}</span></div>
                 <div className="muted" style={{ fontSize: 13, marginTop: 3 }}>{a.spec} · {a.loc}</div>
                 <div className="row" style={{ gap: 7, marginTop: 7, flexWrap: "wrap" }}><span className={"chip " + (a.framework ? "chip-low" : "chip-grey")}><BadgeCheck size={12} /> {a.framework ? "Framework" : "Non-framework"}</span><span className={"chip " + (a.cqc ? "chip-blue" : "chip-grey")}><ShieldCheck size={12} /> {a.cqc ? "CQC registered" : "Non-CQC"}</span></div>
               </div>
             </div>
-            <div className="row" style={{ gap: 14 }}><span className="row" style={{ fontSize: 14, fontWeight: 600, gap: 4 }}><Star size={15} color="#F2A33C" fill="#F2A33C" />{a.rating}</span><button className="btn btn-primary">Connect</button></div>
+            <div className="row" style={{ gap: 14 }}><span className="row faint" style={{ fontSize: 13, gap: 4 }}>{a.loc}</span><button className="btn btn-primary">Connect</button></div>
           </div>
         </div>
       ))}</div>
@@ -1841,7 +1844,7 @@ const HospitalDash = ({ go }) => (
   <div>
     <PageHead title="Welcome back" sub="Find the right partner, faster. Spend more time on patient care." right={<button className="btn btn-primary" onClick={() => go("findAgencies")}><Search size={16} /> Find agencies</button>} />
     <div className="grid-stats" style={{ marginBottom: 18 }}><Stat label="Open requirements" value="6" icon={FileText} /><Stat label="Matched agencies" value="23" icon={Briefcase} accent="cyan" /><Stat label="Shortlisted clinicians" value="11" icon={Stethoscope} /><Stat label="Avg time to fill" value="9 days" delta="3d faster" icon={Clock} accent="cyan" /></div>
-    <div className="card" style={{ padding: 20 }}><SectionHead title="Top matched agencies" action={<button className="btn btn-ghost" style={{ padding: "7px 12px", fontSize: 13 }} onClick={() => go("findAgencies")}>View all</button>} />{AGENCIES.slice(0, 3).map((a, i) => (<div key={i} className="row" style={{ justifyContent: "space-between", padding: "12px 0", borderBottom: i < 2 ? "1px solid var(--line)" : "none" }}><div className="row" style={{ gap: 12 }}><div style={{ width: 38, height: 38, borderRadius: 10, background: "var(--navy)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{a.name[0]}</div><div><div style={{ fontWeight: 600, fontSize: 14 }}>{a.name}</div><div className="muted" style={{ fontSize: 12.5 }}>{a.spec}</div></div></div><span className="chip chip-cyan">{a.match}% match</span></div>))}</div>
+    <div className="card" style={{ padding: 20 }}><SectionHead title="Agencies on Qura" action={<button className="btn btn-ghost" style={{ padding: "7px 12px", fontSize: 13 }} onClick={() => go("findAgencies")}>View all</button>} />{AGENCIES.slice(0, 3).map((a, i) => (<div key={i} className="row" style={{ justifyContent: "space-between", padding: "12px 0", borderBottom: i < 2 ? "1px solid var(--line)" : "none" }}><div className="row" style={{ gap: 12 }}><div style={{ width: 38, height: 38, borderRadius: 10, background: "var(--navy)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{a.name[0]}</div><div><div style={{ fontWeight: 600, fontSize: 14 }}>{a.name}</div><div className="muted" style={{ fontSize: 12.5 }}>{a.spec}</div></div></div>{a.framework ? <span className="chip chip-cyan">Framework</span> : null}</div>))}</div>
   </div>
 );
 // Was a static mock: every clinician saw Dr. Sarah Ahmed's name, specialties

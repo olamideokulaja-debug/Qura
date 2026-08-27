@@ -199,7 +199,18 @@ export function enrich(notice) {
       const fromNotice = Array.isArray(notice && notice.noticeContacts) ? notice.noticeContacts : [];
       const fromRegister = decisionMakersFor(match ? match.org : null, category);
       const seen = new Set(fromNotice.map((c) => String(c.name || "").toLowerCase()));
-      return [...fromNotice, ...fromRegister.filter((c) => !seen.has(String(c.name || "").toLowerCase()))].slice(0, 8);
+      const merged = [...fromNotice, ...fromRegister.filter((c) => !seen.has(String(c.name || "").toLowerCase()))];
+      // A named person outranks a shared inbox. Where a portal gives only
+      // "Procurement contact" it was landing at the top of the list, above real
+      // people, purely because notice contacts come first. Order by whether
+      // there is a person to speak to; everything else keeps its position.
+      const named = (c) => {
+        const n = String((c && c.name) || "").trim().toLowerCase();
+        return n && !/^(procurement|contracting|purchasing|tender|admin)\b/.test(n)
+          && !/(contact|team|department|enquiries|mailbox|helpdesk)$/.test(n);
+      };
+      merged.sort((a, b) => (named(b) ? 1 : 0) - (named(a) ? 1 : 0));
+      return merged.slice(0, 8);
     })(),
   };
 }
