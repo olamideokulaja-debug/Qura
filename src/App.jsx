@@ -340,6 +340,9 @@ import AdminOps from "./AdminOps.jsx";
 // Real matched demand, replacing a list of agency staffing contracts that
 // were shown to clinicians as if they were roles.
 import MyOpportunities from "./MyOpportunities.jsx";
+// Application status reflects what actually happened; the match sits beside
+// it, never inside it.
+import MyApplications from "./MyApplications.jsx";
 // Stops a trust negotiating twice: shows when a colleague in another
 // department is already engaging the same supplier.
 import CrossDepartment, { CrossDepartmentTag } from "./CrossDepartment.jsx";
@@ -4114,7 +4117,7 @@ const NAVS = {
     { k: "casestudies", l: "Case studies", i: Award }, { k: "events", l: "Round-tables", i: Ticket }, { k: "whyqura", l: "Why Qura", i: Trophy }, { k: "pricing", l: "Pricing", i: CreditCard },
   ],
   clinician: [
-    { k: "howto", l: "How to use Qura", i: GraduationCap }, { k: "academy", l: "Qura Academy", i: Award }, { k: "profile", l: "My profile", i: UserCheck }, { k: "feed", l: "Live feed", i: Rss }, { k: "myopps", l: "Opportunities for me", i: Target },
+    { k: "howto", l: "How to use Qura", i: GraduationCap }, { k: "academy", l: "Qura Academy", i: Award }, { k: "profile", l: "My profile", i: UserCheck }, { k: "feed", l: "Live feed", i: Rss }, { k: "myopps", l: "Opportunities for me", i: Target }, { k: "myapps", l: "My applications", i: FileText },
     { k: "clinicianReg", l: "Get verified", i: ShieldCheck }, { k: "liveProjects", l: "Live projects", i: Radar }, { k: "network", l: "Network", i: Users }, { k: "messages", l: "Messages", i: MessageSquare }, { k: "relocation", l: "Relocation", i: Globe }, { k: "accommodation", l: "Accommodation", i: Home }, { k: "news", l: "Industry news", i: Rss },
   ],
   gp: [
@@ -4316,6 +4319,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "findAgencies": return <FindAgencies />;
       case "shortlists": return <Shortlists onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "profile": return <ClinicianProfile name={displayName} profile={clinProfile} />;
+      case "myapps": return <MyApplications />;
       case "myopps": return <MyOpportunities />;
       case "network": return <NetworkScreen />;
       case "messages": return <MessagesScreen />;

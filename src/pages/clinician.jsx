@@ -5,7 +5,7 @@ import { StoreBadges } from "../components/store.jsx";
 // Extracted from App.jsx on 27 July 2026. Behaviour unchanged.
 
 export const CLIN_TAGLINES = [
-  "Take your career into your own hands and track your application process in real time.",
+  "Take your career into your own hands and see exactly where every application stands.",
   "No more sending your CV and hoping. Build your verified profile once and be visible to the organisations looking for your skills.",
   "Step by step updates on your application to the most reputable hospitals globally, via Qura.",
 ];
@@ -85,7 +85,7 @@ export function ClinicianSection({ onEnter }) {
           {/* The journey, so a clinician can see at a glance that this is not a
               jobs board they have to keep checking. */}
           <div className="row" style={{ gap: 8, justifyContent: "center", flexWrap: "wrap", marginTop: 16 }}>
-            {["Search", "Match", "Be discovered", "Apply", "Track"].map((step, i) => (
+            {["Search", "Match", "Be discovered", "Apply", "Follow it"].map((step, i) => (
               <span key={step} className="row" style={{ gap: 8, fontSize: 13, color: "#AEBED6" }}>
                 {i ? <span style={{ color: "var(--cyan)" }}>&rsaquo;</span> : null}
                 <span style={{ fontWeight: 600 }}>{step}</span>
@@ -182,7 +182,7 @@ export function ClinicianSection({ onEnter }) {
             <button className="btn btn-primary" onClick={onEnter} style={{ padding: "12px 28px", fontSize: 15 }}>Create my free clinician profile</button>
             <div style={{ fontSize: 13.5, color: "var(--cyan)", marginTop: 12, fontWeight: 600 }}>Joining and applying on Qura is free. Always.</div>
             <div style={{ fontSize: 12, color: "#8697B0", marginTop: 10, marginBottom: 22 }}>Guidance only, not immigration advice. Requirements are confirmed during verification.</div>
-            <div style={{ fontSize: 13.5, color: "#AEBED6", marginBottom: 14, fontWeight: 600 }}>Track your applications in real time. Get the app.</div>
+            <div style={{ fontSize: 13.5, color: "#AEBED6", marginBottom: 14, fontWeight: 600 }}>Follow every application from submitted to employer response. Get the app.</div>
             <StoreBadges />
             <div style={{ fontSize: 12, color: "#8697B0", marginTop: 12 }}>Free on Android. iOS to follow.</div>
           </div>
