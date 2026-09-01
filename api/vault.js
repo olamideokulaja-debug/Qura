@@ -3,14 +3,16 @@ import { getUser, kvGet, kvSet } from "./_auth.js";
 // The clinician document vault.
 //
 //   GET                          the clinician's own vault
+//   GET  ?pending=1              founder: documents waiting to be checked
 //   GET  ?owner=<id>             an organisation's view — only what is shared
 //   GET  ?open=<docId>           a signed link, expiring in 5 minutes
+//   GET  ?log=<docId>            founder: who has opened this document
 //   POST { type, file }          upload a document
 //   POST { type, meta }          record metadata (DBS, occupational health)
+//   POST { docId, decision }     founder: verify or reject
 //   POST { remove }              delete one entry
-//   GET  ?log=<docId>            founder: who has opened this document
 //
-// Four rules, each enforced here rather than in the interface, because an
+// Five rules, each enforced here rather than in the interface, because an
 // interface-only rule is one refactor away from not existing:
 //
 //   1. DBS and occupational health store metadata. A file posted against a
@@ -21,12 +23,12 @@ import { getUser, kvGet, kvSet } from "./_auth.js";
 //      AND the document has not expired.
 //   4. Every open is logged — who, what, when. Your audit asks for it, and it
 //      is far easier to build now than to add to a vault already in use.
+//   5. Rejecting requires a reason, and unshares the document immediately.
 
 const BUCKET = "clinician-documents";
 const KEY = "clinician_vault";
 const LOG = (owner) => "vault_access_" + owner;
 
-const METADATA_TYPES = new Set(["dbs", "occupational-health"]);
 const OWNERS = (process.env.OWNER_EMAILS || process.env.VITE_OWNER_EMAILS || "")
   .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
 const isOwner = (u) => Boolean(u && u.email && OWNERS.includes(String(u.email).toLowerCase()));
