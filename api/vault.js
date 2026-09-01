@@ -70,6 +70,30 @@ export default async function handler(req, res) {
   const q = req.query || {};
   const body = req.body || {};
 
+  // ------------------------------------------------- founder: pending queue
+  if (q.pending) {
+    if (!isOwner(user)) return res.status(403).json({ error: "Not authorised." });
+    const r = await fetch(base() + "/rest/v1/kv?key=eq." + KEY + "&select=owner,value", {
+      headers: { apikey: svc(), authorization: "Bearer " + svc() },
+    });
+    if (!r.ok) return res.status(200).json({ documents: [] });
+    const rows = await r.json();
+    const out = [];
+    for (const row of (Array.isArray(rows) ? rows : [])) {
+      let docs;
+      try { docs = typeof row.value === "string" ? JSON.parse(row.value) : row.value; }
+      catch (e) { continue; }
+      if (!Array.isArray(docs)) continue;
+      for (const d of docs) {
+        // Nothing to check on an occupational health report: it is never
+        // released, so a founder has no reason to open one.
+        if (d.type === "occupational-health" && d.file) continue;
+        if (!d.verifiedAt && !d.rejectedAt) out.push({ ...d, ownerId: row.owner });
+      }
+    }
+    return res.status(200).json({ documents: out });
+  }
+
   // ------------------------------------------------- an organisation's view
   if (q.owner) {
     const docs = await readVault(String(q.owner));
@@ -128,6 +152,31 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  // ------------------------------------------- founder: check a document
+  if (body.docId && body.decision) {
+    if (!isOwner(user)) return res.status(403).json({ error: "Not authorised." });
+    const holder = clean(body.ownerId, 60);
+    if (!holder) return res.status(400).json({ error: "ownerId is required." });
+    const theirs = await readVault(holder);
+    const doc = theirs.find((d) => d.id === body.docId);
+    if (!doc) return res.status(404).json({ error: "No such document." });
+    const now = new Date().toISOString();
+    if (body.decision === "verify") {
+      doc.verifiedAt = now; doc.verifiedBy = user.email; doc.rejectedAt = null; doc.rejectReason = "";
+    } else {
+      // A rejection the clinician cannot act on is just a dead end, so a
+      // reason is required rather than optional.
+      const why = clean(body.note, 300);
+      if (!why) return res.status(400).json({ error: "Give a reason the clinician can act on." });
+      doc.rejectedAt = now; doc.rejectedBy = user.email; doc.verifiedAt = null; doc.rejectReason = why;
+      // A rejected document stops being shared straight away. Leaving it
+      // visible while marked bad is the worst of both.
+      doc.shared = false;
+    }
+    await kvSet(holder, KEY, theirs);
+    return res.status(200).json({ ok: true, document: doc });
+  }
 
   const docs = await readVault(user.id);
 

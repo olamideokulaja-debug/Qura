@@ -28,6 +28,8 @@ export default function AdminOps() {
   const [orgClaims, setOrgClaims] = useState(null);
   // Framework positions with a certificate attached, awaiting a check.
   const [fwEntries, setFwEntries] = useState(null);
+  // Clinician documents waiting to be checked against the issuing body.
+  const [vaultDocs, setVaultDocs] = useState(null);
   const [busy, setBusy] = useState("");
   const [nc, setNc] = useState({ name: "", org: "", role: "", email: "", phone: "" });
   const [ncMsg, setNcMsg] = useState("");
@@ -40,7 +42,7 @@ export default function AdminOps() {
     try {
       const t = await token();
       const h = { authorization: "Bearer " + t };
-      const [qi, qr, qw, qc, qcl, qo, qf] = await Promise.all([
+      const [qi, qr, qw, qc, qcl, qo, qf, qv] = await Promise.all([
         fetch("/api/admin?view=intros", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=removals", { headers: h }).then((r) => r.json()),
         fetch("/api/admin?view=waitlist", { headers: h }).then((r) => r.json()),
@@ -48,6 +50,7 @@ export default function AdminOps() {
         fetch("/api/supplier-rating?claims=1", { headers: h }).then((r) => r.json()),
         fetch("/api/supplier-org?pending=1", { headers: h }).then((r) => r.json()),
         fetch("/api/frameworks?pending=1", { headers: h }).then((r) => r.json()),
+        fetch("/api/vault?pending=1", { headers: h }).then((r) => r.json()),
       ]);
       setQueue(qi.queue || []);
       setRemovals(qr.removals || []);
@@ -56,7 +59,8 @@ export default function AdminOps() {
       setClaims(qcl.claims || []);
       setOrgClaims(qo.claims || []);
       setFwEntries(qf.entries || []);
-    } catch (e) { setQueue([]); setRemovals([]); setWaitlist([]); setClinicians([]); setClaims([]); setOrgClaims([]); setFwEntries([]); }
+      setVaultDocs(qv.documents || []);
+    } catch (e) { setQueue([]); setRemovals([]); setWaitlist([]); setClinicians([]); setClaims([]); setOrgClaims([]); setFwEntries([]); setVaultDocs([]); }
   };
   useEffect(() => { load(); }, []);
 
@@ -71,6 +75,33 @@ export default function AdminOps() {
   // nothing else verifies it, so this is the check.
   // Opens the certificate through a link that expires in five minutes, so a
   // framework document never ends up on a URL anyone can keep.
+  // Opens a clinician document through a link that expires in five minutes.
+  // The open is logged against the clinician's record before the link is
+  // handed over, so there is always a trail of who read what.
+  const openDoc = async (ownerId, docId) => {
+    setBusy("vo" + docId);
+    try {
+      const t = await token();
+      const r = await fetch("/api/vault?open=" + encodeURIComponent(docId) + "&ownerId=" + encodeURIComponent(ownerId),
+        { headers: { authorization: "Bearer " + t } });
+      const j = await r.json();
+      if (r.ok && j.url) window.open(j.url, "_blank", "noopener");
+    } catch (e) {}
+    setBusy("");
+  };
+
+  const decideDoc = async (ownerId, docId, decision, note) => {
+    setBusy("vd" + docId);
+    try {
+      const t = await token();
+      await fetch("/api/vault", { method: "POST",
+        headers: { authorization: "Bearer " + t, "content-type": "application/json" },
+        body: JSON.stringify({ ownerId, docId, decision, note }) });
+      await load();
+    } catch (e) {}
+    setBusy("");
+  };
+
   const openCert = async (entryId) => {
     setBusy("fd" + entryId);
     try {
@@ -182,7 +213,7 @@ export default function AdminOps() {
   return (
     <div style={{ marginBottom: 28 }}>
       <div className="row" style={{ gap: 8, marginBottom: 14 }}>
-        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["orgs", "Organisation claims" + (orgClaims && orgClaims.length ? " (" + orgClaims.length + ")" : "")], ["frameworks", "Frameworks" + (fwEntries && fwEntries.length ? " (" + fwEntries.length + ")" : "")], ["suppliers", "Supplier ratings" + (claims && claims.length ? " (" + claims.length + ")" : "")], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
+        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["orgs", "Organisation claims" + (orgClaims && orgClaims.length ? " (" + orgClaims.length + ")" : "")], ["frameworks", "Frameworks" + (fwEntries && fwEntries.length ? " (" + fwEntries.length + ")" : "")], ["vault", "Documents" + (vaultDocs && vaultDocs.length ? " (" + vaultDocs.length + ")" : "")], ["suppliers", "Supplier ratings" + (claims && claims.length ? " (" + claims.length + ")" : "")], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
           <button key={k} className={"btn " + (tab === k ? "btn-primary" : "btn-light")} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -303,6 +334,57 @@ export default function AdminOps() {
                   </div>
                 );
               })}
+            </div>
+          )}
+        </div>
+      ) : tab === "vault" ? (
+        <div>
+          <div className="muted" style={{ fontSize: 13, marginBottom: 14, lineHeight: 1.55, maxWidth: 680 }}>
+            Clinician documents waiting to be checked. Open the document, confirm it says
+            what they say it says, then verify. Rejecting requires a reason the clinician
+            can act on, and stops the document being shared straight away.
+            <br /><br />
+            <b>DBS entries hold a number, not a certificate.</b> Check it on the DBS update
+            service rather than asking for the document. Occupational health reports never
+            appear here — they are private to the clinician by design.
+          </div>
+          {vaultDocs === null ? <div className="muted">Loading...</div>
+          : !vaultDocs.length ? <div className="muted">Nothing waiting.</div>
+          : (
+            <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+              {vaultDocs.map((d) => (
+                <div key={d.id} style={{ padding: 16, borderBottom: "1px solid var(--line)" }}>
+                  <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontWeight: 700, fontSize: 15 }}>{d.label || d.type}</span>
+                    {d.expiresOn ? <span className="chip" style={{ fontSize: 10.5 }}>Expires {d.expiresOn}</span> : null}
+                  </div>
+                  {d.meta && Object.keys(d.meta).length ? (
+                    <div style={{ fontSize: 13.5, marginTop: 6 }}>
+                      {Object.entries(d.meta).map(([k, v]) => (
+                        <div key={k}><span className="muted">{k}:</span> <b>{String(v)}</b></div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {d.file ? (
+                    <div className="muted" style={{ fontSize: 12.5, marginTop: 6 }}>{d.file.name}</div>
+                  ) : null}
+                  <div className="row" style={{ gap: 8, marginTop: 11, flexWrap: "wrap" }}>
+                    {d.file ? (
+                      <button className="btn btn-light" style={{ fontSize: 13 }} disabled={busy === "vo" + d.id}
+                        onClick={() => openDoc(d.ownerId, d.id)}>
+                        {busy === "vo" + d.id ? "Opening..." : "Open document"}
+                      </button>
+                    ) : null}
+                    <button className="btn btn-primary" style={{ fontSize: 13 }} disabled={busy === "vd" + d.id}
+                      onClick={() => decideDoc(d.ownerId, d.id, "verify")}>Verify</button>
+                    <button className="btn btn-light" style={{ fontSize: 13 }} disabled={busy === "vd" + d.id}
+                      onClick={() => {
+                        const why = window.prompt("Why is this not accepted? The clinician sees this.");
+                        if (why) decideDoc(d.ownerId, d.id, "reject", why);
+                      }}>Not accepted</button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
