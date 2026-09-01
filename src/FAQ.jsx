@@ -41,7 +41,10 @@ function Item({ item, accent, open, onToggle }) {
   );
 }
 
-export default function FAQ() {
+// compact: the landing-page version. The same answers, the most-asked six, and
+// a link through to the full set — a landing page that dumps 40 questions on
+// someone is a landing page they leave.
+export default function FAQ({ compact = false }) {
   // One open at a time within a group. Accordions where everything can be open
   // at once turn back into the wall of text the grouping was meant to avoid.
   const [open, setOpen] = useState("");
@@ -53,6 +56,31 @@ export default function FAQ() {
     : null;
 
   const most = allItems().filter((_, idx) => MOST_ASKED.includes(idx + 1));
+
+  if (compact) {
+    return (
+      <div style={{ maxWidth: 820, margin: "0 auto", padding: "10px 0 6px" }}>
+        <div className="eyebrow" style={{ color: "#06776F" }}>Frequently asked questions</div>
+        <h2 className="disp" style={{ fontSize: 30, fontWeight: 700, margin: "8px 0 6px" }}>
+          The questions people ask first
+        </h2>
+        <p className="muted" style={{ fontSize: 15, lineHeight: 1.6, margin: "0 0 18px", maxWidth: 620 }}>
+          How the platform actually works, including what Qura decides and what it
+          never decides on an organisation's behalf.
+        </p>
+        <div className="card" style={{ padding: "4px 18px" }}>
+          {most.map((i) => (
+            <Item key={i.q} item={i} accent="var(--teal)"
+              open={open === i.q} onToggle={() => setOpen(open === i.q ? "" : i.q)} />
+          ))}
+        </div>
+        <a href="/faq" className="btn btn-light" style={{ marginTop: 16, fontSize: 14 }}>
+          All {allItems().length} questions, by lens
+        </a>
+      </div>
+    );
+  }
+
 
   return (
     <div className="wrap" style={{ maxWidth: 860, padding: "34px 24px 70px" }}>

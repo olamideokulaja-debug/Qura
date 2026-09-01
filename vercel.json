@@ -23,7 +23,43 @@
   ],
   "rewrites": [
     {
-      "source": "/((?!api/|assets/|team/|.*\\.[a-zA-Z0-9]+$).*)",
+      "source": "/for-clinicians",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/for-suppliers",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/marketplace",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/how-it-works",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/inside-the-platform",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/solutions",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/fragile-professions",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/pricing",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/our-story",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/faq",
       "destination": "/index.html"
     }
   ]

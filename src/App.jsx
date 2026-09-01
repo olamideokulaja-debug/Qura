@@ -546,7 +546,7 @@ a{transition:color .15s ease}
 .step-num{width:26px;height:26px;border-radius:99px;display:grid;place-items:center;font-size:12px;font-weight:800;flex-shrink:0;background:#EEF1F7;color:#5A6783}
 .step-btn.on .step-num{background:var(--teal);color:#fff}
 .lb .sec{display:none!important}
-.lb[data-view="home"] .sec.home,.lb[data-view="clinicians"] .sec.clinicians,.lb[data-view="suppliers-app"] .sec.suppliers-app,.lb[data-view="market"] .sec.market,.lb[data-view="fragile"] .sec.fragile,.lb[data-view="solutions"] .sec.solutions,.lb[data-view="story"] .sec.story,.lb[data-view="how"] .sec.how,.lb[data-view="pricing"] .sec.pricing{display:block!important}
+.lb[data-view="home"] .sec.home,.lb[data-view="clinicians"] .sec.clinicians,.lb[data-view="suppliers-app"] .sec.suppliers-app,.lb[data-view="market"] .sec.market,.lb[data-view="fragile"] .sec.fragile,.lb[data-view="solutions"] .sec.solutions,.lb[data-view="story"] .sec.story,.lb[data-view="how"] .sec.how,.lb[data-view="pricing"] .sec.pricing,.lb[data-view="faq"] .sec.faq{display:block!important}
 .navlink{color:var(--muted);font-size:14.5px;font-weight:500;text-decoration:none;transition:color .15s}
 .navlink:hover{color:var(--navy)}
 `;
@@ -3340,6 +3340,8 @@ const FOOTER_LINKS = [
   ["Fragile professions", "fragile"],
   ["Pricing", "pricing"],
   ["Our story", "story"],
+  // The audit found nobody could reach /faq without knowing the URL.
+  ["FAQs", "faq"],
 ];
 
 
@@ -3368,6 +3370,20 @@ const ROUTES = [
   ["/our-story", "story"],
   ["/faq", "faq"],
 ];
+// One description per public route. The audit found every page inheriting the
+// homepage description, which tells a search engine the pages are the same.
+const PAGE_DESCRIPTIONS = {
+  home: "Qura connects clinicians, healthcare providers, workforce suppliers and medical suppliers in one live healthcare marketplace and growth CRM.",
+  clinicians: "Get verified once and be seen by healthcare organisations across the NHS, private healthcare and internationally. Free for clinicians, always.",
+  "suppliers-app": "Find live healthcare workforce opportunities, map the decision-makers behind them and build a credible, verified supplier profile.",
+  market: "A live view of healthcare demand across five markets, built from official procurement portals and a verified decision-maker register.",
+  how: "How Qura works, from verified profiles and live opportunity intelligence through to introductions organisations actually act on.",
+  solutions: "Workforce, procurement and market intelligence solutions for hospitals, GP practices, care providers and healthcare suppliers.",
+  fragile: "Qura is built for fragile professions, the specialties with severe, sustained shortages where the usual recruitment routes do not work.",
+  pricing: "Qura pricing for workforce suppliers and healthcare organisations. Clinicians join and apply free, always.",
+  story: "Why Qura exists, and the problem in healthcare recruitment and procurement it was built to solve.",
+  faq: "Detailed answers on how Qura works for clinicians, workforce suppliers, hospitals and medical suppliers, including what Qura decides and what it never decides for you.",
+};
 const PAGE_TITLES = {
   faq: "Questions answered, Qura",
   home: "Qura, the 24/7 live healthcare marketplace and growth CRM",
@@ -3455,6 +3471,10 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
       if (!link) { link = document.createElement("link"); link.rel = "canonical"; document.head.appendChild(link); }
       const route = (ROUTES.find((r) => r[1] === view) || ["/"])[0];
       link.href = "https://www.qurahealth.org" + (route === "/" ? "/" : route);
+
+      let desc = document.querySelector('meta[name="description"]');
+      if (!desc) { desc = document.createElement("meta"); desc.name = "description"; document.head.appendChild(desc); }
+      desc.content = PAGE_DESCRIPTIONS[view] || PAGE_DESCRIPTIONS.home;
     } catch (e) {}
   }, [view]);
 
@@ -3715,6 +3735,16 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
 
       <div className="wrap sec home" style={{ padding: "22px 24px" }}>
         <Reveal><div className="grid g4">{stats.map((s) => (<div key={s.l} style={{ textAlign: "center" }}><div className="num" style={{ fontSize: 40, fontWeight: 600, color: "var(--navy)" }}><CountUp v={s.n} /></div><div className="muted" style={{ fontSize: 14, marginTop: 2 }}>{s.l}</div></div>))}</div></Reveal>
+      </div>
+      {/* The FAQ, as its own page at /faq AND on the landing page. The audit
+          found /faq rendering the homepage shell: the route existed but the
+          view had no section here, and the case had been put in Shell, which
+          only renders once someone has signed in. */}
+      <div className="wrap sec faq" style={{ padding: "8px 0 8px" }}>
+        <FAQ />
+      </div>
+      <div className="wrap sec home" style={{ padding: "8px 24px 8px" }}>
+        <FAQ compact />
       </div>
       <div className="wrap sec fragile" style={{ padding: "8px 24px 8px" }}>
         <Reveal>
@@ -4334,7 +4364,6 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "shortlists": return <Shortlists onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "profile": return <ClinicianProfile name={displayName} profile={clinProfile} />;
       case "vault": return <Vault />;
-      case "faq": return <FAQ />;
       case "myapps": return <MyApplications />;
       case "myopps": return <MyOpportunities />;
       case "network": return <NetworkScreen />;
