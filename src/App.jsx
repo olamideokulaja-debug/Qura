@@ -343,6 +343,7 @@ import MyOpportunities from "./MyOpportunities.jsx";
 // Application status reflects what actually happened; the match sits beside
 // it, never inside it.
 import MyApplications from "./MyApplications.jsx";
+import FAQ from "./FAQ.jsx";
 // Stops a trust negotiating twice: shows when a colleague in another
 // department is already engaging the same supplier.
 import CrossDepartment, { CrossDepartmentTag } from "./CrossDepartment.jsx";
@@ -3362,8 +3363,10 @@ const ROUTES = [
   ["/fragile-professions", "fragile"],
   ["/pricing", "pricing"],
   ["/our-story", "story"],
+  ["/faq", "faq"],
 ];
 const PAGE_TITLES = {
+  faq: "Questions answered, Qura",
   home: "Qura, the 24/7 live healthcare marketplace and growth CRM",
   clinicians: "For clinicians, Qura",
   "suppliers-app": "For workforce suppliers, Qura",
@@ -3442,6 +3445,14 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
   useEffect(() => {
     if (typeof document === "undefined") return;
     document.title = PAGE_TITLES[view] || PAGE_TITLES.home;
+    // The canonical has to follow the route, not sit fixed on the root. Without
+    // this every marketing page tells search engines it is the home page.
+    try {
+      let link = document.querySelector('link[rel="canonical"]');
+      if (!link) { link = document.createElement("link"); link.rel = "canonical"; document.head.appendChild(link); }
+      const route = (ROUTES.find((r) => r[1] === view) || ["/"])[0];
+      link.href = "https://www.qurahealth.org" + (route === "/" ? "/" : route);
+    } catch (e) {}
   }, [view]);
 
   // Analytics starts only if this visitor has already agreed. Page views are
@@ -4319,6 +4330,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "findAgencies": return <FindAgencies />;
       case "shortlists": return <Shortlists onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "profile": return <ClinicianProfile name={displayName} profile={clinProfile} />;
+      case "faq": return <FAQ />;
       case "myapps": return <MyApplications />;
       case "myopps": return <MyOpportunities />;
       case "network": return <NetworkScreen />;
