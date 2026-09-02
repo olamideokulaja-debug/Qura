@@ -2537,6 +2537,13 @@ function AgencyBot({ plan = "starter" }) {
   return (
     <div>
       <PageHead title="AI assistant" sub="Your 24/7 AI assistant that replies to enquiries, qualifies leads, answers FAQs and drafts responses in your voice" right={<span className="chip chip-cyan"><Sparkles size={12} /> Premium</span>} />
+      {/* The one real privacy risk in this feature: a free-text box invites
+          someone to paste a CV or a candidate's details, which then go to a
+          model. Said where they are about to type, not in a policy page. */}
+      <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.55, margin: "0 0 14px", maxWidth: 640 }}>
+        What you type here is sent to an AI model to draft a reply. Please do not paste
+        clinician names, CVs, registration numbers or anything else personal about someone.
+      </div>
       {!premium ? <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--cyan-soft)", border: "none" }}><div style={{ fontSize: 13.5 }}>The AI assistant is a Growth feature. You can set it up and preview it on your trial, then keep it on Growth or above.</div></div> : null}
       <div className="grid g2" style={{ gap: 16, alignItems: "start" }}>
         <div className="card" style={{ padding: 20 }}>
@@ -2555,7 +2562,7 @@ function AgencyBot({ plan = "starter" }) {
         <div className="card" style={{ padding: 0, overflow: "hidden", display: "flex", flexDirection: "column", minHeight: 460 }}>
           <div className="row" style={{ gap: 10, padding: "14px 18px", borderBottom: "1px solid var(--line)" }}><div style={{ width: 34, height: 34, borderRadius: 999, background: "var(--cyan-soft)", display: "grid", placeItems: "center" }}><Sparkles size={16} color="#06776F" /></div><div><div style={{ fontWeight: 600, fontSize: 14 }}>{cfg.name || "Your agency"} assistant</div><div className="faint" style={{ fontSize: 11.5 }}>Preview · replies in your voice</div></div></div>
           <div style={{ flex: 1, padding: 18, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", background: "var(--bg)" }}>{msgs.map((m, i) => (<div key={i} style={{ alignSelf: m.me ? "flex-end" : "flex-start", maxWidth: "80%" }}><div style={{ background: m.me ? "var(--blue)" : "#fff", color: m.me ? "#fff" : "var(--text)", padding: "10px 13px", borderRadius: 14, fontSize: 13.5, lineHeight: 1.5, border: m.me ? "none" : "1px solid var(--line)" }}>{m.me ? m.t : <span dangerouslySetInnerHTML={{ __html: fmt(m.t) }} />}</div></div>))}{busy ? <div className="faint" style={{ fontSize: 12 }}>Assistant is typing...</div> : null}</div>
-          <div className="row" style={{ gap: 10, padding: 14, borderTop: "1px solid var(--line)" }}><input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Type an enquiry a hospital might send..." style={{ flex: 1, border: "1px solid var(--line)", borderRadius: 10, padding: "11px 14px", fontSize: 13.5 }} /><button className="btn btn-primary" onClick={send} disabled={busy}><Send size={15} /> Send</button></div>
+          <div className="row" style={{ gap: 10, padding: 14, borderTop: "1px solid var(--line)" }}><input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Type an enquiry a hospital might send. No clinician names or personal details." style={{ flex: 1, border: "1px solid var(--line)", borderRadius: 10, padding: "11px 14px", fontSize: 13.5 }} /><button className="btn btn-primary" onClick={send} disabled={busy}><Send size={15} /> Send</button></div>
         </div>
       </div>
       <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>Preview uses your live AI. Connecting the AI assistant to reply automatically to real inbound enquiries (email, web form or WhatsApp) is a quick backend step we switch on when you are ready.</div>
