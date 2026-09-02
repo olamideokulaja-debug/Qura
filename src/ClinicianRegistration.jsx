@@ -16,8 +16,16 @@ import { PageHead, SectionHead } from "./components/ui.jsx";
 import { AHP_TYPES, DOCTOR_SPECIALTIES, NURSE_TYPES, PROTECTED_LIST,
          REG_BODY, RESIDENCE_LIST, SCIENCE_TYPES } from "./data/clinical.js";
 import { supabase } from "./supabase.js";
+// Career direction, kept separate from professional background so a
+// registration never caps what someone is shown.
+import { CAREER_TRACKS, SECTORS, WORK_AUTH, WORK_PATTERNS } from "./data/careers.js";
 
 export default function ClinicianRegistration({ onToast }) {
+  const [track, setTrack] = useState("");
+  const [targetRoles, setTargetRoles] = useState([]);
+  const [sectors, setSectors] = useState([]);
+  const [markets, setMarkets] = useState([]);
+  const [patterns, setPatterns] = useState([]);
   const [f, setF] = useState({ cat: "", prof: "", regNo: "", country: "", years: "", sector: "", cv: "", declare: false });
   const [done, setDone] = useState(false);
   const [cvBusy, setCvBusy] = useState(false);
@@ -124,7 +132,10 @@ export default function ClinicianRegistration({ onToast }) {
         // "Registration complete" while registeredAt is never set — so they
         // never appear as registered in the founder panel. Tiago hit exactly
         // this.
-        body: JSON.stringify({ ...f, years: Number(f.years), submit: true }),
+        body: JSON.stringify({ ...f, years: Number(f.years), submit: true,
+          // Direction, markets and pattern travel with the registration so
+          // matching can use them from the first minute.
+          careerTrack: track, targetRoles, sectors, markets, workPatterns: patterns }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) {
@@ -138,7 +149,7 @@ export default function ClinicianRegistration({ onToast }) {
       const reg = j.registration || {};
       if (reg.status === "registered" || reg.registeredAt) {
         setDone(true);
-        if (onToast) onToast("Registration complete. You are now registered on Qura.");
+        if (onToast) onToast("Your profile is active. We will check your registration next.");
       } else {
         setErr("Your answers are saved, but the registration did not complete. "
           + (Array.isArray(reg.missing) && reg.missing.length
@@ -158,9 +169,12 @@ export default function ClinicianRegistration({ onToast }) {
     <div>
       <PageHead title="Register with Qura" sub="Registration and profile checks" />
       <div className="card" style={{ padding: 40, textAlign: "center", maxWidth: 640, margin: "0 auto" }}>
-        <div style={{ width: 64, height: 64, borderRadius: 999, background: "var(--cyan-soft)", display: "grid", placeItems: "center", margin: "0 auto 16px" }}><ShieldCheck size={30} color="#06776F" /></div>
-        <h2 className="disp" style={{ fontSize: 24, fontWeight: 700, margin: "0 0 8px" }}>You are registered on Qura</h2>
-        <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.6, maxWidth: 460, margin: "0 auto" }}>Your profile is complete and added to the Qura network. Hospital decision-makers and workforce suppliers around the world can now find you. Before any introduction is made we check your registration number directly against the official register, and your profile is then marked verified. We will be in touch as matching roles appear.</p>
+        <div style={{ width: 64, height: 64, borderRadius: 999, background: "var(--cyan-soft)", display: "grid", placeItems: "center", margin: "0 auto 16px" }}><Check size={30} color="#06776F" /></div>
+        {/* "Registered" and a shield read as an endorsement Qura has not given
+            yet. Verified means a person opened the official register and found
+            them; until that has happened, the honest word is active. */}
+        <h2 className="disp" style={{ fontSize: 24, fontWeight: 700, margin: "0 0 8px" }}>Your Qura profile is active</h2>
+        <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.6, maxWidth: 460, margin: "0 auto" }}>Your details are saved. A member of the Qura team now checks your registration number against the official register. Once that is done your profile is marked verified, and organisations can see it. We will email you either way.</p>
         {protectedC ? <div className="chip chip-med" style={{ marginTop: 16 }}>Direct application status applies to your country</div> : null}
       </div>
     </div>
@@ -189,7 +203,91 @@ export default function ClinicianRegistration({ onToast }) {
           {isUK ? <><label style={lab}>UK experience</label><div className="row" style={{ gap: 8, flexWrap: "wrap" }}>{["NHS", "Private", "Both"].map((sct) => (<button key={sct} onClick={() => upd("sector", sct)} className="chip" style={{ cursor: "pointer", padding: "8px 14px", background: f.sector === sct ? "var(--blue)" : "#EEF1F7", color: f.sector === sct ? "#fff" : "#5A6783" }}>{sct}</button>))}</div></> : null}
 
           <div style={{ height: 1, background: "var(--line)", margin: "22px 0" }} />
-          <SectionHead title="3. Proof of experience" />
+          {/* Where you want to go, kept apart from where you have been. This
+              is the section that lets a biomedical scientist be matched to
+              clinical research rather than to more laboratory work. */}
+          <SectionHead title="3. Where you want to work next" />
+          <div className="muted" style={{ fontSize: 12.5, marginBottom: 10, lineHeight: 1.5 }}>
+            Optional, and worth doing. Your profession above is your background. This is
+            the direction you want to move in, which may be nothing like it.
+          </div>
+
+          <label style={lab}>Career direction</label>
+          <select value={track} style={inp}
+            onChange={(e) => { setTrack(e.target.value); setTargetRoles([]); }}>
+            <option value="">Not sure yet, show me everything</option>
+            {CAREER_TRACKS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+
+          {track ? (
+            <>
+              <label style={{ ...lab, marginTop: 12 }}>Roles you are looking for</label>
+              <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                {(CAREER_TRACKS.find((t) => t.id === track) || { roles: [] }).roles.map((r) => {
+                  const on = targetRoles.includes(r);
+                  return (
+                    <button key={r} type="button" className="chip"
+                      onClick={() => setTargetRoles(on ? targetRoles.filter((x) => x !== r) : [...targetRoles, r])}
+                      style={{ cursor: "pointer", border: "none", fontSize: 11.5, fontWeight: 600,
+                        background: on ? "var(--cyan-soft)" : "#EEF1F7", color: on ? "var(--teal)" : "#5A6783" }}>
+                      {on ? "\u2713 " : ""}{r}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <label style={{ ...lab, marginTop: 12 }}>Sectors that interest you</label>
+              <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+                {SECTORS.map((sec) => {
+                  const on = sectors.includes(sec);
+                  return (
+                    <button key={sec} type="button" className="chip"
+                      onClick={() => setSectors(on ? sectors.filter((x) => x !== sec) : [...sectors, sec])}
+                      style={{ cursor: "pointer", border: "none", fontSize: 11.5, fontWeight: 600,
+                        background: on ? "var(--cyan-soft)" : "#EEF1F7", color: on ? "var(--teal)" : "#5A6783" }}>
+                      {on ? "\u2713 " : ""}{sec}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          ) : null}
+
+          <label style={{ ...lab, marginTop: 12 }}>Countries you would work in</label>
+          <div className="muted" style={{ fontSize: 12, marginBottom: 7 }}>
+            Add each one with your eligibility. We never imply you can work somewhere you cannot.
+          </div>
+          {markets.map((m, i) => (
+            <div key={i} className="row" style={{ gap: 8, marginBottom: 7, flexWrap: "wrap" }}>
+              <input style={{ ...inp, flex: 1, minWidth: 150 }} value={m.country} placeholder="e.g. Canada"
+                onChange={(e) => setMarkets(markets.map((x, j) => j === i ? { ...x, country: e.target.value } : x))} />
+              <select style={{ ...inp, flex: 1, minWidth: 190 }} value={m.workAuth || "unknown"}
+                onChange={(e) => setMarkets(markets.map((x, j) => j === i ? { ...x, workAuth: e.target.value } : x))}>
+                {WORK_AUTH.map((w) => <option key={w.id} value={w.id}>{w.label}</option>)}
+              </select>
+              <button type="button" className="btn btn-ghost" style={{ fontSize: 12 }}
+                onClick={() => setMarkets(markets.filter((_, j) => j !== i))}>Remove</button>
+            </div>
+          ))}
+          <button type="button" className="btn btn-light" style={{ fontSize: 12.5 }}
+            onClick={() => setMarkets([...markets, { country: "", workAuth: "unknown" }])}>Add a country</button>
+
+          <label style={{ ...lab, marginTop: 12 }}>How you want to work</label>
+          <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+            {WORK_PATTERNS.map((p) => {
+              const on = patterns.includes(p);
+              return (
+                <button key={p} type="button" className="chip"
+                  onClick={() => setPatterns(on ? patterns.filter((x) => x !== p) : [...patterns, p])}
+                  style={{ cursor: "pointer", border: "none", fontSize: 11.5, fontWeight: 600,
+                    background: on ? "var(--cyan-soft)" : "#EEF1F7", color: on ? "var(--teal)" : "#5A6783" }}>
+                  {on ? "\u2713 " : ""}{p}
+                </button>
+              );
+            })}
+          </div>
+
+          <SectionHead title="4. Proof of experience" />
           <label style={lab}>Upload your CV (PDF or Word) — optional</label>
           <div className="muted" style={{ fontSize: 12.5, marginBottom: 8, lineHeight: 1.5 }}>
             Not needed to register. You can add it now or later from your profile,

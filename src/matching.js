@@ -15,6 +15,8 @@
 // So every score here is built from facts on both sides, and every point is
 // shown to the clinician as a reason. A score with no reason is decoration.
 
+import { TRACK_TERMS, trackForRole } from "./data/careers.js";
+
 // Words that reliably indicate a profession in a procurement notice. Kept
 // deliberately tight: a loose match is worse than no match, because it teaches
 // a clinician to ignore the feed.
@@ -89,18 +91,67 @@ export function scoreNotice(profile, notice) {
 
   const prof = profile.profession || "";
   const cat = profile.category || "";
+  const targets = Array.isArray(profile.targetRoles) ? profile.targetRoles : [];
 
   const professionHit = anyTerm(text, PROFESSION_TERMS[prof]);
   const categoryHit = anyTerm(text, CATEGORY_TERMS[cat]);
 
+  // Where someone has said what they want to do next, that outranks what they
+  // are registered as. A biomedical scientist targeting clinical research
+  // should see trial work first, not more laboratory contracts.
+  let targetHit = null;
+  for (const role of targets) {
+    const r = String(role).toLowerCase();
+    if (text.includes(r)) { targetHit = { role, exact: true }; break; }
+    const track = trackForRole(role);
+    if (track && anyTerm(text, TRACK_TERMS[track.id])) { targetHit = { role, track }; break; }
+  }
+
   // Without one of these the notice has nothing to do with this person.
-  if (!professionHit && !categoryHit) return null;
+  if (!targetHit && !professionHit && !categoryHit) return null;
 
-  if (professionHit) { score += 55; reasons.push({ label: prof + " named in the notice", ok: true }); }
-  else { score += 30; reasons.push({ label: cat + " work", ok: true }); }
+  if (targetHit && targetHit.exact) {
+    score += 60;
+    reasons.push({ label: targetHit.role + ", the role you are looking for", ok: true });
+  } else if (targetHit) {
+    score += 45;
+    reasons.push({ label: targetHit.track.label + ", the direction you are moving in", ok: true });
+  }
 
-  if (sameCountry(profile, notice)) { score += 20; reasons.push({ label: "In " + profile.country, ok: true }); }
-  else reasons.push({ label: "Outside " + (profile.country || "your country"), ok: false });
+  if (professionHit) {
+    // Background is evidence of capability, not a description of what someone
+    // wants. Once a person has told us their direction, a notice that matches
+    // only their past must rank BELOW one that matches their future, or the
+    // feed just shows them the career they are trying to leave.
+    const weight = targetHit ? 15 : (targets.length ? 28 : 55);
+    score += weight;
+    reasons.push({
+      label: prof + (targetHit ? ", your background" : targets.length ? ", your background rather than your target role" : " named in the notice"),
+      ok: true,
+    });
+  } else if (categoryHit && !targetHit) {
+    score += targets.length ? 16 : 30;
+    reasons.push({ label: cat + " work", ok: true });
+  }
+
+  // Preferred markets, if given, otherwise country of residence. Someone in
+  // Canada targeting the United States should see US work ranked up, not down.
+  const markets = Array.isArray(profile.markets) && profile.markets.length
+    ? profile.markets : (profile.country ? [{ country: profile.country }] : []);
+  const hit = markets.find((m) => sameCountry({ country: m.country }, notice));
+  if (hit) {
+    score += 20;
+    reasons.push({ label: "In " + hit.country + ", a market you want", ok: true });
+    // Eligibility is stated, never assumed. Showing someone work they cannot
+    // take without saying so is worse than not showing it.
+    if (hit.workAuth === "sponsorship") {
+      reasons.push({ label: "You would need visa sponsorship here", ok: false });
+    } else if (hit.workAuth === "eligible") {
+      score += 8; reasons.push({ label: "You are eligible to work here", ok: true });
+    }
+  } else {
+    reasons.push({ label: "Outside your preferred markets", ok: false });
+  }
 
   // Sector, where the clinician has said and the notice makes it knowable.
   const sector = String(profile.sector || "").toLowerCase();

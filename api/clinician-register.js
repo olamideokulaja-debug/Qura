@@ -31,7 +31,17 @@ const FROM_FORM = {
   cv: "cvUploaded",
   availableFrom: "availableFrom",
   dayRate: "dayRate",
+  // Career direction, stored alongside the background rather than replacing it.
+  careerTrack: "careerTrack",
+  targetRoles: "targetRoles",
+  sectors: "sectors",
+  markets: "markets",
+  workPatterns: "workPatterns",
 };
+
+// Fields that arrive as arrays or objects and must survive the string cleaning
+// applied to everything else.
+const STRUCTURED = new Set(["targetRoles", "sectors", "markets", "workPatterns"]);
 
 const REQUIRED = ["category", "profession", "regNumber", "country", "experienceYears"];
 
@@ -39,6 +49,21 @@ function toStored(form) {
   const out = {};
   for (const [a, b] of Object.entries(FROM_FORM)) {
     if (form[a] !== undefined && form[a] !== null && form[a] !== "") out[b] = form[a];
+  }
+  // Markets carry a country and an eligibility status per country. Cleaned
+  // here rather than trusted, and capped so the record cannot grow without
+  // limit.
+  if (Array.isArray(out.markets)) {
+    out.markets = out.markets
+      .filter((m) => m && String(m.country || "").trim())
+      .slice(0, 12)
+      .map((m) => ({
+        country: String(m.country).trim().slice(0, 60),
+        workAuth: ["eligible", "sponsorship", "in-progress", "unknown"].includes(m.workAuth) ? m.workAuth : "unknown",
+      }));
+  }
+  for (const k of ["targetRoles", "sectors", "workPatterns"]) {
+    if (Array.isArray(out[k])) out[k] = out[k].slice(0, 25).map((x) => String(x).slice(0, 80));
   }
   if (out.experienceYears !== undefined) {
     const n = Number(String(out.experienceYears).replace(/[^0-9.]/g, ""));
