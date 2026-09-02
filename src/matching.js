@@ -66,13 +66,33 @@ const anyTerm = (text, terms) => (terms || []).some((t) => text.includes(t));
 const UK_HINTS = ["uk", "united kingdom", "england", "scotland", "wales",
   "northern ireland", "nhs", "london", "manchester", "birmingham", "leeds"];
 
+// Region fields carry cities and states, not countries, so "Toronto" has to be
+// recognised as Canada or a clinician is told a job in their own city is
+// outside their preferred markets. Only the places our feeds actually return.
+const COUNTRY_HINTS = {
+  "canada": ["canada", "ontario", "toronto", "quebec", "montreal", "vancouver",
+    "british columbia", "alberta", "calgary", "ottawa", "manitoba", "nova scotia"],
+  "united states": ["united states", "usa", " us ", "arizona", "new mexico",
+    "south dakota", "north dakota", "california", "texas", "new york", "florida",
+    "illinois", "massachusetts", "pennsylvania", "washington", "maryland"],
+  "australia": ["australia", "new south wales", "sydney", "victoria", "melbourne",
+    "queensland", "brisbane", "perth", "adelaide", "canberra", "tasmania"],
+  "united arab emirates": ["united arab emirates", "uae", "dubai", "abu dhabi", "sharjah"],
+  "nigeria": ["nigeria", "lagos", "abuja", "fct", "kano", "enugu", "rivers", "kaduna"],
+  "ireland": ["ireland", "dublin", "cork", "galway"],
+};
+
 const sameCountry = (profile, notice) => {
   const c = String((profile && profile.country) || "").toLowerCase();
   const r = String((notice && notice.region) || "").toLowerCase();
   const m = String((notice && notice.market) || "").toLowerCase();
   if (!c) return false;
   if (c.includes("united kingdom")) return m === "nhs" || m === "private" || UK_HINTS.some((h) => r.includes(h));
-  if (c.includes("united states")) return m.includes("united states") || m.includes("international");
+  const hints = COUNTRY_HINTS[c];
+  if (hints) {
+    const hay = r + " " + m + " " + String((notice && notice.buyer) || "").toLowerCase();
+    if (hints.some((h) => hay.includes(h))) return true;
+  }
   return r.includes(c) || m.includes(c);
 };
 
@@ -163,6 +183,31 @@ export function scoreNotice(profile, notice) {
     }
   } else if (sector === "both") {
     score += 10; reasons.push({ label: "NHS and private", ok: true });
+  }
+
+  // Therapeutic area and phase, where the clinician has told us and the notice
+  // says. This is the difference between "a CRA role" and "a CRA role in the
+  // area you have actually worked in", which is what a CRO is looking for.
+  const research = profile.research || {};
+  const areas = Array.isArray(research.therapeuticAreas) ? research.therapeuticAreas : [];
+  const areaHit = areas.find((a) => text.includes(String(a).toLowerCase()));
+  if (areaHit) { score += 12; reasons.push({ label: areaHit + ", an area you have worked in", ok: true }); }
+
+  const phases = Array.isArray(research.phases) ? research.phases : [];
+  const phaseHit = phases.find((p) => {
+    const n = String(p).replace("phase-", "");
+    return /^\d$/.test(n) && (text.includes("phase " + n) || text.includes("phase-" + n));
+  });
+  if (phaseHit) {
+    score += 8;
+    reasons.push({ label: "Phase " + String(phaseHit).replace("phase-", "") + ", which you have run", ok: true });
+  }
+
+  // GCP is the entry requirement for most monitoring work, so it is worth
+  // saying when someone has it and the notice asks.
+  const certs = Array.isArray(research.certifications) ? research.certifications : [];
+  if (certs.includes("ich-gcp") && (text.includes("gcp") || text.includes("good clinical practice"))) {
+    score += 6; reasons.push({ label: "You hold ICH-GCP", ok: true });
   }
 
   // Experience is a weak signal here: procurement notices rarely state a

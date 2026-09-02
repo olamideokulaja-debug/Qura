@@ -18,6 +18,34 @@ const REQUIRED = ["category", "profession", "regBody", "regNumber", "country", "
 // but a missing one never blocks registration or verification.
 const OPTIONAL = ["cvUploaded", "availableFrom", "dayRate", "sector"];
 
+// Clinical research experience, stored as one nested object rather than 12 more
+// top-level fields. Only people targeting research roles ever fill it in, so
+// flattening it would put a dozen permanently-empty columns on every other
+// clinician's record.
+const RESEARCH_KEYS = ["researchYears", "independentYears", "phases", "therapeuticAreas",
+  "activities", "settings", "sitesManaged", "travel", "certifications", "systems", "languages"];
+
+function cleanResearch(v) {
+  if (!v || typeof v !== "object") return undefined;
+  const out = {};
+  for (const k of RESEARCH_KEYS) {
+    const val = v[k];
+    if (val === undefined || val === null || val === "") continue;
+    if (Array.isArray(val)) out[k] = val.slice(0, 30).map((x) => String(x).slice(0, 80));
+    else if (typeof val === "number") out[k] = val;
+    else out[k] = String(val).slice(0, 200);
+  }
+  // Numbers stay numbers so matching can compare them without parsing.
+  for (const n of ["researchYears", "independentYears", "sitesManaged"]) {
+    if (out[n] !== undefined) {
+      const num = Number(String(out[n]).replace(/[^0-9.]/g, ""));
+      if (isFinite(num) && num >= 0 && num <= 200) out[n] = Math.round(num);
+      else delete out[n];
+    }
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 function completeness(p) {
   const has = (k) => {
     const v = p ? p[k] : undefined;
@@ -49,7 +77,7 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     const raw = (await kvGet(user.id, KEY)) || {};
-    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate", "sector", "registeredAt", "verifiedAt", "verifiedBy"];
+    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate", "sector", "registeredAt", "verifiedAt", "verifiedBy", "careerTrack", "targetRoles", "sectors", "markets", "workPatterns", "research"];
     const p = { email: user.email };
     for (const f of FIELDS) if (raw[f] !== undefined) p[f] = raw[f];
     return res.status(200).json({ profile: p, status: completeness(p) });
@@ -59,7 +87,7 @@ export default async function handler(req, res) {
     const incoming = req.body || {};
     const current = (await kvGet(user.id, KEY)) || {};
     // Only ever persist these known fields — prevents any runaway growth / nesting.
-    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate", "sector"];
+    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate", "sector", "careerTrack", "targetRoles", "sectors", "markets", "workPatterns"];
     const clean = {};
     for (const f of FIELDS) {
       const v = incoming[f] !== undefined ? incoming[f] : current[f];
@@ -78,6 +106,10 @@ export default async function handler(req, res) {
       else if (/^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(Date.parse(v))) clean.availableFrom = v;
       else delete clean.availableFrom;
     }
+    // Research experience arrives as a nested object and is cleaned as one.
+    const research = cleanResearch(incoming.research !== undefined ? incoming.research : current.research);
+    if (research) clean.research = research;
+
     // Verification is the founder's to give. These three are carried across from
     // what is already stored and are never read off the request, so a clinician
     // posting {verifiedAt: ...} from the console cannot verify themselves.
