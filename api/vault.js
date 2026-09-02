@@ -237,7 +237,19 @@ export default async function handler(req, res) {
     const b64 = String(body.file.data || "").split(",").pop();
     if (!b64) return res.status(400).json({ error: "No file received." });
     const bytes = Buffer.from(b64, "base64");
-    if (bytes.length > 10 * 1024 * 1024) return res.status(400).json({ error: "That file is over 10MB." });
+    // The bucket allows 10MB, but that is not the real ceiling. The file
+    // arrives as base64 inside a JSON body, base64 inflates by a third, and a
+    // serverless request body is capped around 4.5MB. So anything over about
+    // 3.3MB never reaches this code at all: it is rejected at the edge with an
+    // opaque 413 rather than the clear message below.
+    //
+    // Telling someone 10MB and failing at 4 is worse than telling them 3 and
+    // meaning it. The proper fix is a signed upload URL so the file goes
+    // straight to storage and never passes through a function; until then this
+    // limit is the honest one.
+    if (bytes.length > 3 * 1024 * 1024) {
+      return res.status(400).json({ error: "That file is over 3MB. Please upload a smaller copy, or scan it as a PDF rather than photographing it." });
+    }
 
     const path = user.id + "/" + doc.id + "-" + Date.now() + "-" + name.replace(/[^A-Za-z0-9._-]/g, "_");
     const up = await fetch(base() + "/storage/v1/object/" + BUCKET + "/" + path, {

@@ -45,7 +45,13 @@ export default function Vault() {
 
   const upload = async (t, file) => {
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { setMsg("That file is over 10MB."); return; }
+    // 3MB, not the bucket's 10MB: the file is sent as base64 in a JSON body and
+    // a serverless request is capped around 4.5MB, so anything larger fails at
+    // the edge with an opaque error rather than this message.
+    if (file.size > 3 * 1024 * 1024) {
+      setMsg("That file is over 3MB. Please upload a smaller copy, or scan it as a PDF rather than photographing it.");
+      return;
+    }
     setBusy(t.id); setMsg("");
     try {
       const data = await new Promise((ok, no) => {
