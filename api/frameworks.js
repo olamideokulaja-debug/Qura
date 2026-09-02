@@ -166,7 +166,7 @@ export default async function handler(req, res) {
     const b64 = String(body.file.data || "").split(",").pop();
     if (!b64) return res.status(400).json({ error: "No file received." });
     const bytes = Buffer.from(b64, "base64");
-    if (bytes.length > 10 * 1024 * 1024) return res.status(400).json({ error: "That file is over 10MB." });
+    if (bytes.length > 3 * 1024 * 1024) return res.status(400).json({ error: "That file is over 3MB. Please upload a smaller copy, or scan it as a PDF rather than photographing it." });
     const ok = ["application/pdf", "image/png", "image/jpeg", "image/webp",
                 "application/msword",
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];

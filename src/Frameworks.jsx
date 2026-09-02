@@ -80,7 +80,14 @@ export default function Frameworks({ onToast }) {
 
   const attach = async (id, file) => {
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { setMsg("That file is over 10MB."); return; }
+    // 3MB, not 10. The file is sent as base64 in a JSON body and a serverless
+    // request is capped around 4.5MB, so anything larger is rejected at the
+    // edge with an opaque error rather than this message. Same ceiling as the
+    // clinician vault.
+    if (file.size > 3 * 1024 * 1024) {
+      setMsg("That file is over 3MB. Please upload a smaller copy, or scan it as a PDF rather than photographing it.");
+      return;
+    }
     setBusy(id); setMsg("");
     try {
       const data = await new Promise((ok, no) => {
