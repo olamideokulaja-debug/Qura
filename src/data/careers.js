@@ -121,3 +121,21 @@ export const TRACK_TERMS = {
     "electronic patient record", "clinical systems"],
   "clinical-practice": ["locum", "bank staff", "substantive", "clinical post", "ward", "clinic"],
 };
+
+// Why someone might have no professional registration number.
+//
+// Qura's verification model assumed every clinician has a regulator to look
+// them up on. That is true of a UK radiographer and false of a Brazilian
+// biomedical scientist working in clinical research, where registration is not
+// mandatory. It is also false of most people moving INTO research from a
+// non-regulated background, which is exactly the group the career tracks above
+// exist to serve.
+//
+// Treating those people as unverifiable would quietly exclude them. So the
+// reason is recorded, and a second verification route exists for them.
+export const NO_REGISTRATION_REASONS = [
+  { id: "not-required-country", label: "Not required for my profession in my country" },
+  { id: "not-regulated-role", label: "The role I work in is not a regulated profession" },
+  { id: "in-progress", label: "My registration application is in progress" },
+  { id: "lapsed", label: "I held one previously and it has lapsed" },
+];
