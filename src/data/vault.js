@@ -3,7 +3,8 @@
 // Two categories, and the split is the whole design:
 //
 //   DOCUMENT   the file is stored. Registration certificates, right to work,
-//              qualifications, indemnity, mandatory training.
+//              qualifications, indemnity, mandatory training, research
+//              certifications, identity.
 //   METADATA   only the facts are stored, never the file. DBS and occupational
 //              health.
 //
@@ -40,12 +41,40 @@ export const DOC_TYPES = [
     required: true,
   },
   {
+    // Added after a clinician sent a passport and a driving licence with
+    // nowhere to put either. Right to work is a legal status; identity is a
+    // different question, and it is the first check on the credentials
+    // verification route.
+    id: "identity",
+    label: "Identity document",
+    hint: "Passport, national ID or driving licence. Needed if you do not hold a professional registration.",
+    stores: "document",
+    // Identity documents are checked by Qura and never released to an
+    // organisation. A hospital needs to know we confirmed identity, not to hold
+    // a copy of someone's passport.
+    shareable: false,
+    expires: true,
+  },
+  {
     id: "qualification",
     label: "Qualifications",
     hint: "Degree, diploma or specialty certificates",
     stores: "document",
     shareable: true,
     expires: false,
+    multiple: true,
+  },
+  {
+    // GCP, ACRP, SOCRA and similar. The research profile told people to upload
+    // these "under My documents" when no such type existed, so they had
+    // nowhere to go but the mandatory training slot, which is described as BLS
+    // and safeguarding and would never occur to anyone.
+    id: "research-certification",
+    label: "Research and professional certifications",
+    hint: "ICH-GCP, ACRP, SOCRA, IATA and similar. Add each one separately.",
+    stores: "document",
+    shareable: true,
+    expires: true,
     multiple: true,
   },
   {
