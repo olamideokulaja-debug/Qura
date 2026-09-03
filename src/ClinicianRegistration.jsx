@@ -18,7 +18,7 @@ import { AHP_TYPES, DOCTOR_SPECIALTIES, NURSE_TYPES, PROTECTED_LIST,
 import { supabase } from "./supabase.js";
 // Career direction, kept separate from professional background so a
 // registration never caps what someone is shown.
-import { CAREER_TRACKS, SECTORS, WORK_AUTH, WORK_PATTERNS } from "./data/careers.js";
+import { CAREER_TRACKS, SECTORS, WORK_AUTH, WORK_PATTERNS, NO_REGISTRATION_REASONS } from "./data/careers.js";
 
 export default function ClinicianRegistration({ onToast }) {
   const [track, setTrack] = useState("");
@@ -26,7 +26,10 @@ export default function ClinicianRegistration({ onToast }) {
   const [sectors, setSectors] = useState([]);
   const [markets, setMarkets] = useState([]);
   const [patterns, setPatterns] = useState([]);
-  const [f, setF] = useState({ cat: "", prof: "", regNo: "", country: "", years: "", sector: "", cv: "", declare: false });
+  const [f, setF] = useState({ cat: "", prof: "", regNo: "", country: "", years: "", sector: "", cv: "", declare: false,
+    // Whether they hold a registration at all. Assuming everyone does is what
+    // shut out clinicians in countries and roles that do not require one.
+    hasReg: "", noRegReason: "" });
   const [done, setDone] = useState(false);
   const [cvBusy, setCvBusy] = useState(false);
   // hyd gates the draft autosave. Without it the first render would save an
@@ -106,7 +109,12 @@ export default function ClinicianRegistration({ onToast }) {
   const checks = [
     { k: "Category", ok: !!f.cat },
     { k: "Profession / specialty", ok: !!f.prof },
-    { k: body + " registration number", ok: !!f.regNo.trim() },
+    // A registration number is required only of people who have one. Demanding
+    // it of everyone was why a clinician with no regulator could not complete
+    // the form, and why one ended up typing 00000000.
+    f.hasReg === "no"
+      ? { k: "Why you have no registration", ok: !!f.noRegReason }
+      : { k: body + " registration number", ok: !!f.regNo.trim() },
     { k: "Country of residence", ok: !!f.country },
     { k: "Minimum " + minYears + " years' experience", ok: yearsOk },
     { k: "NHS or private experience", ok: !isUK || !!f.sector },
@@ -135,7 +143,11 @@ export default function ClinicianRegistration({ onToast }) {
         body: JSON.stringify({ ...f, years: Number(f.years), submit: true,
           // Direction, markets and pattern travel with the registration so
           // matching can use them from the first minute.
-          careerTrack: track, targetRoles, sectors, markets, workPatterns: patterns }),
+          careerTrack: track, targetRoles, sectors, markets, workPatterns: patterns,
+          // Which verification route this profile is on, decided by the person
+          // rather than inferred from an empty field.
+          verificationRoute: f.hasReg === "no" ? "credentials" : "register",
+          noRegistrationReason: f.hasReg === "no" ? f.noRegReason : "" }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.ok) {
@@ -189,8 +201,39 @@ export default function ClinicianRegistration({ onToast }) {
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>{["Nurse / Midwife", "Allied Health Professional", "Doctor", "Pharmacy & Healthcare Science"].map((c) => (<button key={c} onClick={() => { upd("cat", c); upd("prof", ""); }} className="chip" style={{ cursor: "pointer", padding: "9px 14px", background: f.cat === c ? "var(--navy)" : "#EEF1F7", color: f.cat === c ? "#fff" : "#5A6783" }}>{c}</button>))}</div>
           {f.cat ? <><label style={lab}>{f.cat === "Doctor" ? "Specialty (general or niche)" : "Profession"}</label>
           <select value={f.prof} onChange={(e) => upd("prof", e.target.value)} style={inp}><option value="">Select...</option>{profs.map((p) => <option key={p} value={p}>{p}</option>)}</select>
-          <label style={lab}>{body} registration number</label>
-          <input value={f.regNo} onChange={(e) => upd("regNo", e.target.value)} placeholder={"Your " + body + " PIN / reference"} style={inp} /></> : <p className="faint" style={{ fontSize: 13, marginTop: 10 }}>Choose a category to see the relevant professions and registration body.</p>}
+          <label style={lab}>Do you hold a {body} registration?</label>
+          <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+            {[["yes", "Yes"], ["no", "No, it is not required for my role or country"]].map(([v, l]) => (
+              <button key={v} type="button" onClick={() => upd("hasReg", v)} className="chip"
+                style={{ cursor: "pointer", border: "none", fontSize: 12, fontWeight: 600,
+                  background: f.hasReg === v ? "var(--cyan-soft)" : "#EEF1F7",
+                  color: f.hasReg === v ? "var(--teal)" : "#5A6783" }}>{l}</button>
+            ))}
+          </div>
+
+          {f.hasReg === "no" ? (
+            <>
+              <label style={lab}>Why not?</label>
+              <select value={f.noRegReason} onChange={(e) => upd("noRegReason", e.target.value)} style={inp}>
+                <option value="">Select...</option>
+                {NO_REGISTRATION_REASONS.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+              </select>
+              {/* Said here rather than discovered later. Someone who cannot be
+                  checked on a register still gets verified; it just takes more
+                  evidence, and they should know that before they invest time. */}
+              <div className="muted" style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 8, padding: "10px 12px", borderRadius: 10, background: "var(--bg)" }}>
+                That is common in clinical research and in several countries. You can still be
+                Qura Verified: instead of a register check we confirm your identity, your
+                qualification with the awarding institution, and a current certification with
+                its issuing body. Upload those under My documents once you are registered.
+              </div>
+            </>
+          ) : f.hasReg === "yes" ? (
+            <>
+              <label style={lab}>{body} registration number</label>
+              <input value={f.regNo} onChange={(e) => upd("regNo", e.target.value)} placeholder={"Your " + body + " PIN / reference"} style={inp} />
+            </>
+          ) : null}</> : <p className="faint" style={{ fontSize: 13, marginTop: 10 }}>Choose a category to see the relevant professions and registration body.</p>}
 
           <div style={{ height: 1, background: "var(--line)", margin: "22px 0" }} />
           <SectionHead title="2. Experience & location" />

@@ -37,6 +37,10 @@ const FROM_FORM = {
   sectors: "sectors",
   markets: "markets",
   workPatterns: "workPatterns",
+  // Which route this profile is verified by, chosen by the clinician
+  // rather than inferred from an empty registration field.
+  verificationRoute: "verificationRoute",
+  noRegistrationReason: "noRegistrationReason",
 };
 
 // Fields that arrive as arrays or objects and must survive the string cleaning

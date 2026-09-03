@@ -12,6 +12,9 @@ import { SectionHead } from "./components/ui.jsx";
 // sees is reused here with the founder controls switched on.
 import SupplierRating from "./SupplierRating.jsx";
 import { FRAMEWORK_STATUS, frameworkLabel } from "./data/frameworks.js";
+// Which verification route a clinician is on, and what that route actually
+// requires you to check before marking them verified.
+import { VERIFICATION_ROUTES } from "./data/verification.js";
 import { AGENCIES } from "./data/marketplace.js";
 import { supabase } from "./supabase.js";
 
@@ -462,6 +465,40 @@ export default function AdminOps() {
                       {c.experienceYears ? " · " + c.experienceYears : ""}
                       {c.cvUploaded ? " · CV on file" : " · no CV"}
                     </div>
+
+                    {/* Which route, and the checks it requires. Without this a
+                        founder faced with a clinician who has no registration
+                        number has no idea what they are supposed to confirm,
+                        and the honest options are to guess or to refuse. */}
+                    {(() => {
+                      const route = VERIFICATION_ROUTES[c.verificationRoute] ||
+                        (c.regNumber ? VERIFICATION_ROUTES.register : null);
+                      if (!route) {
+                        return (
+                          <div style={{ fontSize: 12.5, marginTop: 8, color: "var(--amber)" }}>
+                            No verification route chosen. Ask them whether they hold a registration.
+                          </div>
+                        );
+                      }
+                      return (
+                        <div style={{ marginTop: 8, padding: "10px 12px", borderRadius: 10, background: "var(--bg)" }}>
+                          <div className="row" style={{ gap: 7, flexWrap: "wrap" }}>
+                            <span className="chip" style={{ fontSize: 10.5, fontWeight: 700, background: "var(--cyan-soft)", color: "var(--teal)" }}>
+                              {route.shortLabel}
+                            </span>
+                            {c.noRegistrationReason ? (
+                              <span className="faint" style={{ fontSize: 12 }}>{c.noRegistrationReason.replace(/-/g, " ")}</span>
+                            ) : null}
+                          </div>
+                          <div className="faint" style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".06em", marginTop: 8 }}>
+                            BEFORE YOU VERIFY
+                          </div>
+                          {route.checks.map((chk) => (
+                            <div key={chk} style={{ fontSize: 12.5, marginTop: 3 }}>· {chk}</div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                     {c.missing.length ? (
                       <div className="muted" style={{ fontSize: 12.5, marginTop: 5 }}>Still missing: {c.missing.join(", ")}</div>
                     ) : null}
