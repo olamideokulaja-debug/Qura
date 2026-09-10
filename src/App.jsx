@@ -365,6 +365,12 @@ import { QuraLogo, Wordmark, Avatar, useCountUp, Stat, Kpi, SectionHead, PageHea
 import { SPECIALTIES, REAL_OPPS, CLIENTS, INTL_OPPS, OPPS, CLINICIANS, AGENCIES, MEETINGS, INTEL, STAGES, PIPE_DATA, REGION_DATA, SPEC_DATA, GMV_TREND, REGIONS, FUNNEL, TOP_AGENCIES, TOP_OPPS, FEED_POOL, ALERTS } from "./data/marketplace.js";
 import { PRIORITY, PROTECTED_LIST, REG_BODY, NURSE_TYPES, AHP_TYPES, SCIENCE_TYPES, DOCTOR_SPECIALTIES, RESIDENCE_LIST } from "./data/clinical.js";
 import { MARKETS, CURRENCY, PLAN_LABEL, PREMIUM_FEATURES, ALL_PREMIUM, CREDIT_TIERS, PLAN_ACCESS, FEED_STAGES, STATUS_STAGES, MARKET_TREND, SUP_PERF, SUPPLIERS, FEED_STATUS } from "./data/plans.js";
+// The flat navigation registry, extracted so the consolidation test can read
+// the real thing rather than a copy.
+import { NAVS } from "./navs.js";
+// Groups the flat registry into 5 to 7 primary destinations per lens. Returns
+// null for lenses not yet migrated, which then render flat as before.
+import { resolveNav } from "./data/navigation.js";
 
 const OWNER_EMAILS = (import.meta.env.VITE_OWNER_EMAILS || "").split(",").map((x) => x.trim().toLowerCase()).filter(Boolean);
 
@@ -4140,48 +4146,7 @@ const RoleSelect = ({ onPick }) => {
 };
 
 /* ===================== shell ===================== */
-const NAVS = {
-  operator: [
-    { k: "howto", l: "How to use Qura", i: GraduationCap }, { k: "academy", l: "Qura Academy", i: Award }, { k: "command", l: "MCC", i: Activity }, { k: "ops", l: "Sign-ups & financials", i: BarChart3 }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Private clinics", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Enquiry inbox", i: Inbox }, { k: "opportunities", l: "Clinical Demand", i: Target }, { k: "savedOpps", l: "Saved", i: Star }, { k: "talentpool", l: "Talent pipeline", i: Users },
-    { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "execs", l: "Executive network", i: Briefcase }, { k: "aibot", l: "AI assistant", i: Sparkles }, { k: "whyswitch", l: "Why switch", i: Award }, { k: "marketmap", l: "Market map", i: Radar }, { k: "proposals", l: "Proposals", i: FileText },
-    { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "weekly", l: "Weekly report", i: FileText }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "accommodation", l: "Accommodation", i: Home }, { k: "news", l: "Industry news", i: Rss },
-    { k: "analytics", l: "Analytics", i: BarChart3 }, { k: "clinicians", l: "Clinician network", i: Stethoscope },
-    { k: "clients", l: "Clients & targets", i: Building2 }, { k: "casestudies", l: "Case studies", i: Award },
-    { k: "playbook", l: "Incentive playbook", i: Zap }, { k: "events", l: "Round-tables", i: Ticket },
-    { k: "register", l: "Register a company", i: ClipboardList }, { k: "whyqura", l: "Why Qura wins", i: Trophy }, { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "staffing", l: "Site staffing", i: Building2 }, { k: "mobileunits", l: "Mobile units", i: Truck }, { k: "brand", l: "Brand channels", i: Sparkles }, { k: "pricing", l: "Pricing", i: CreditCard },
-  ],
-  agency: [
-    { k: "howto", l: "How to use Qura", i: GraduationCap }, { k: "academy", l: "Qura Academy", i: Award }, { k: "dashboard", l: "Dashboard", i: LayoutDashboard }, { k: "standing", l: "Your Qura standing", i: ShieldCheck }, { k: "feed", l: "Live feed", i: Rss }, { k: "suppliers", l: "Private clinics", i: Package }, { k: "leaderboard", l: "Leaderboard", i: Trophy }, { k: "inbox", l: "Enquiry inbox", i: Inbox }, { k: "opportunities", l: "Opportunities", i: Target }, { k: "savedOpps", l: "Saved", i: Star }, { k: "talentpool", l: "Talent pipeline", i: Users },
-    { k: "decisionMakers", l: "Decision makers", i: Users }, { k: "execs", l: "Executive network", i: Briefcase }, { k: "aibot", l: "AI assistant", i: Sparkles }, { k: "whyswitch", l: "Why switch", i: Award }, { k: "marketmap", l: "Market map", i: Radar }, { k: "outreach", l: "Outreach", i: Send },
-    { k: "proposals", l: "Proposals", i: FileText }, { k: "meetings", l: "Meetings", i: Calendar },
-    { k: "pipeline", l: "Pipeline & CRM", i: GitBranch }, { k: "weekly", l: "Weekly report", i: FileText }, { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "accommodation", l: "Accommodation", i: Home }, { k: "news", l: "Industry news", i: Rss },
-    { k: "analytics", l: "Analytics", i: BarChart3 }, { k: "clinicians", l: "Clinician network", i: Stethoscope },
-    { k: "clients", l: "Clients & targets", i: Building2 }, { k: "casestudies", l: "Case studies", i: Award },
-    { k: "playbook", l: "Incentive playbook", i: Zap }, { k: "events", l: "Round-tables", i: Ticket },
-    { k: "register", l: "Register a company", i: ClipboardList }, { k: "whyqura", l: "Why Qura wins", i: Trophy }, { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "staffing", l: "Site staffing", i: Building2 }, { k: "mobileunits", l: "Mobile units", i: Truck }, { k: "brand", l: "Brand channels", i: Sparkles }, { k: "pricing", l: "Pricing", i: CreditCard },
-  ],
-  hospital: [
-    { k: "howto", l: "How to use Qura", i: GraduationCap }, { k: "academy", l: "Qura Academy", i: Award }, { k: "feed", l: "Post & live feed", i: Rss }, { k: "clinicians", l: "Candidate search", i: Stethoscope }, { k: "execs", l: "Executive network", i: Briefcase }, { k: "talentpool", l: "Available talent", i: Users }, { k: "shortlists", l: "My shortlists", i: Heart },
-    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "accommodation", l: "Accommodation", i: Home }, { k: "news", l: "Industry news", i: Rss },
-    { k: "hdash", l: "Dashboard", i: LayoutDashboard }, { k: "weekly", l: "Weekly report", i: FileText }, { k: "findAgencies", l: "Find workforce suppliers", i: Briefcase }, { k: "meetings", l: "Meetings", i: Calendar },
-    { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "staffing", l: "Site staffing", i: Building2 }, { k: "mobileunits", l: "Mobile units", i: Truck },
-    { k: "casestudies", l: "Case studies", i: Award }, { k: "events", l: "Round-tables", i: Ticket }, { k: "whyqura", l: "Why Qura", i: Trophy }, { k: "pricing", l: "Pricing", i: CreditCard },
-  ],
-  clinician: [
-    { k: "howto", l: "How to use Qura", i: GraduationCap }, { k: "academy", l: "Qura Academy", i: Award }, { k: "profile", l: "My profile", i: UserCheck }, { k: "feed", l: "Live feed", i: Rss }, { k: "myopps", l: "Opportunities for me", i: Target }, { k: "myapps", l: "My applications", i: FileText }, { k: "vault", l: "My documents", i: ShieldCheck },
-    { k: "clinicianReg", l: "Get verified", i: ShieldCheck }, { k: "liveProjects", l: "Live projects", i: Radar }, { k: "network", l: "Network", i: Users }, { k: "messages", l: "Messages", i: MessageSquare }, { k: "relocation", l: "Relocation", i: Globe }, { k: "accommodation", l: "Accommodation", i: Home }, { k: "news", l: "Industry news", i: Rss },
-  ],
-  gp: [
-    { k: "howto", l: "How to use Qura", i: GraduationCap }, { k: "academy", l: "Qura Academy", i: Award }, { k: "feed", l: "Post & live feed", i: Rss }, { k: "gpHub", l: "GP hub", i: Stethoscope }, { k: "clinicians", l: "Find GPs & locums", i: UserCheck }, { k: "shortlists", l: "My shortlists", i: Heart },
-    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "accommodation", l: "Accommodation", i: Home }, { k: "news", l: "Industry news", i: Rss }, { k: "meetings", l: "Meetings", i: Calendar },
-    { k: "findAgencies", l: "Find workforce suppliers", i: Briefcase }, { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "casestudies", l: "Case studies", i: Award }, { k: "pricing", l: "Pricing", i: CreditCard },
-  ],
-  care: [
-    { k: "howto", l: "How to use Qura", i: GraduationCap }, { k: "academy", l: "Qura Academy", i: Award }, { k: "feed", l: "Post & live feed", i: Rss }, { k: "careHub", l: "Care hub", i: Heart }, { k: "clinicians", l: "Find carers & nurses", i: Stethoscope }, { k: "shortlists", l: "My shortlists", i: Heart },
-    { k: "intel", l: "Market intelligence", i: Radar }, { k: "psintel", l: "Public sector intel", i: Network }, { k: "relocation", l: "Relocation", i: Globe }, { k: "accommodation", l: "Accommodation", i: Home }, { k: "news", l: "Industry news", i: Rss }, { k: "meetings", l: "Meetings", i: Calendar },
-    { k: "tariffs", l: "Tariff rates", i: FileText }, { k: "casestudies", l: "Case studies", i: Award }, { k: "pricing", l: "Pricing", i: CreditCard },
-  ],
-};
+
 const ROLE_META = {
   operator: { label: "Co-Founder · Operator", who: "Operator", img: undefined },
   agency: { label: "Workforce supplier", who: "Apex Growth Partners" },
@@ -4235,6 +4200,9 @@ const NOTIFS = [
 function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan, onExtend, isOwner, ownerEmail, profileName, onProfileName, founder, authUser, clinProfile = {} }) {
   const nav = NAVS[role];
   const [active, setActive] = useState(nav[0].k);
+  // Which navigation group is expanded. One at a time: a sidebar with every
+  // group open is the flat list again with extra indentation.
+  const [openGroup, setOpenGroup] = useState("");
   const [market, setMarket] = useState(role === "hospital" ? "nhs" : "all");
   const [upgradeTo, setUpgradeTo] = useState(null);
   const [lockedFrom, setLockedFrom] = useState(null);
@@ -4387,7 +4355,54 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
           : role === "hospital" || role === "gp" || role === "care" ? "HEALTHCARE WORKFORCE"
           : "HEALTHCARE GROWTH CRM"} />
       </button>
-      <div className="scrollx" style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, overflowY: "auto" }}>{nav.map((n) => (<button key={n.k} className={"navitem" + (active === n.k ? " active" : "")} onClick={() => go(n.k)}><n.i size={17} /><span style={{ flex: 1 }}>{n.l}</span>{n.k === "inbox" && inboxNew > 0 && <span style={{ background: "var(--cyan)", color: "#05201E", fontWeight: 700, fontSize: 10.5, minWidth: 18, height: 18, borderRadius: 999, display: "grid", placeItems: "center", padding: "0 5px" }}>{inboxNew}</span>}{premiumScreens.includes(n.k) && !((PLAN_ACCESS[plan] || []).includes(n.k)) && <Lock size={12} style={{ opacity: 0.55, flexShrink: 0 }} />}</button>))}</div>
+      <div className="scrollx" style={{ display: "flex", flexDirection: "column", gap: 3, flex: 1, overflowY: "auto" }}>{(() => {
+        // A single navigation row, used for both flat items and nested children
+        // so badges and lock icons behave identically wherever an item sits.
+        const item = (n, nested) => (
+          <button key={n.k} className={"navitem" + (active === n.k ? " active" : "")}
+            onClick={() => go(n.k)}
+            style={nested ? { paddingLeft: 34, fontSize: 13.5 } : undefined}>
+            {n.i ? <n.i size={nested ? 15 : 17} /> : null}
+            <span style={{ flex: 1 }}>{n.l}</span>
+            {n.k === "inbox" && inboxNew > 0 && <span style={{ background: "var(--cyan)", color: "#05201E", fontWeight: 700, fontSize: 10.5, minWidth: 18, height: 18, borderRadius: 999, display: "grid", placeItems: "center", padding: "0 5px" }}>{inboxNew}</span>}
+            {premiumScreens.includes(n.k) && !((PLAN_ACCESS[plan] || []).includes(n.k)) && <Lock size={12} style={{ opacity: 0.55, flexShrink: 0 }} />}
+          </button>
+        );
+
+        const groups = resolveNav(role);
+        // Lenses not yet migrated keep the flat list exactly as before.
+        if (!groups) return nav.map((n) => item(n, false));
+
+        const byKey = {};
+        for (const n of nav) byKey[n.k] = n;
+
+        return groups.map((g) => {
+          const kids = g.children.map((k) => byKey[k]).filter(Boolean);
+          const Icon = (byKey[g.k] && byKey[g.k].i) || null;
+          const holdsActive = kids.some((c) => c.k === active) || g.k === active;
+          const open = openGroup === g.key || holdsActive;
+
+          if (!kids.length) {
+            return item({ ...(byKey[g.k] || {}), k: g.k, l: g.label, i: Icon }, false);
+          }
+          return (
+            <div key={g.key}>
+              <button className={"navitem" + (holdsActive ? " active" : "")}
+                onClick={() => { setOpenGroup(open ? "" : g.key); }}
+                aria-expanded={open}>
+                {/* Colour marks the category, but never alone: the label and
+                    the expanded state carry the same meaning for anyone who
+                    cannot distinguish it. */}
+                <span style={{ width: 3, height: 16, borderRadius: 2, background: g.category.colour, flexShrink: 0 }} />
+                {Icon ? <Icon size={17} /> : null}
+                <span style={{ flex: 1 }}>{g.label}</span>
+                <ChevronDown size={14} style={{ opacity: 0.6, transform: open ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+              </button>
+              {open ? kids.map((c) => item(c, true)) : null}
+            </div>
+          );
+        });
+      })()}</div>
       <button onClick={() => go("pricing")} style={{ display: "block", width: "100%", textAlign: "left", background: "linear-gradient(135deg,rgba(0,194,184,.18),rgba(0,194,184,.05))", border: "1px solid rgba(0,194,184,.24)", borderRadius: 14, padding: 14, margin: "10px 0", cursor: "pointer" }}><div className="row" style={{ gap: 8 }}><Sparkles size={15} color="#5FE6DC" /><span style={{ color: "#fff", fontWeight: 600, fontSize: 13 }}>Upgrade your plan</span></div><div style={{ color: "#9FB0D0", fontSize: 12, marginTop: 4 }}>AI proposals, full database and live intel.</div><div className="row" style={{ gap: 5, marginTop: 9, color: "#5FE6DC", fontWeight: 600, fontSize: 12 }}>View plans <ArrowRight size={13} /></div></button>
       <button className="navitem" onClick={onLogout}><LogOut size={17} /> Sign out</button>
     </div>
