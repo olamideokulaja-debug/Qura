@@ -19,11 +19,13 @@ import { getUser, kvGet, kvSet } from "./_auth.js";
 //      metadata type is refused outright.
 //   2. An occupational health REPORT is never shared, whatever the sharing
 //      flags say. A hospital sees fit-to-work status and a date.
-//   3. An organisation sees a document only where the clinician has shared it
-//      AND the document has not expired.
+//   3. An organisation sees a document only where it has an introduction to
+//      that clinician, the clinician has shared it, and it has not expired.
 //   4. Every open is logged — who, what, when. Your audit asks for it, and it
 //      is far easier to build now than to add to a vault already in use.
 //   5. Rejecting requires a reason, and unshares the document immediately.
+//   6. Reading someone else's vault is logged against their record, not the
+//      reader's, because it is their promise that every access is recorded.
 
 const BUCKET = "clinician-documents";
 const KEY = "clinician_vault";
@@ -98,7 +100,37 @@ export default async function handler(req, res) {
 
   // ------------------------------------------------- an organisation's view
   if (q.owner) {
-    const docs = await readVault(String(q.owner));
+    const owner = String(q.owner);
+    // AUTHORIZATION, which was missing entirely. Any signed-in account could
+    // pass any other account's id here and read their shared documents:
+    // passports, qualifications, right-to-work evidence. No relationship was
+    // required and nothing was logged.
+    //
+    // A clinician's documents are visible to an organisation only where that
+    // organisation has requested an introduction to them. Sharing a document
+    // is the clinician's consent to be considered, not consent for anyone with
+    // an account to browse it.
+    if (owner !== user.id && !isOwner(user)) {
+      const intros = (await kvGet(user.id, "supplier_introductions")) || [];
+      const linked = (Array.isArray(intros) ? intros : [])
+        .some((i) => i && (i.clinicianId === owner || i.owner === owner));
+      if (!linked) {
+        return res.status(403).json({ error: "You do not have an introduction to this clinician." });
+      }
+    }
+    const docs = await readVault(owner);
+    // Logged like any other read. An organisation looking at someone's
+    // documents is exactly the access the clinician was promised a record of.
+    if (owner !== user.id) {
+      try {
+        const log = (await kvGet("shared", LOG(owner))) || [];
+        const list = Array.isArray(log) ? log : [];
+        list.push({ docId: "list", type: "organisation-view", by: user.email, at: new Date().toISOString() });
+        await kvSet("shared", LOG(owner), list.slice(-500));
+      } catch (e) {
+        console.error("[vault] org-view log failed: " + (e && e.message));
+      }
+    }
     return res.status(200).json({ documents: shareableView(docs) });
   }
 
