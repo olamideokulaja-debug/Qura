@@ -30,9 +30,14 @@ export const CATEGORIES = {
   admin: { key: "admin", label: "Account", token: "nav.utility", colour: "#5A6783" },
 };
 
-// Groups per lens. `k` on a group is the destination opened when the group
-// itself is tapped, so a group is never a dead end on touch: tapping the parent
-// goes somewhere useful rather than only expanding.
+// Groups per lens, all six of them. Operator, GP and care were left flat in the
+// first pass so the three core lenses could be reviewed on their own; they are
+// grouped here on the same rules, and the coverage test now runs across all
+// 144 keys rather than the original 76.
+//
+// `k` on a group is the destination opened when the group itself is tapped, so
+// a group is never a dead end on touch: tapping the parent goes somewhere
+// useful rather than only expanding.
 //
 // Order within each lens is independent. A supplier's first destination is not
 // a clinician's, and forcing one hierarchy on both is what produced the flat
@@ -113,14 +118,89 @@ export const LENS_NAV = {
       children: ["pricing", "meetings", "casestudies", "events", "whyqura", "news", "academy", "howto"],
     },
   ],
+
+  operator: [
+    {
+      key: "home", label: "Command centre", icon: "Activity", category: "core", k: "command",
+      children: ["command", "ops", "analytics", "leaderboard"],
+    },
+    {
+      key: "opportunities", label: "Opportunities", icon: "Target", category: "opportunity", k: "opportunities",
+      children: ["opportunities", "savedOpps", "feed", "inbox", "proposals", "pipeline"],
+    },
+    {
+      key: "intelligence", label: "Market intelligence", icon: "Radar", category: "intelligence", k: "intel",
+      children: ["intel", "psintel", "marketmap", "decisionMakers", "execs", "clients"],
+    },
+    {
+      key: "talent", label: "Talent", icon: "Users", category: "workforce", k: "talentpool",
+      children: ["talentpool", "clinicians", "suppliers", "staffing", "mobileunits"],
+    },
+    {
+      key: "ai", label: "AI tools", icon: "Sparkles", category: "ai", k: "aibot",
+      children: ["aibot", "weekly", "playbook"],
+    },
+    {
+      key: "growth", label: "Growth & brand", icon: "Trophy", category: "verification", k: "whyqura",
+      children: ["whyqura", "whyswitch", "casestudies", "events", "brand", "register"],
+    },
+    {
+      key: "account", label: "Account", icon: "CreditCard", category: "admin", k: "pricing",
+      children: ["pricing", "tariffs", "relocation", "accommodation", "news", "academy", "howto"],
+    },
+  ],
+
+  gp: [
+    { key: "home", label: "GP hub", icon: "Stethoscope", category: "core", k: "gpHub" },
+    {
+      key: "workforce", label: "Find people", icon: "UserCheck", category: "workforce", k: "clinicians",
+      children: ["clinicians", "shortlists", "feed"],
+    },
+    {
+      key: "suppliers", label: "Suppliers & rates", icon: "Briefcase", category: "opportunity", k: "findAgencies",
+      children: ["findAgencies", "tariffs", "meetings"],
+    },
+    {
+      key: "intelligence", label: "Market intelligence", icon: "Radar", category: "intelligence", k: "intel",
+      children: ["intel", "psintel", "news"],
+    },
+    {
+      key: "moving", label: "Relocation support", icon: "Globe", category: "intelligence", k: "relocation",
+      children: ["relocation", "accommodation"],
+    },
+    {
+      key: "account", label: "Account", icon: "CreditCard", category: "admin", k: "pricing",
+      children: ["pricing", "casestudies", "academy", "howto"],
+    },
+  ],
+
+  care: [
+    { key: "home", label: "Care hub", icon: "Heart", category: "core", k: "careHub" },
+    {
+      key: "workforce", label: "Find people", icon: "Stethoscope", category: "workforce", k: "clinicians",
+      children: ["clinicians", "shortlists", "feed"],
+    },
+    {
+      key: "intelligence", label: "Market intelligence", icon: "Radar", category: "intelligence", k: "intel",
+      children: ["intel", "psintel", "news"],
+    },
+    {
+      key: "moving", label: "Relocation support", icon: "Globe", category: "intelligence", k: "relocation",
+      children: ["relocation", "accommodation"],
+    },
+    {
+      key: "account", label: "Account", icon: "CreditCard", category: "admin", k: "pricing",
+      children: ["pricing", "tariffs", "meetings", "casestudies", "academy", "howto"],
+    },
+  ],
 };
 
 /**
  * Resolve the navigation for a lens.
  *
- * Lenses without a config here keep their existing flat navigation, so nothing
- * regresses while they wait their turn. That is deliberate: a half-migrated
- * lens is worse than an unmigrated one.
+ * All six lenses are configured. An unknown lens returns null and the caller
+ * falls back to the flat registry, which is the safe behaviour if a new role is
+ * ever added before its grouping is designed.
  *
  * `allowed` is the set of keys this user may actually see, computed by whatever
  * already governs that. This function filters display only. It is not a
