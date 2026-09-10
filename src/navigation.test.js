@@ -5,16 +5,16 @@ import { NAVS } from "./navs.js";
 //
 // The risk in grouping 39 flat tabs into 7 is not that it looks wrong. It is
 // that a route quietly disappears, nobody notices for weeks, and a feature
-// someone paid for becomes unreachable. Reviewing that by eye across three
-// lenses and 76 keys is exactly the kind of check a person does badly.
+// someone paid for becomes unreachable. Reviewing that by eye across six
+// lenses and 144 keys is exactly the kind of check a person does badly.
 //
 // So: every key in the live NAVS must appear in the config exactly once, and
 // the config must never invent a key that has no route behind it.
 //
-// Run with `node --test` or any runner; it is plain assertions with no
+// Run with `node src/navigation.test.js`; it is plain assertions with no
 // framework, so it works wherever it is pointed.
 
-const LENSES = ["clinician", "agency", "hospital"];
+const LENSES = ["clinician", "agency", "hospital", "operator", "gp", "care"];
 let failures = 0;
 
 const check = (name, ok, detail) => {
@@ -22,6 +22,12 @@ const check = (name, ok, detail) => {
   failures++;
   console.error("FAIL: " + name + (detail ? " -> " + detail : ""));
 };
+
+// Every lens in the live registry must be configured. Without this, adding a
+// role and forgetting to group it would pass silently.
+for (const lens of Object.keys(NAVS)) {
+  check("registry lens " + lens + " is configured", LENSES.indexOf(lens) >= 0);
+}
 
 for (const lens of LENSES) {
   const live = (NAVS[lens] || []).map((i) => i.k);
@@ -60,12 +66,12 @@ for (const lens of LENSES) {
     withDropdowns.map((g) => g.key).join(", "));
 }
 
-// An unmigrated lens returns null so the caller keeps its existing flat
-// navigation. A half-migrated lens would be worse than an unmigrated one.
-check("unmigrated lens falls through", resolveNav("operator", null) === null);
+// An unknown lens returns null so the caller keeps the flat registry. That is
+// the safe behaviour if a role is ever added before its grouping is designed.
+check("unknown lens falls through", resolveNav("nosuchlens", null) === null);
 
 if (failures) {
   console.error("\n" + failures + " navigation check(s) failed.");
   process.exit(1);
 }
-console.log("navigation: all lenses covered, no routes lost.");
+console.log("navigation: all " + LENSES.length + " lenses covered, no routes lost.");
