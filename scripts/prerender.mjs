@@ -37,11 +37,20 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, "..", "dist");
 
-const { ROUTE_META, canonicalFor, organisationSchema, webSiteSchema, breadcrumbSchema, faqSchema } =
+const { ROUTE_META, canonicalFor, organisationSchema, webSiteSchema, breadcrumbSchema, faqSchema, offersSchema } =
   await import("../src/data/seo.js");
 
-// The FAQ is optional: if the module ever moves, the build should still
-// succeed without FAQ markup rather than failing the deploy.
+// Both of these are optional. If either module moves, the build should still
+// succeed without that markup rather than failing the deploy: a missing rich
+// result is a small loss, a broken deploy days before launch is not.
+let PRICING = null;
+try {
+  const mod = await import("../src/data/pricing.js");
+  PRICING = mod.PLANS ? mod : null;
+} catch (e) {
+  console.warn("[prerender] pricing data not found; skipping Offer schema.");
+}
+
 let FAQ_GROUPS = null;
 try {
   const mod = await import("../src/data/faqs.js");
@@ -114,6 +123,19 @@ function buildPage(html, path, meta) {
   if (path === "/faq" && FAQ_GROUPS) {
     const f = faqSchema(FAQ_GROUPS);
     if (f) blocks.push(f);
+  }
+  if (path === "/pricing" && PRICING) {
+    // Prices come from src/data/pricing.js, and src/pricing.test.js checks them
+    // against what App.jsx actually renders. A price in schema that the page
+    // does not show is a penalty rather than a win.
+    const plans = PRICING.allPlans().map((p) => ({
+      name: p.name,
+      price: p.annualMonthly,
+      currency: PRICING.CURRENCY,
+      period: "P1M",
+    }));
+    const o = offersSchema(plans);
+    if (o) blocks.push(o);
   }
   const ld = blocks
     .map((b) => '<script type="application/ld+json">' + JSON.stringify(b) + "</script>")
