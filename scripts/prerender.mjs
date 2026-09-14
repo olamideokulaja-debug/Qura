@@ -2,7 +2,7 @@
 //
 // Runs after `vite build`. Reads dist/index.html and writes one real HTML file
 // per route with that route's own title, description, canonical, Open Graph
-// tags and JSON-LD, plus a static navigation block a crawler can follow without
+// tags and JSON-LD, plus a heading and navigation a crawler can read without
 // executing JavaScript.
 //
 // WHY THIS EXISTS. Per-route metadata was implemented in JavaScript first. That
@@ -77,7 +77,7 @@ const NAV = Object.keys(ROUTE_META)
   .filter((p) => p !== "/")
   .map((p) => ({ href: p, label: ROUTE_META[p].title.split(" | ")[0] }));
 
-function staticBlock(path) {
+function staticBlock(path, meta) {
   const links = [{ href: "/", label: "Home" }, ...NAV]
     .filter((l) => l.href !== path)
     .map((l) => '<li><a href="' + l.href + '">' + esc(l.label) + "</a></li>")
@@ -97,7 +97,13 @@ function staticBlock(path) {
     ).join("");
   }
 
-  return "\n    <noscript>\n      <nav aria-label=\"Site\"><ul>" + links + "</ul></nav>\n" +
+  // The page's h1, in raw HTML. The components now carry one, but that only
+  // exists once React has mounted, so a client that does not run JavaScript saw
+  // a page with no heading at all. The text is the same one the rendered page
+  // shows, so this is not a second, different headline.
+  const heading = "<h1>" + esc(meta.h1 || meta.title.split(" | ")[0]) + "</h1>";
+
+  return "\n    <noscript>\n      " + heading + "\n      <nav aria-label=\"Site\"><ul>" + links + "</ul></nav>\n" +
     (faq ? "      " + faq + "\n" : "") +
     "    </noscript>";
 }
@@ -145,7 +151,7 @@ function buildPage(html, path, meta) {
 
   // After the root div, never inside it. React owns #root; this must not be
   // anywhere it will be replaced on mount.
-  out = out.replace('<div id="root"></div>', '<div id="root"></div>' + staticBlock(path));
+  out = out.replace('<div id="root"></div>', '<div id="root"></div>' + staticBlock(path, meta));
 
   return out;
 }
@@ -172,7 +178,7 @@ function run() {
     writeFileSync(join(dist, file), html, "utf8");
     written++;
   }
-  console.log("[prerender] wrote " + written + " route files with their own head tags and a crawlable nav.");
+  console.log("[prerender] wrote " + written + " route files with their own head tags, an h1 and a crawlable nav.");
 }
 
 run();
