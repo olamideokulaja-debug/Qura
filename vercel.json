@@ -24,43 +24,43 @@
   "rewrites": [
     {
       "source": "/for-clinicians",
-      "destination": "/index.html"
+      "destination": "/for-clinicians.html"
     },
     {
       "source": "/for-suppliers",
-      "destination": "/index.html"
+      "destination": "/for-suppliers.html"
     },
     {
       "source": "/marketplace",
-      "destination": "/index.html"
+      "destination": "/marketplace.html"
     },
     {
       "source": "/how-it-works",
-      "destination": "/index.html"
+      "destination": "/how-it-works.html"
     },
     {
       "source": "/inside-the-platform",
-      "destination": "/index.html"
+      "destination": "/inside-the-platform.html"
     },
     {
       "source": "/solutions",
-      "destination": "/index.html"
+      "destination": "/solutions.html"
     },
     {
       "source": "/fragile-professions",
-      "destination": "/index.html"
+      "destination": "/fragile-professions.html"
     },
     {
       "source": "/pricing",
-      "destination": "/index.html"
+      "destination": "/pricing.html"
     },
     {
       "source": "/our-story",
-      "destination": "/index.html"
+      "destination": "/our-story.html"
     },
     {
       "source": "/faq",
-      "destination": "/index.html"
+      "destination": "/faq.html"
     }
   ]
 }
