@@ -114,7 +114,7 @@ export function ClinicianSection({ onEnter }) {
           <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>You control who sees you</div>
           <div style={{ fontSize: 14, lineHeight: 1.65, color: "#C6D4E8" }}>
             Your profile is only visible to verified healthcare organisations on Qura, and
-            only once a person has checked your credentials. Your contact details are never
+            only once a person has checked your registration. Your contact details are never
             shown until you accept an introduction. You can pause your visibility or delete
             your profile at any time, and nothing is sold to anyone.
           </div>
@@ -163,24 +163,19 @@ export function ClinicianSection({ onEnter }) {
             </div>
           </div>
           {/* Naming the parts is what makes the badge worth something. A single
-              generic tick tells a hospital nothing about what was checked.
-              Both routes are named, because this page previously described the
-              register check only, which stopped being true the day we built a
-              route for clinicians whose profession or country does not require
-              registration. */}
+              generic tick tells a hospital nothing about what was checked. */}
           <div style={{ marginTop: 22, paddingTop: 20, borderTop: "1px solid rgba(255,255,255,.1)" }}>
             <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6, textAlign: "center" }}>What Qura Verified means</div>
             <div style={{ fontSize: 13.5, color: "#AEBED6", textAlign: "center", marginBottom: 14, lineHeight: 1.6 }}>
-              Not an automated tick. A member of the Qura team checks your credentials
-              before any organisation can see your profile, and your profile shows which
-              of the two checks was carried out.
+              Not an automated tick. A member of the Qura team opens the official public
+              register and finds you, before any organisation can see your profile.
             </div>
             <div className="row" style={{ gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-              {["Register checked: we find you on your regulator's official public register",
-                "Credentials checked: where your role or country needs no registration, we confirm your identity, qualification and a current certification directly with the bodies that issued them",
-                "Profession, specialty and experience confirmed"].map((t) => (
-                <span key={t} className="row" style={{ gap: 7, fontSize: 13, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 999, padding: "7px 14px", maxWidth: 520, textAlign: "left", lineHeight: 1.45 }}>
-                  <Check size={13} color="var(--cyan)" style={{ flexShrink: 0 }} />{t}
+              {["Registration number checked against the official register",
+                "Profession and specialty confirmed",
+                "Experience and country of residence recorded"].map((t) => (
+                <span key={t} className="row" style={{ gap: 7, fontSize: 13, background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 999, padding: "7px 14px" }}>
+                  <Check size={13} color="var(--cyan)" />{t}
                 </span>
               ))}
             </div>

@@ -3235,7 +3235,7 @@ function HowItWorks({ section = "walk", go }) {
     <div className="sec how" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
       <div className="wrap" style={{ padding: section === "gallery" ? "22px 24px 40px" : "68px 24px" }}>
         {section === "walk" ? (<>
-        <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 30px" }}><div className="eyebrow">How it works</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "8px 0 10px" }}>See {APP_NAME} through your lens</h2><p className="muted" style={{ fontSize: 16, lineHeight: 1.6, marginTop: 0 }}>Pick who you are, then step through what would take hours by hand and takes seconds here.</p></div></Reveal>
+        <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 30px" }}><div className="eyebrow">How it works</div><h1 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "8px 0 10px" }}>See {APP_NAME} through your lens</h1><p className="muted" style={{ fontSize: 16, lineHeight: 1.6, marginTop: 0 }}>Pick who you are, then step through what would take hours by hand and takes seconds here.</p></div></Reveal>
         <div className="row" style={{ gap: 9, justifyContent: "center", flexWrap: "wrap", marginBottom: 26 }}>{Object.keys(LENSES).map((k) => { const I = LENSES[k].icon; return (<button key={k} onClick={() => { setLens(k); setStep(0); }} className="btn lift" style={{ padding: "10px 18px", background: lens === k ? "var(--navy)" : "#fff", color: lens === k ? "#fff" : "var(--navy)", border: "1px solid " + (lens === k ? "var(--navy)" : "var(--line)"), fontWeight: 600 }}><I size={15} /> {LENSES[k].label}</button>); })}</div>
         <div className="grid g2" style={{ gap: 26, alignItems: "center" }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -3298,7 +3298,7 @@ function SupplierAppSection() {
       <div className="wrap">
         <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 26px" }}>
           <span className="chip chip-cyan" style={{ background: "rgba(0,194,184,.15)", color: "var(--cyan)" }}>For workforce suppliers</span>
-          <h2 className="disp" style={{ fontSize: "clamp(26px,4vw,40px)", fontWeight: 700, margin: "16px 0 10px", lineHeight: 1.1 }}>Your pipeline, in your pocket.</h2>
+          <h1 className="disp" style={{ fontSize: "clamp(26px,4vw,40px)", fontWeight: 700, margin: "16px 0 10px", lineHeight: 1.1 }}>Your pipeline, in your pocket.</h1>
           <p style={{ color: "#AEBED6", fontSize: 16, lineHeight: 1.6 }}>Being out of office doesn't mean being out of touch. Run your business development from your phone, wherever you are.</p>
         </div>
         <div style={{ display: "grid", gap: 12, maxWidth: 860, margin: "0 auto 30px", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))" }}>
@@ -3717,7 +3717,7 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
       <div className="sec market" style={{ background: "var(--navy)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap" style={{ padding: "44px 24px 8px", textAlign: "center" }}>
           <div className="eyebrow" style={{ color: "#5FE6DC" }}>Live worldwide, 24/7</div>
-          <h2 className="disp" style={{ color: "#fff", fontSize: 30, fontWeight: 700, margin: "12px 0 10px", lineHeight: 1.15 }}>See the market moving in real time</h2>
+          <h1 className="disp" style={{ color: "#fff", fontSize: 30, fontWeight: 700, margin: "12px 0 10px", lineHeight: 1.15 }}>See the market moving in real time</h1>
           <p style={{ color: "#9FB0D0", fontSize: 15.5, lineHeight: 1.6, margin: "0 auto 10px", maxWidth: 660 }}>Roles, insourcing, candidates and intelligence, updating around the clock across every market, so you work from live data instead of last quarter's spreadsheet. Names are hidden until you sign in, so the feed above is only a glimpse of what members act on first.</p>
           {/* Now a supporting line rather than the headline. It speaks to one
               lens, and it lands better once a visitor understands the platform. */}
@@ -3779,7 +3779,7 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
             <div className="grid g2" style={{ gap: 30, alignItems: "center" }}>
               <div>
                 <div className="eyebrow" style={{ color: "#06776F" }}>Built for fragile professions</div>
-                <h2 className="disp" style={{ fontSize: 30, fontWeight: 700, margin: "12px 0 12px", lineHeight: 1.15 }}>The roles the NHS struggles most to fill</h2>
+                <h1 className="disp" style={{ fontSize: 30, fontWeight: 700, margin: "12px 0 12px", lineHeight: 1.15 }}>The roles the NHS struggles most to fill</h1>
                 <p className="muted" style={{ fontSize: 15.5, lineHeight: 1.6, margin: "0 0 16px", maxWidth: 460 }}>Fragile professions are the scarce, hard-to-sustain clinical roles that keep services running: sonography, audiology, echocardiography, radiography and allied diagnostics. Qura specialises in them, summarising niche vacancies the moment they appear and mapping the market for you in real time. No more mapping regions by hand for hours.</p>
                 <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>{["Sonography", "Audiology", "Echocardiography", "Radiography", "Respiratory", "Pathology"].map((x) => (<span key={x} className="chip" style={{ background: "#fff", border: "1px solid var(--line)", fontWeight: 600 }}>{x}</span>))}</div>
               </div>
@@ -3826,7 +3826,7 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
 
       <div className="sec solutions" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap" style={{ padding: "72px 24px" }}>
-          <Reveal><div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 38px" }}><div className="eyebrow">Specialist new business, every solution</div><h2 className="disp" style={{ fontSize: 34, fontWeight: 700, marginTop: 12 }}>10 ways to win new business, <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>perm first</span></h2><p className="muted" style={{ fontSize: 16.5, marginTop: 10, lineHeight: 1.6 }}>Live opportunities across permanent, insourcing, contract, international, tenders, regional projects, PSLs, MSPs and RPOs, with locum cover when it is genuinely needed.</p></div></Reveal>
+          <Reveal><div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 38px" }}><div className="eyebrow">Specialist new business, every solution</div><h1 className="disp" style={{ fontSize: 34, fontWeight: 700, marginTop: 12 }}>10 ways to win new business, <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>perm first</span></h1><p className="muted" style={{ fontSize: 16.5, marginTop: 10, lineHeight: 1.6 }}>Live opportunities across permanent, insourcing, contract, international, tenders, regional projects, PSLs, MSPs and RPOs, with locum cover when it is genuinely needed.</p></div></Reveal>
           <div style={{ display: "flex", flexDirection: "column", gap: 34 }}>{[{ t: "Placement types", s: "Ways to place talent", accent: "#0E8C7E", items: SOLUTIONS.slice(0, 5) }, { t: "Routes to market", s: "Ways to win and hold contracts", accent: "#2D6BFF", items: SOLUTIONS.slice(5) }].map((grp) => (
             <div key={grp.t}>
               <div className="row" style={{ alignItems: "baseline", gap: 12, marginBottom: 16 }}>
@@ -3882,7 +3882,7 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
 
       <div className="sec story" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap" style={{ padding: "72px 24px" }}>
-          <Reveal><div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 44px" }}><div className="eyebrow">Behind the brand</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "8px 0 10px" }}>Our story</h2><p className="muted" style={{ fontSize: 16, lineHeight: 1.65, marginTop: 0 }}>{APP_NAME} was not created in a boardroom. It was created after decades of working inside healthcare.</p></div></Reveal>
+          <Reveal><div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 44px" }}><div className="eyebrow">Behind the brand</div><h1 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "8px 0 10px" }}>Our story</h1><p className="muted" style={{ fontSize: 16, lineHeight: 1.65, marginTop: 0 }}>{APP_NAME} was not created in a boardroom. It was created after decades of working inside healthcare.</p></div></Reveal>
           <div className="grid g2" style={{ gap: 22, alignItems: "start" }}>
             <Reveal>
               <div className="card" style={{ padding: 30 }}>
@@ -3918,7 +3918,7 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
 
       <div id="pricing" className="sec pricing" style={{ background: "var(--navy)" }}>
         <div className="wrap" style={{ padding: "70px 24px 10px" }}>
-          <div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 34px" }}><div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "#7EEDE4", marginBottom: 10 }}>Pricing</div><h2 className="disp" style={{ fontSize: 34, fontWeight: 700, margin: "0 0 12px", color: "#FFFFFF" }}>Priced for who you are</h2><p style={{ fontSize: 15.5, lineHeight: 1.6, margin: 0, color: "#B8C7DD" }}>Clinicians join free. Everyone else pays for the time {APP_NAME} gives back. Prices shown per month, with a saving when billed annually.</p></div>
+          <div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 34px" }}><div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".14em", textTransform: "uppercase", color: "#7EEDE4", marginBottom: 10 }}>Pricing</div><h1 className="disp" style={{ fontSize: 34, fontWeight: 700, margin: "0 0 12px", color: "#FFFFFF" }}>Priced for who you are</h1><p style={{ fontSize: 15.5, lineHeight: 1.6, margin: 0, color: "#B8C7DD" }}>Clinicians join free. Everyone else pays for the time {APP_NAME} gives back. Prices shown per month, with a saving when billed annually.</p></div>
           <div className="grid g3" style={{ gap: 18 }}>
             {[
               { who: "Workforce suppliers", accent: "#00C2B8", plans: [["Starter", "£450", "£375 billed annually"], ["Growth", "£1,200", "£999 billed annually"]], pts: ["Live opportunities across every market", "Verified decision-makers", "AI outreach and proposals", "Pipeline, CRM and weekly reports"] },
