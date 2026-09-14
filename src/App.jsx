@@ -368,6 +368,9 @@ import { MARKETS, CURRENCY, PLAN_LABEL, PREMIUM_FEATURES, ALL_PREMIUM, CREDIT_TI
 // The flat navigation registry, extracted so the consolidation test can read
 // the real thing rather than a copy.
 import { NAVS } from "./navs.js";
+// Per-route metadata, shared with the build-time pre-render so the two can
+// never disagree about a page's canonical or title.
+import { canonicalForView, ROUTE_META } from "./data/seo.js";
 // Groups the flat registry into 5 to 7 primary destinations per lens. Returns
 // null for lenses not yet migrated, which then render flat as before.
 import { resolveNav } from "./data/navigation.js";
@@ -3476,20 +3479,31 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
   // Page title follows the view, so tabs, bookmarks and shared links read properly.
   useEffect(() => {
     if (typeof document === "undefined") return;
-    document.title = PAGE_TITLES[view] || PAGE_TITLES.home;
+    // Titles and descriptions now come from the same table the pre-render
+    // uses, so a page cannot show one thing to a crawler and another to a
+    // person who navigated to it in the app.
+    const metaEntry = Object.values(ROUTE_META).filter((m) => m.view === view && (!m.section || m.section === howSec))[0]
+      || Object.values(ROUTE_META).filter((m) => m.view === view)[0];
+    document.title = (metaEntry && metaEntry.title) || PAGE_TITLES[view] || PAGE_TITLES.home;
     // The canonical has to follow the route, not sit fixed on the root. Without
     // this every marketing page tells search engines it is the home page.
     try {
       let link = document.querySelector('link[rel="canonical"]');
       if (!link) { link = document.createElement("link"); link.rel = "canonical"; document.head.appendChild(link); }
-      const route = (ROUTES.find((r) => r[1] === view) || ["/"])[0];
-      link.href = "https://www.qurahealth.org" + (route === "/" ? "/" : route);
+      // Matching on view alone was the bug the SEO audit found: /how-it-works
+      // and /inside-the-platform share the view "how", so the first match
+      // always won and /inside-the-platform told Google to drop it in favour of
+      // a different page. The section discriminates.
+      link.href = canonicalForView(view, howSec);
 
       let desc = document.querySelector('meta[name="description"]');
       if (!desc) { desc = document.createElement("meta"); desc.name = "description"; document.head.appendChild(desc); }
-      desc.content = PAGE_DESCRIPTIONS[view] || PAGE_DESCRIPTIONS.home;
+      desc.content = (metaEntry && metaEntry.description) || PAGE_DESCRIPTIONS[view] || PAGE_DESCRIPTIONS.home;
     } catch (e) {}
-  }, [view]);
+  }, [view, howSec]);
+  // howSec matters here: /how-it-works and /inside-the-platform are the same
+  // view, so without it the canonical and title would not change when moving
+  // between them.
 
   // Analytics starts only if this visitor has already agreed. Page views are
   // counted from here so the recorded address matches the tidy one.
@@ -3949,9 +3963,19 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
           <div style={{ display: "flex", justifyContent: "center" }}><Wordmark /></div>
 
           <div className="row" style={{ justifyContent: "center", flexWrap: "wrap", gap: "10px 22px", marginTop: 20 }}>
-            {FOOTER_LINKS.map(([l, mv]) => (
-              <button key={mv} onClick={() => goTo(mv)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0, fontSize: 13.5, fontWeight: 500, color: "var(--text)", whiteSpace: "nowrap" }}>{l}</button>
-            ))}
+            {/* Real anchors with real hrefs. These were <button> elements, so a
+                crawler saw no link at all and nine of the fourteen sitemap
+                pages were reachable only by typing the URL. The click handler
+                still does the in-app navigation, so nothing changes for a
+                person; the href is what a crawler and a middle-click need. */}
+            {FOOTER_LINKS.map(([l, mv]) => {
+              const href = pathFor(mv.split(":")[0], mv.split(":")[1]);
+              return (
+                <a key={mv} href={href}
+                  onClick={(e) => { if (!e.metaKey && !e.ctrlKey && e.button === 0) { e.preventDefault(); goTo(mv); } }}
+                  style={{ padding: 0, fontSize: 13.5, fontWeight: 500, color: "var(--text)", whiteSpace: "nowrap", textDecoration: "none", cursor: "pointer" }}>{l}</a>
+              );
+            })}
           </div>
 
           <div className="row" style={{ justifyContent: "center", flexWrap: "wrap", gap: "8px 18px", marginTop: 12 }}>
