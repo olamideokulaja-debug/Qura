@@ -336,6 +336,16 @@ export default function ClinicianRegistration({ onToast }) {
             Not needed to register. You can add it now or later from your profile,
             and hospitals see far more of you once it is there.
           </div>
+          {/* Said at the point of upload, not only in the privacy policy. A CV
+              can carry health information, age, nationality and a photograph,
+              and a person handing one over should know where it goes before
+              they press the button rather than after. */}
+          <div className="muted" style={{ fontSize: 12, marginBottom: 10, lineHeight: 1.5, padding: "9px 11px", borderRadius: 9, background: "var(--bg)" }}>
+            Your CV is stored privately and is used to draft a summary of your
+            experience, which involves sending it to an AI model. It is never used to
+            decide whether you are verified or suitable for a role. You can remove it
+            at any time.
+          </div>
           <label className="btn btn-light" style={{ cursor: "pointer", justifyContent: "center", width: "100%" }}><FileText size={15} /> {cvBusy ? "Uploading..." : (f.cv ? "Replace CV" : "Choose file")}<input type="file" accept=".pdf,.doc,.docx" onChange={onCv} style={{ display: "none" }} /></label>
           {f.cv ? <div className="row" style={{ gap: 8, marginTop: 8, fontSize: 13 }}><Check size={15} color="#0E8C7E" /> {f.cv}{f.cvPath ? <span className="faint" style={{ fontSize: 11.5 }}>(stored securely)</span> : null}</div> : null}
           <label className="row" style={{ gap: 9, fontSize: 13, cursor: "pointer", marginTop: 18, alignItems: "flex-start", lineHeight: 1.45 }}><input type="checkbox" checked={f.declare} onChange={(e) => upd("declare", e.target.checked)} style={{ marginTop: 2 }} /> I confirm the information provided is accurate, my registration is current, and I consent to Qura holding this data in line with the privacy notice.</label>
