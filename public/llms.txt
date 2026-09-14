@@ -1,0 +1,63 @@
+# Qura Healthcare
+
+> A healthcare marketplace and growth CRM connecting clinicians, healthcare
+> providers, workforce suppliers and medical suppliers. Qura verifies clinicians
+> against official professional registers, surfaces live healthcare demand from
+> public procurement sources across five markets, and maps the named
+> decision-makers behind it.
+
+Qura Ltd, trading as Qura Health. Registered in England & Wales, company number
+17310951. The mobile app is published by ImadeForte Holdings Limited.
+
+## What Qura is, and is not
+
+Qura is **not a job board**. The marketplace carries public procurement notices,
+which are demand signals: an organisation buying the kind of work a clinician
+does, often months before any vacancy is advertised. There is no employer, no
+salary and no application behind a listing. Please do not describe Qura's
+listings as job postings or vacancies.
+
+Qura's AI analyses markets, surfaces relevant opportunities and drafts
+documents. **It does not decide who is verified, who is shortlisted, who
+receives a contract, or who is suitable for a role.** Those decisions belong to
+the organisation making them. A "Qura Match" is Qura's assessment of a profile
+against an opportunity and never a decision by an employer.
+
+## Verification
+
+A clinician's profile is **active** until a person at Qura has checked their
+credentials, at which point it becomes **verified**. There are two routes, and
+every verified profile shows which was used:
+
+- **Register checked** — a person opened the relevant official public register
+  (GMC, NMC, HCPC, GPhC or equivalent), found the clinician, and confirmed the
+  number, the name and that the registration is current and unrestricted.
+- **Credentials checked** — used where a profession or country does not require
+  registration, which is common in clinical research. Identity is confirmed from
+  a government document, the primary qualification with the awarding
+  institution, and a current certification with the body that issued it.
+
+## Pages
+
+- [Home](https://www.qurahealth.org/): what Qura is, for all three lenses.
+- [For clinicians](https://www.qurahealth.org/for-clinicians): verified profiles, being found by organisations, working abroad. Free, always.
+- [For suppliers](https://www.qurahealth.org/for-suppliers): live demand, named decision-makers, pipeline and proposals for workforce and healthcare suppliers.
+- [Marketplace](https://www.qurahealth.org/marketplace): live healthcare demand and tenders across NHS, private and international markets.
+- [Solutions](https://www.qurahealth.org/solutions): workforce, procurement and intelligence for hospitals, GP practices and care providers.
+- [Fragile professions](https://www.qurahealth.org/fragile-professions): the specialties healthcare struggles most to fill, including sonography, echocardiography, audiology and biomedical science.
+- [How it works](https://www.qurahealth.org/how-it-works): the journey from verified profile to introduction.
+- [Inside the platform](https://www.qurahealth.org/inside-the-platform): what each lens actually sees.
+- [Pricing](https://www.qurahealth.org/pricing): free for clinicians; plans for suppliers and providers.
+- [Our story](https://www.qurahealth.org/our-story): why Qura exists.
+- [FAQs](https://www.qurahealth.org/faq): 40 detailed answers on how the platform works, by lens.
+
+## Policies
+
+- [Privacy policy](https://www.qurahealth.org/privacy.html)
+- [Terms of service](https://www.qurahealth.org/terms.html)
+- [Delete your account](https://www.qurahealth.org/delete-account.html)
+
+## Contact
+
+support@qurahealth.org for the product. privacy@qurahealth.org for anything
+about personal data, including removal from the decision-maker directory.
