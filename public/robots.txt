@@ -1,3 +1,8 @@
 User-agent: *
 Allow: /
-Sitemap: https://qurahealth.org/sitemap.xml
+
+# www, matching the canonical tags and the verified Search Console property.
+# This previously pointed at the non-www address, which redirects rather than
+# serving, so a crawler following it took an extra hop to reach the same file
+# and the reference disagreed with every canonical on the site.
+Sitemap: https://www.qurahealth.org/sitemap.xml
