@@ -1387,6 +1387,7 @@ const Outreach = () => {
   const seq = [{ ch: "Email", to: "Sarah Whitfield", subj: "Theatre staffing partnership", status: "Opened", icon: Mail }, { ch: "LinkedIn", to: "Khalid Al-Mansoori", subj: "Connection + intro note", status: "Replied", icon: Users }, { ch: "Email", to: "Dr. Amara Okeke", subj: "Follow-up: radiographers", status: "Sent", icon: Mail }, { ch: "Call task", to: "James Patterson", subj: "Discovery call prep", status: "Scheduled", icon: Calendar }];
   return (
     <div>
+      <IllustrativeBanner />
       <PageHead title="Outreach" sub="Multi-channel sequences across email, LinkedIn and calls" right={<button className="btn btn-primary"><Plus size={16} /> New sequence</button>} />
       <div className="grid-stats" style={{ marginBottom: 18 }}><Stat label="Active sequences" value="14" icon={Send} /><Stat label="Open rate" value="62%" delta="6% vs 30d" icon={Mail} accent="cyan" /><Stat label="Reply rate" value="28%" delta="4% vs 30d" icon={MessageSquare} /><Stat label="Meetings booked" value="19" icon={Calendar} accent="cyan" /></div>
       <div className="card" style={{ padding: 20 }}><SectionHead title="Live sequence: Q3 framework push" />{seq.map((s, i) => (<div key={i} className="row" style={{ gap: 14, padding: "13px 0", borderBottom: i < seq.length - 1 ? "1px solid var(--line)" : "none" }}><div style={{ width: 38, height: 38, borderRadius: 10, background: "#EEF3FF", display: "grid", placeItems: "center" }}><s.icon size={16} color="#1E54E6" /></div><div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14 }}>{s.subj}</div><div className="muted" style={{ fontSize: 12.5 }}>{s.ch} · to {s.to}</div></div><span className={"chip " + (s.status === "Replied" ? "chip-low" : s.status === "Opened" ? "chip-blue" : "chip-grey")}>{s.status}</span></div>))}</div>
@@ -1877,7 +1878,8 @@ const FindAgencies = () => {
 };
 const HospitalDash = ({ go }) => (
   <div>
-    <PageHead title="Welcome back" sub="Find the right partner, faster. Spend more time on patient care." right={<button className="btn btn-primary" onClick={() => go("findAgencies")}><Search size={16} /> Find agencies</button>} />
+    <IllustrativeBanner />
+      <PageHead title="Welcome back" sub="Find the right partner, faster. Spend more time on patient care." right={<button className="btn btn-primary" onClick={() => go("findAgencies")}><Search size={16} /> Find agencies</button>} />
     <div className="grid-stats" style={{ marginBottom: 18 }}><Stat label="Open requirements" value="6" icon={FileText} /><Stat label="Matched agencies" value="23" icon={Briefcase} accent="cyan" /><Stat label="Shortlisted clinicians" value="11" icon={Stethoscope} /><Stat label="Avg time to fill" value="9 days" delta="3d faster" icon={Clock} accent="cyan" /></div>
     <div className="card" style={{ padding: 20 }}><SectionHead title="Agencies on Qura" action={<button className="btn btn-ghost" style={{ padding: "7px 12px", fontSize: 13 }} onClick={() => go("findAgencies")}>View all</button>} />{AGENCIES.slice(0, 3).map((a, i) => (<div key={i} className="row" style={{ justifyContent: "space-between", padding: "12px 0", borderBottom: i < 2 ? "1px solid var(--line)" : "none" }}><div className="row" style={{ gap: 12 }}><div style={{ width: 38, height: 38, borderRadius: 10, background: "var(--navy)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{a.name[0]}</div><div><div style={{ fontWeight: 600, fontSize: 14 }}>{a.name}</div><div className="muted" style={{ fontSize: 12.5 }}>{a.spec}</div></div></div>{a.framework ? <span className="chip chip-cyan">Framework</span> : null}</div>))}</div>
   </div>
@@ -2164,6 +2166,7 @@ function GPHub({ go, name }) {
   ];
   return (
     <div>
+      <IllustrativeBanner />
       <PageHead title="GP practices & federations" sub="Fill sessions faster and see who is available now, with light-touch sign-up and no procurement sign-off." right={<button className="btn btn-primary" onClick={() => go("feed")}><Rss size={16} /> Post a session</button>} />
       <div className="card" style={{ padding: 16, marginBottom: 18, background: "var(--cyan-soft)", border: "none" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><Stethoscope size={18} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 13.5, lineHeight: 1.55 }}>A dedicated home for primary care. Post salaried and locum GP sessions, browse verified GPs and ARRS roles, and tap Qura's market intelligence for your PCN or federation, an area of Qura expertise.</div></div></div>
       <div className="grid-stats" style={{ marginBottom: 18 }}>
@@ -3552,7 +3555,11 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
   ];
   const feed = lens === "global" ? TEASER : TEASER.filter((x) => x.region === lens);
   const shown = feed.length ? Array.from({ length: Math.min(4, feed.length) }, (_, i) => feed[(tick + i) % feed.length]) : [];
-  const stats = [{ n: "32+", l: "Combined years in healthcare" }, { n: "13,000+", l: "Combined LinkedIn following" }, { n: "1000+", l: "Decision-maker contacts" }, { n: "50+", l: "Countries reached" }];
+  // Every figure here must be one we can show someone. "1000+" understated the
+  // register, which holds 4,040 named contacts across 1,450 organisations, and
+  // "50+ countries reached" described no measure we actually keep. Qura
+  // operates in 5 markets and that is the number that can be evidenced.
+  const stats = [{ n: "32+", l: "Combined years in healthcare" }, { n: "13,000+", l: "Combined LinkedIn following" }, { n: "4,040", l: "Named decision-makers" }, { n: "5", l: "Markets" }];
   const edge = [
     { i: Brain, t: "A decade of real deals, encoded", b: "Qura's analytics are shaped by 10 years of contracts our experts have actually closed, so every score reflects how the market really behaves.", c: "#5B3FD6", bg: "var(--violet-soft)" },
     { i: Zap, t: "AI that works the way experts work", b: "The platform scans thousands of opportunities, scores fit and drafts proposals in seconds, following the playbook that built a multi-million-pound pipeline.", c: "#06776F", bg: "var(--cyan-soft)" },
@@ -4060,7 +4067,12 @@ function Login({ onNext, onHome, onSignup }) {
         </div>
         <div>
           <div style={{ height: 1, background: "rgba(255,255,255,.1)", margin: "0 0 22px" }} />
-          <div className="row" style={{ gap: 28 }}>{[["13,000+", "LinkedIn community"], ["100K+", "Decision-makers reached"], ["50+", "Countries"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
+          <div className="row" style={{ gap: 28 }}>{/* These sit immediately above the password field, which is the worst
+                  place on the site to overstate anything. "100K+ decision-makers
+                  reached" described no measure we keep, against a register of
+                  4,040; "50+ countries" was not a number we could show anyone.
+                  All three are now things we can evidence on request. */}
+              {[["13,000+", "Combined LinkedIn following"], ["4,040", "Named decision-makers"], ["5", "Markets"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
         </div>
       </div>
       <div className="login-auth" style={{ flex: "1 1 0", background: "#fff", padding: "46px 42px", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
