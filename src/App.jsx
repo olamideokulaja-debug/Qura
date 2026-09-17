@@ -1401,7 +1401,7 @@ const Meetings = ({ sent = [], booked = [], onBook, onEdit, onDelete }) => {
   const [f, setF] = useState({ type: "", org: "", who: "", when: "" });
   const lbl = { fontSize: 13, fontWeight: 600, display: "block", marginBottom: 6 };
   const ib = { width: 34, height: 34, borderRadius: 9, display: "grid", placeItems: "center", border: "1px solid var(--line)", background: "#fff", cursor: "pointer", flexShrink: 0 };
-  const list = [...booked, ...sent.map((s) => ({ type: "Discovery call", with: "Awaiting reply", org: s.org, when: "To schedule", status: "Pending", isNew: true })), ...MEETINGS];
+  const list = [...booked, ...sent.map((s) => ({ type: "Discovery call", with: "Awaiting reply", org: s.org, when: "To schedule", status: "Pending", isNew: true })), ...(seedActive() ? MEETINGS : [])];
   const openNew = () => { setEditId(null); setF({ type: "", org: "", who: "", when: "" }); setShow(true); };
   const openEdit = (m) => { setEditId(m.id); setF({ type: m.type, org: m.org, who: m.with, when: m.when }); setShow(true); };
   const close = () => { setShow(false); setEditId(null); };
@@ -2854,17 +2854,29 @@ const CommandCenter = ({ go, name }) => {
 };
 
 /* ===================== clients / case studies / playbook ===================== */
-const ClientsTargets = () => (
+const ClientsTargets = () => {
+  const list = seedActive() ? CLIENTS : [];
+  return (
   <div>
-    <PageHead title="Clients & targets" sub={`${CLIENTS.length} accounts from your register`} />
-    <div className="grid-2">{CLIENTS.map((c, i) => (
+    <PageHead title="Clients & targets" sub={list.length ? `${list.length} accounts from your register` : "Accounts you add will appear here."} />
+    {list.length ? (
+    <div className="grid-2">{list.map((c, i) => (
       <div key={i} className="card row lift" style={{ padding: 18, gap: 14, justifyContent: "space-between" }}>
         <div className="row" style={{ gap: 14 }}><div style={{ width: 44, height: 44, borderRadius: 11, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><Building2 size={20} color="#1E54E6" /></div><div><div style={{ fontWeight: 600, fontSize: 14.5 }}>{c.org}</div><div className="muted" style={{ fontSize: 12.5 }}>{c.spec}</div></div></div>
         <span className={"chip " + (c.status === "Active client" ? "chip-low" : c.status === "Target" ? "chip-blue" : "chip-med")}>{c.status}</span>
       </div>
     ))}</div>
+    ) : (
+      <div className="card" style={{ padding: 22, textAlign: "center" }}>
+        <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 6 }}>No accounts yet</div>
+        <div className="muted" style={{ fontSize: 13.5, lineHeight: 1.6 }}>
+          Clients and targets you add appear here. Nothing is pre-populated, so what you see is your own pipeline.
+        </div>
+      </div>
+    )}
   </div>
-);
+  );
+};
 const CaseStudies = () => (
   <div>
     <PageHead title="Case studies" sub="Proof points you can put in front of any client" />
@@ -3553,7 +3565,12 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
     { region: "intl", role: "Sonographer", org: "Diagnostics provider", loc: "Lagos", ago: "21m", svc: "Vacancy" },
     { region: "intl", role: "Available now: Band 7 Sonographer", org: "Verified candidate", loc: "relocating, EU", ago: "8m", svc: "Candidate" },
   ];
-  const feed = lens === "global" ? TEASER : TEASER.filter((x) => x.region === lens);
+  // Illustrative until launch, then nothing. These are invented roles with
+  // invented organisations, and a visitor cannot tell them from real listings,
+  // so they must go at the same instant as the server-side seed rather than
+  // sitting on the landing page indefinitely.
+  const teaser = seedActive() ? TEASER : [];
+  const feed = lens === "global" ? teaser : teaser.filter((x) => x.region === lens);
   const shown = feed.length ? Array.from({ length: Math.min(4, feed.length) }, (_, i) => feed[(tick + i) % feed.length]) : [];
   // Every figure here must be one we can show someone. "1000+" understated the
   // register, which holds 4,040 named contacts across 1,450 organisations, and
@@ -4675,7 +4692,11 @@ function QuraJoinBlock({ earlyFocus }) {
     return () => clearTimeout(t);
   }, [earlyFocus]);
 
-  const LAUNCH = new Date("2026-09-22T00:00:00");
+  // One launch instant for the whole platform, imported rather than a third
+  // copy. This said midnight while the seed switch said 09:00 UK, so the
+  // countdown would have hit zero nine hours before the illustrative listings
+  // actually went away.
+  const LAUNCH = new Date(LAUNCH_AT);
   const [left, setLeft] = useState(LAUNCH - new Date());
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("");
