@@ -4,10 +4,10 @@ import { LAUNCH_AT } from "../launch.js";
 
 // Extracted from App.jsx on 27 July 2026.
 //
-// The date now comes from src/launch.js rather than a second copy here, so the
+// The date comes from src/launch.js rather than a second copy here, so the
 // countdown, the client-side seed switch and the API switch cannot drift apart.
-// They did: this file said 22 September 09:00 while the rest of the platform
-// moved to Monday 21 September 00:00.
+// They had: this file held its own literal, so moving the launch instant in one
+// place left the countdown showing a different time from the switch.
 //
 // THE EMAIL CAPTURE HAS BEEN REMOVED, for two reasons.
 //
