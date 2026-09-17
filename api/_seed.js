@@ -9,8 +9,10 @@
 //      role, and a supplier cannot pay £99 for an introduction to a person who
 //      does not exist.
 
-// 22 September 2026, 09:00 UK time, matching the countdown on the website.
-export const LAUNCH_AT = Date.parse("2026-09-22T08:00:00Z");
+// Monday 21 September 2026, 00:00 UK time, matching src/launch.js and the
+// countdown on the website. September is BST, so UK midnight is 23:00 the
+// previous day in UTC.
+export const LAUNCH_AT = Date.parse("2026-09-20T23:00:00Z");
 
 // Escape hatches, both optional:
 //   SEED_ENABLED=false  turns seeded records off before the date
@@ -42,6 +44,6 @@ export function isSeededId(id) {
 export function refuseSeeded(res) {
   return res.status(409).json({
     error: "illustrative_listing",
-    message: "This is an illustrative listing shown before launch, so it cannot be actioned. Real listings appear from 22 September 2026.",
+    message: "This is an illustrative listing shown before launch, so it cannot be actioned. Real listings appear from 21 September 2026.",
   });
 }
