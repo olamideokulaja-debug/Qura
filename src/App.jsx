@@ -5047,6 +5047,29 @@ export default function App() {
   useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_profile_name"); setProfileName(r?.value || ""); } catch (e) {} })(); }, [session, stage]);
   const email = ((session && session.user && session.user.email) || "").toLowerCase();
   const founder = FOUNDER_IDENTITY[email] || null;
+  // The plan as the screens understand it. Two fixes in one place:
+  //
+  // 1. Normalise the stored label. The payment webhook writes "group:key", for
+  //    example "supplier:growth", but PLAN_ACCESS is keyed by bare words
+  //    (growth, starter, enterprise). Looked up raw, "supplier:growth" matched
+  //    nothing, so a customer who had PAID for Growth would have seen every
+  //    Growth screen locked. The server already stripped the prefix (tierOf in
+  //    api/_entitlements.js); the app never did. Older supplier labels are
+  //    mapped onto the same ladder.
+  //
+  // 2. Founders are always at least Growth. Keyed off FOUNDER_IDENTITY, an
+  //    explicit list of the founders' verified sign-in emails that no user can
+  //    edit. Deliberately NOT isOwner, which treats everyone as an owner when
+  //    OWNER_EMAILS is unset and would hand Growth to every account.
+  const PLAN_RANK = { free: 0, starter: 1, growth: 2, trial: 2, enterprise: 3 };
+  const LEGACY = { team: "starter", intelligence: "growth", network: "enterprise", pilot: "trial" };
+  const planKey = (() => {
+    if (!plan) return null;
+    const parts = String(plan).split(":");
+    const k = (parts.length > 1 ? parts[1] : parts[0]).toLowerCase();
+    return LEGACY[k] || k;
+  })();
+  const effectivePlan = founder && (PLAN_RANK[planKey] ?? 0) < PLAN_RANK.growth ? "growth" : planKey;
   useEffect(() => { if (founder && stage === "app") setRole("operator"); }, [founder, stage]);
   const isOwner = OWNER_EMAILS.length === 0 || OWNER_EMAILS.includes(email) || Boolean(FOUNDER_IDENTITY[email]);
 
@@ -5137,7 +5160,7 @@ export default function App() {
       {stage === "roleChoice" && <RoleChoiceScreen onPick={pickRole} onHome={home} />}
       {stage === "auth" && <AuthPanel mode={authMode} roleLabel={authMode === "up" && pendingRole ? roleLabelOf(pendingRole) : null} onHome={home} onCreateAccount={() => setStage("roleChoice")} onBackToSignIn={() => { setPendingRole(null); setAuthMode("in"); }} />}
       {stage === "signup" && <Signup onHome={home} onSignIn={goSignIn} onChoose={(pl, annual) => { choosePlan(pl, annual); setStage("app"); }} />}
-      {stage === "app" && role && <Shell clinProfile={clinProfile} authUser={session && session.user} role={role} trial={trial} plan={plan} onPlan={choosePlan} onExtend={extendTrial} onSignup={() => setStage("signup")} onLogout={logout} onHome={home} onSwitch={switchRole} isOwner={isOwner} ownerEmail={email} profileName={profileName} onProfileName={setProfileName} founder={founder} />}
+      {stage === "app" && role && <Shell clinProfile={clinProfile} authUser={session && session.user} role={role} trial={trial} plan={effectivePlan} onPlan={choosePlan} onExtend={extendTrial} onSignup={() => setStage("signup")} onLogout={logout} onHome={home} onSwitch={switchRole} isOwner={isOwner} ownerEmail={email} profileName={profileName} onProfileName={setProfileName} founder={founder} />}
     </div>
   );
 }
