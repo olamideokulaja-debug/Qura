@@ -444,9 +444,16 @@ export default async function handler(req, res) {
     const since = new Date(Date.now() - 45 * 86400000);
     const isoDay = since.toISOString().slice(0, 10);
 
+    // stages=tender on both UK sources. Without it, 90% of what came back was
+    // award notices, contracts already given to someone, which relevant()
+    // rightly discards. Worse, getPaged stops at 5 pages, so the awards used up
+    // the whole allowance: Find a Tender covered ONE DAY and Contracts Finder
+    // six, not the 45 days intended. Measured 22 September 2026: the feed held
+    // 5 open UK healthcare notices; asking for tenders only gives 18, across
+    // the full window. Award filtering in relevant() stays as a second guard.
     const [fts, cf, eu, us] = await Promise.all([
-      getPaged(FTS + "?updatedFrom=" + encodeURIComponent(since.toISOString().replace(/\.\d+Z$/, "Z")) + "&limit=100"),
-      getPaged(CF + "?publishedFrom=" + isoDay + "&size=100"),
+      getPaged(FTS + "?updatedFrom=" + encodeURIComponent(since.toISOString().replace(/\.\d+Z$/, "Z")) + "&limit=100&stages=tender"),
+      getPaged(CF + "?publishedFrom=" + isoDay + "&size=100&stages=tender"),
       euTenders(since.toISOString()),
       US_ENABLED ? usTenders(since.toISOString()) : Promise.resolve([]),
     ]);
