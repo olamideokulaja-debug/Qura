@@ -362,7 +362,16 @@ import { CLIN_TAGLINES, CLIN_UNIVERSAL, CLIN_TABS, CLIN_COUNTRIES, ClinicianSect
 import { APP_NAME } from "./constants.js";
 import { initAnalytics, trackPage, setMarketingMode } from "./lib/analytics.js";
 import { QuraLogo, Wordmark, Avatar, useCountUp, Stat, Kpi, SectionHead, PageHead, Toggle, Stars, Reveal, PulseLine, DemoTag, IllustrativeBanner } from "./components/ui.jsx";
-import { SPECIALTIES, REAL_OPPS, CLIENTS, INTL_OPPS, OPPS, CLINICIANS, AGENCIES, MEETINGS, INTEL, STAGES, PIPE_DATA, REGION_DATA, SPEC_DATA, GMV_TREND, REGIONS, FUNNEL, TOP_AGENCIES, TOP_OPPS, FEED_POOL, ALERTS } from "./data/marketplace.js";
+import { SPECIALTIES, REAL_OPPS, CLIENTS, INTL_OPPS, OPPS as OPPS_SEED, CLINICIANS as CLINICIANS_SEED, AGENCIES as AGENCIES_SEED, MEETINGS, INTEL as INTEL_SEED, STAGES, PIPE_DATA, REGION_DATA, SPEC_DATA, GMV_TREND, REGIONS, FUNNEL, TOP_AGENCIES, TOP_OPPS, FEED_POOL, ALERTS } from "./data/marketplace.js";
+// Built-in example records, gated at the launch instant. The server-side seed
+// switch never reached these: they are compiled into the app, so after launch
+// they went on rendering invented tenders on Opportunities, invented clinicians
+// on Talent and invented agencies on Find agencies, as if live. Aliasing them
+// here gates every screen at once, including any added later.
+const OPPS = seedActive() ? OPPS_SEED : [];
+const CLINICIANS = seedActive() ? CLINICIANS_SEED : [];
+const AGENCIES = seedActive() ? AGENCIES_SEED : [];
+const INTEL = seedActive() ? INTEL_SEED : [];
 import { PRIORITY, PROTECTED_LIST, REG_BODY, NURSE_TYPES, AHP_TYPES, SCIENCE_TYPES, DOCTOR_SPECIALTIES, RESIDENCE_LIST } from "./data/clinical.js";
 import { MARKETS, CURRENCY, PLAN_LABEL, PREMIUM_FEATURES, ALL_PREMIUM, CREDIT_TIERS, PLAN_ACCESS, FEED_STAGES, STATUS_STAGES, MARKET_TREND, SUP_PERF, SUPPLIERS, FEED_STATUS } from "./data/plans.js";
 // The flat navigation registry, extracted so the consolidation test can read
@@ -723,7 +732,7 @@ const prLabel = (p) => p === "high" ? "High" : p === "med" ? "Medium" : "Low";
 /* ===================== proposal generator ===================== */
 const THINK_STEPS = ["Analysing the requirement", "Matching available clinicians", "Pulling market intelligence", "Drafting a tailored proposal"];
 function ProposalGenerator({ onSaved, initialOpp }) {
-  const [sel, setSel] = useState(initialOpp || OPPS[0]);
+  const [sel, setSel] = useState(initialOpp || OPPS[0] || null);
   useEffect(() => { if (initialOpp) setSel(initialOpp); }, [initialOpp]);
   const [phase, setPhase] = useState("idle");
   const [step, setStep] = useState(0);
@@ -758,6 +767,14 @@ function ProposalGenerator({ onSaved, initialOpp }) {
     const t = `${proposal.title}\n\n${proposal.summary}\n\nUnderstanding\n${proposal.understanding}\n\nSolution\n${proposal.solution.map((s) => "• " + s).join("\n")}\n\nMatched clinicians\n${proposal.clinicians.map((s) => "• " + s).join("\n")}\n\nCommercials\n${proposal.pricing}\n\nNext step\n${proposal.next}`;
     navigator.clipboard?.writeText(t); setCopied(true); setTimeout(() => setCopied(false), 1600);
   };
+  // After launch there are no built-in example opportunities, so the generator
+  // may open with nothing selected. Say so rather than failing on sel.org.
+  if (!sel) return (
+    <div className="card" style={{ padding: 28, textAlign: "center" }}>
+      <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 6 }}>Choose an opportunity first</div>
+      <div className="muted" style={{ fontSize: 13.5, lineHeight: 1.6 }}>Open a live opportunity from the marketplace and choose Draft a proposal. It will arrive here with the details filled in.</div>
+    </div>
+  );
   return (
     <div className="grid-2" style={{ alignItems: "start" }}>
       <div className="card" style={{ padding: 20 }}>
@@ -839,7 +856,7 @@ const Dashboard = ({ go, sentN = 0, bookedN = 0, name }) => (
       </div>
       <div className="card" style={{ padding: 20 }}>
         <SectionHead title="Top opportunities" action={<button className="btn btn-ghost" style={{ padding: "7px 12px", fontSize: 13 }} onClick={() => go("opportunities")}>View all</button>} />
-        {OPPS.slice(0, 4).map((o, i) => (<div key={i} className="row" style={{ justifyContent: "space-between", padding: "11px 0", borderBottom: i < 3 ? "1px solid var(--line)" : "none" }}><div><div style={{ fontWeight: 600, fontSize: 14 }}>{o.org}</div><div className="muted" style={{ fontSize: 12.5 }}>{o.role} · {o.market}</div></div><div style={{ textAlign: "right" }}><div style={{ fontWeight: 700, fontSize: 14 }}>{o.val}</div><span className={"chip " + prChip(o.pr)} style={{ marginTop: 3 }}>{o.close}</span></div></div>))}
+        {OPPS.length ? (OPPS.slice(0, 4).map((o, i) => (<div key={i} className="row" style={{ justifyContent: "space-between", padding: "11px 0", borderBottom: i < 3 ? "1px solid var(--line)" : "none" }}><div><div style={{ fontWeight: 600, fontSize: 14 }}>{o.org}</div><div className="muted" style={{ fontSize: 12.5 }}>{o.role} · {o.market}</div></div><div style={{ textAlign: "right" }}><div style={{ fontWeight: 700, fontSize: 14 }}>{o.val}</div><span className={"chip " + prChip(o.pr)} style={{ marginTop: 3 }}>{o.close}</span></div></div>))) : <div className="faint" style={{ fontSize: 13, lineHeight: 1.6, padding: "8px 0" }}>Live opportunities you are tracking will appear here.</div>}
       </div>
     </div>
     <div className="card" style={{ padding: 20 }}>
@@ -1730,7 +1747,7 @@ function Leaderboard({ go, market = "all" }) {
 const Intel = () => (
   <div>
     <PageHead title="Market intelligence" sub="Real-time signals on tenders, frameworks, leadership changes and market moves" />
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{INTEL.map((it, i) => (<div key={i} className="card lift" style={{ padding: 18 }}><div className="row" style={{ gap: 10, marginBottom: 8 }}><span className="chip chip-blue">{it.tag}</span><span className="chip chip-grey">{it.market}</span><span className="faint" style={{ fontSize: 12, marginLeft: "auto" }}>{it.t}</span></div><div style={{ fontSize: 15 }}>{it.text}</div><button className="btn btn-ghost" style={{ marginTop: 12, padding: "8px 14px", fontSize: 13 }}>Create opportunity <ArrowRight size={14} /></button></div>))}</div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{INTEL.length ? (INTEL.map((it, i) => (<div key={i} className="card lift" style={{ padding: 18 }}><div className="row" style={{ gap: 10, marginBottom: 8 }}><span className="chip chip-blue">{it.tag}</span><span className="chip chip-grey">{it.market}</span><span className="faint" style={{ fontSize: 12, marginLeft: "auto" }}>{it.t}</span></div><div style={{ fontSize: 15 }}>{it.text}</div><button className="btn btn-ghost" style={{ marginTop: 12, padding: "8px 14px", fontSize: 13 }}>Create opportunity <ArrowRight size={14} /></button></div>))) : <div className="faint" style={{ fontSize: 13, lineHeight: 1.6, padding: "8px 0" }}>Intelligence on your markets will appear here as it is gathered.</div>}</div>
   </div>
 );
 const Analytics = () => (
@@ -1845,7 +1862,7 @@ const FindAgencies = () => {
     <div>
       <PageHead title="Find agencies" sub="Framework and non-framework, CQC and non-CQC, all clearly flagged" right={<button className="btn btn-primary"><Plus size={16} /> Post requirement</button>} />
       <div className="row" style={{ gap: 8, marginBottom: 16, flexWrap: "wrap" }}>{["All", "Framework", "Non-framework", "CQC", "Non-CQC"].map((m) => (<button key={m} onClick={() => setF(m)} className="chip" style={{ padding: "7px 14px", background: f === m ? "var(--blue)" : "#EEF1F7", color: f === m ? "#fff" : "#5A6783" }}>{m}</button>))}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{list.map((a, i) => (
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{list.length ? (list.map((a, i) => (
         <div key={i} className="card lift" style={{ padding: 18 }}>
           <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
             <div className="row" style={{ gap: 14 }}>
@@ -1872,7 +1889,7 @@ const FindAgencies = () => {
             </div>
           ) : null}
         </div>
-      ))}</div>
+      ))) : <div className="card" style={{ padding: 36, textAlign: "center", gridColumn: "1/-1" }}><div className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>No agencies listed yet. Workforce suppliers appear here as they join and verify.</div></div>}</div>
     </div>
   );
 };
@@ -1881,7 +1898,7 @@ const HospitalDash = ({ go }) => (
     <IllustrativeBanner />
       <PageHead title="Welcome back" sub="Find the right partner, faster. Spend more time on patient care." right={<button className="btn btn-primary" onClick={() => go("findAgencies")}><Search size={16} /> Find agencies</button>} />
     <div className="grid-stats" style={{ marginBottom: 18 }}><Stat label="Open requirements" value="6" icon={FileText} /><Stat label="Matched agencies" value="23" icon={Briefcase} accent="cyan" /><Stat label="Shortlisted clinicians" value="11" icon={Stethoscope} /><Stat label="Avg time to fill" value="9 days" delta="3d faster" icon={Clock} accent="cyan" /></div>
-    <div className="card" style={{ padding: 20 }}><SectionHead title="Agencies on Qura" action={<button className="btn btn-ghost" style={{ padding: "7px 12px", fontSize: 13 }} onClick={() => go("findAgencies")}>View all</button>} />{AGENCIES.slice(0, 3).map((a, i) => (<div key={i} className="row" style={{ justifyContent: "space-between", padding: "12px 0", borderBottom: i < 2 ? "1px solid var(--line)" : "none" }}><div className="row" style={{ gap: 12 }}><div style={{ width: 38, height: 38, borderRadius: 10, background: "var(--navy)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{a.name[0]}</div><div><div style={{ fontWeight: 600, fontSize: 14 }}>{a.name}</div><div className="muted" style={{ fontSize: 12.5 }}>{a.spec}</div></div></div>{a.framework ? <span className="chip chip-cyan">Framework</span> : null}</div>))}</div>
+    <div className="card" style={{ padding: 20 }}><SectionHead title="Agencies on Qura" action={<button className="btn btn-ghost" style={{ padding: "7px 12px", fontSize: 13 }} onClick={() => go("findAgencies")}>View all</button>} />{AGENCIES.length ? (AGENCIES.slice(0, 3).map((a, i) => (<div key={i} className="row" style={{ justifyContent: "space-between", padding: "12px 0", borderBottom: i < 2 ? "1px solid var(--line)" : "none" }}><div className="row" style={{ gap: 12 }}><div style={{ width: 38, height: 38, borderRadius: 10, background: "var(--navy)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{a.name[0]}</div><div><div style={{ fontWeight: 600, fontSize: 14 }}>{a.name}</div><div className="muted" style={{ fontSize: 12.5 }}>{a.spec}</div></div></div>{a.framework ? <span className="chip chip-cyan">Framework</span> : null}</div>))) : <div className="faint" style={{ fontSize: 13, lineHeight: 1.6, padding: "8px 0" }}>Agencies you engage will appear here.</div>}</div>
   </div>
 );
 // Was a static mock: every clinician saw Dr. Sarah Ahmed's name, specialties
@@ -2409,59 +2426,33 @@ function WeeklyReport({ sent = [], booked = [], moves = {}, lost = {}, name, ema
 }
 
 function OwnerOps({ isOwner }) {
-  const GROUPS = [
-    { k: "agency", l: "Agencies", n: 642, c: "#2D6BFF" },
-    { k: "hospital", l: "Hospitals & providers", n: 1498, c: "#00C2B8" },
-    { k: "clinician", l: "Clinicians", n: 8473, c: "#7C5CFF" },
-    { k: "gp", l: "GP practices", n: 210, c: "#0E8C7E" },
-    { k: "care", l: "Care providers", n: 180, c: "#C8102E" },
-    { k: "exec", l: "Executives", n: 140, c: "#F2A33C" },
-    { k: "investor", l: "Investors", n: 95, c: "#1E54E6" },
-  ];
-  const total = GROUPS.reduce((a, g) => a + g.n, 0);
-  const maxG = Math.max(...GROUPS.map((g) => g.n));
-  const PLANS_MIX = [
-    { l: "Starter", price: 450, subs: 180, c: "#2D6BFF" },
-    { l: "Growth", price: 1200, subs: 96, c: "#00C2B8" },
-    { l: "Enterprise", price: 3200, subs: 14, c: "#0A1730" },
-  ];
-  const mrr = PLANS_MIX.reduce((a, p) => a + p.price * p.subs, 0);
-  const arr = mrr * 12;
-  const activeSubs = PLANS_MIX.reduce((a, p) => a + p.subs, 0);
-  const arpa = Math.round(mrr / activeSubs);
-  const fmt = (n) => "£" + n.toLocaleString();
-  const [live, setLive] = useState(null);
-  useEffect(() => { (async () => { try { if (supabase) { const { data } = await supabase.auth.getSession(); const tok = data && data.session && data.session.access_token; if (tok) { const r = await fetch("/api/admin", { headers: { Authorization: "Bearer " + tok } }); if (r.ok) { const j = await r.json(); if (Array.isArray(j.users)) { const by = {}; j.users.forEach((u) => { const rk = u.role || "unassigned"; by[rk] = (by[rk] || 0) + 1; }); setLive({ total: j.users.length, by }); } } } } } catch (e) {} })(); }, []);
+  // Real counts from the database. The headline used to add up hard-coded
+  // groups to 11,238 sign-ups and multiply invented subscriptions into £241,000
+  // MRR and £2,892,000 ARR, while the real count sat in small print below.
+  // Revenue is not shown until Stripe reporting is connected: a blank is honest,
+  // an estimate on an owner page gets repeated as fact.
+  const acc = useLiveAccounts();
+  const maxG = Math.max(1, ...acc.groups.map((x) => x.n));
   if (isOwner === false) return (<div><PageHead title="Sign-ups & financials" sub="Owner only." /><div className="card muted" style={{ padding: 40, textAlign: "center" }}>This page is available to platform owners.</div></div>);
+  const v = (n) => (acc.loading ? "…" : acc.error ? "—" : String(n));
   return (
     <div>
-      <PageHead title="Sign-ups & financials" sub="Platform growth and revenue at a glance" right={<span className="chip chip-cyan">Owner view</span>} />
-      <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--bg)", border: "1px solid var(--line)" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><ShieldCheck size={16} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 12.5, lineHeight: 1.5 }} className="muted">Platform figures are illustrative for now. Live registered-account counts pull from your database below; live revenue connects when Stripe reporting is switched on.</div></div></div>
+      <PageHead title="Sign-ups & financials" sub="Real registered accounts, from your database" right={<span className="chip chip-cyan">Owner view</span>} />
       <div className="grid-stats" style={{ marginBottom: 18 }}>
-        <Stat label="Total sign-ups" value={total.toLocaleString()} delta="illustrative" icon={Users} />
-        <Stat label="MRR" value={fmt(mrr)} delta="+12% MoM" icon={TrendingUp} accent="cyan" />
-        <Stat label="ARR" value={fmt(arr)} icon={BarChart3} />
-        <Stat label="Active subscriptions" value={String(activeSubs)} icon={CreditCard} accent="cyan" />
-        <Stat label="ARPA" value={fmt(arpa)} icon={Trophy} />
+        <Stat label="Marketplace accounts" value={v(acc.total)} delta={acc.loading || acc.error ? "" : acc.thisWeek + " this week"} icon={Users} />
+        {acc.groups.map((x) => <Stat key={x.k} label={x.l} value={v(x.n)} icon={x.k === "clinician" ? Stethoscope : x.k === "supplier" ? Briefcase : Building2} />)}
       </div>
       <div className="grid g2" style={{ gap: 16, alignItems: "start" }}>
         <div className="card" style={{ padding: 20 }}>
           <SectionHead title="Sign-ups by group" />
-          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>{GROUPS.map((g) => (
-            <div key={g.k}><div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span style={{ fontWeight: 600 }}>{g.l}</span><span className="num">{g.n.toLocaleString()}</span></div><div style={{ height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}><div style={{ width: Math.max(3, (g.n / maxG) * 100) + "%", height: "100%", background: g.c, borderRadius: 999 }} /></div></div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>{acc.groups.map((x) => (
+            <div key={x.k}><div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span style={{ fontWeight: 600 }}>{x.l}</span><span className="num">{v(x.n)}</span></div><div style={{ height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}><div style={{ width: Math.max(3, (x.n / maxG) * 100) + "%", height: "100%", background: x.c, borderRadius: 999 }} /></div></div>
           ))}</div>
-          <div style={{ borderTop: "1px solid var(--line)", marginTop: 16, paddingTop: 12 }}><div className="row" style={{ justifyContent: "space-between", fontSize: 13 }}><span className="muted">Live registered accounts (your database)</span><span className="num" style={{ fontWeight: 700 }}>{live ? live.total : "—"}</span></div>{live ? <div className="faint" style={{ fontSize: 11.5, marginTop: 6 }}>{Object.entries(live.by).map(([k, v]) => k + ": " + v).join(" · ")}</div> : null}</div>
+          {acc.unassigned > 0 && <div className="faint" style={{ fontSize: 12, marginTop: 14 }}>{acc.unassigned} {acc.unassigned === 1 ? "account has" : "accounts have"} not chosen a role yet. Your own operator accounts are excluded from every count.</div>}
         </div>
         <div className="card" style={{ padding: 20 }}>
-          <SectionHead title="Revenue by plan" />
-          <div style={{ display: "flex", flexDirection: "column", gap: 14, marginTop: 8 }}>{PLANS_MIX.map((p) => { const rev = p.price * p.subs; return (
-            <div key={p.l}><div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span style={{ fontWeight: 600 }}>{p.l} <span className="faint">· {p.subs} subs · {fmt(p.price)}/mo</span></span><span className="num">{fmt(rev)}</span></div><div style={{ height: 8, background: "var(--bg)", borderRadius: 999, overflow: "hidden" }}><div style={{ width: Math.max(3, (rev / mrr) * 100) + "%", height: "100%", background: p.c, borderRadius: 999 }} /></div></div>
-          ); })}</div>
-          <div style={{ borderTop: "1px solid var(--line)", marginTop: 16, paddingTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-            <div className="row" style={{ justifyContent: "space-between", fontSize: 13 }}><span className="muted">Trial to paid conversion</span><span className="num">34%</span></div>
-            <div className="row" style={{ justifyContent: "space-between", fontSize: 13 }}><span className="muted">Monthly recurring revenue</span><span className="num" style={{ fontWeight: 700 }}>{fmt(mrr)}</span></div>
-            <div className="row" style={{ justifyContent: "space-between", fontSize: 13 }}><span className="muted">Annual run rate</span><span className="num" style={{ fontWeight: 700 }}>{fmt(arr)}</span></div>
-          </div>
+          <SectionHead title="Revenue" />
+          <div className="muted" style={{ fontSize: 13.5, lineHeight: 1.65, marginTop: 6 }}>Monthly recurring revenue, annual run rate and subscriptions by plan appear here once Stripe reporting is connected. Until then nothing is estimated, because a figure on this page tends to be repeated as fact.</div>
         </div>
       </div>
     </div>
@@ -2635,14 +2626,14 @@ function LiveProjects({ onToast }) {
   return (
     <div>
       <PageHead title="Live projects" sub="Roles advertised by workforce suppliers and hospitals. See one that matches your experience? Engage directly, without waiting to be found." right={<span className="chip chip-cyan"><Radar size={12} /> Updated live</span>} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{projects.map((o, i) => { const on = engaged.includes(i); return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>{projects.length ? (projects.map((o, i) => { const on = engaged.includes(i); return (
         <div key={i} className="card lift" style={{ padding: 18 }}>
           <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
             <div className="row" style={{ gap: 14 }}><div style={{ width: 46, height: 46, borderRadius: 12, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><Building2 size={20} color="#1E54E6" /></div><div><div className="row" style={{ gap: 9, flexWrap: "wrap" }}><span style={{ fontWeight: 600, fontSize: 15.5 }}>{o.role}</span>{o.score ? <span className="chip chip-cyan"><Sparkles size={11} /> {o.score}% fit</span> : null}<span className="chip chip-grey" style={{ fontSize: 11 }}>{o.market}</span></div><div className="muted row hsm" style={{ fontSize: 13, gap: 14, marginTop: 4 }}><span>{o.org}</span>{o.loc ? <span className="row" style={{ gap: 4 }}><MapPin size={12} />{o.loc}</span> : null}</div></div></div>
             <div className="row" style={{ gap: 12 }}>{o.close ? <span className="chip chip-low">{o.close} left</span> : null}<button onClick={() => engage(o, i)} disabled={on} className={"btn " + (on ? "btn-light" : "btn-primary")}>{on ? <><Check size={14} /> Interest sent</> : <><Send size={14} /> Express interest</>}</button></div>
           </div>
         </div>
-      ); })}</div>
+      ); })) : <div className="card" style={{ padding: 36, textAlign: "center", gridColumn: "1/-1" }}><div className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>No live projects yet. Roles advertised by suppliers and hospitals appear here as they are posted.</div></div>}</div>
       <div className="faint" style={{ fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>Expressing interest notifies the workforce supplier or hospital directly, so strong candidates engage the moment a matching project goes live.</div>
     </div>
   );
@@ -2773,14 +2764,61 @@ function Accommodation({ onToast, onNav }) {
 const Placeholder = ({ title }) => (<div><PageHead title={title} sub="This area is part of the prototype scope." /><div className="card" style={{ padding: 48, textAlign: "center" }}><MessageSquare size={28} className="faint" style={{ margin: "0 auto 12px" }} /><div className="muted">Content for {title.toLowerCase()} lives here in the full build.</div></div></div>);
 
 /* ===================== Pulse command center ===================== */
-function AiBrief({ name }) {
+// Real account counts, from /api/admin. The Command Centre and the financials
+// page used to show invented figures (8,473 clinicians, 11,238 sign-ups,
+// £241,000 MRR) while this endpoint was already returning the truth. Both now
+// read from here, so there is one source and it is the database.
+const MARKET_GROUPS = [
+  { k: "clinician", l: "Clinicians", roles: ["clinician"], c: "#7C5CFF", role: "Supply of talent" },
+  { k: "supplier", l: "Workforce & medical suppliers", roles: ["agency", "supplier"], c: "#2D6BFF", role: "Supply of business development" },
+  { k: "provider", l: "Healthcare providers", roles: ["hospital", "gp", "care", "provider", "healthcare_provider"], c: "#00C2B8", role: "Demand for talent" },
+];
+function useLiveAccounts() {
+  const [st, setSt] = useState({ loading: true, error: false, users: [] });
+  useEffect(() => { (async () => {
+    try {
+      if (!supabase) return setSt({ loading: false, error: true, users: [] });
+      const { data } = await supabase.auth.getSession();
+      const tok = data && data.session && data.session.access_token;
+      if (!tok) return setSt({ loading: false, error: true, users: [] });
+      const r = await fetch("/api/admin", { headers: { Authorization: "Bearer " + tok } });
+      if (!r.ok) return setSt({ loading: false, error: true, users: [] });
+      const j = await r.json();
+      setSt({ loading: false, error: false, users: Array.isArray(j.users) ? j.users : [] });
+    } catch (e) { setSt({ loading: false, error: true, users: [] }); }
+  })(); }, []);
+  const users = st.users;
+  const roleOf = (u) => String(u.role || "").toLowerCase();
+  // The two founders' own operator accounts are not marketplace participants.
+  const market = users.filter((u) => roleOf(u) !== "operator");
+  const count = (roles) => market.filter((u) => roles.includes(roleOf(u))).length;
+  const groups = MARKET_GROUPS.map((g) => ({ ...g, n: count(g.roles) }));
+  const unassigned = market.filter((u) => !roleOf(u)).length;
+  const weekAgo = Date.now() - 7 * 864e5;
+  const thisWeek = market.filter((u) => u.created_at && Date.parse(u.created_at) > weekAgo).length;
+  return { ...st, total: market.length, groups, unassigned, thisWeek, market };
+}
+const agoLabel = (ts) => {
+  const m = Math.max(0, Math.round((Date.now() - Date.parse(ts)) / 60000));
+  if (m < 1) return "just now"; if (m < 60) return m + "m ago";
+  const h = Math.round(m / 60); if (h < 24) return h + "h ago";
+  const d = Math.round(h / 24); return d + "d ago";
+};
+
+function AiBrief({ name, acc }) {
   const [state, setState] = useState("idle"); const [text, setText] = useState("");
-  const fallback = `Marketplace momentum is strong. Pipeline value reached £24.6M, up 28% on last month, led by a 34% surge in Middle East demand. Supply is the constraint to watch: agency coverage in the Gulf is lagging behind open requirements. Twelve NHS framework deadlines close within the week, so prioritise theatre and AHP bids. Clinician sign-ups hit a weekly high, deepening the talent pool for hospitals.`;
+  // Written from the real counts only. It previously summarised a £24.6M
+  // pipeline and 8,473 clinicians, and would repeat those if the AI call failed.
+  const facts = acc && !acc.loading && !acc.error
+    ? `${acc.total} marketplace accounts registered: ` + acc.groups.map((g) => g.n + " " + g.l.toLowerCase()).join(", ") + `${acc.unassigned ? ", and " + acc.unassigned + " not yet assigned a role" : ""}. ${acc.thisWeek} joined in the last 7 days. The register holds 4,040 named decision-makers across 1,450 organisations in 5 markets.`
+    : "";
+  const fallback = facts ? "Where Qura stands today. " + facts : "Account figures could not be loaded just now, so there is nothing reliable to summarise. Try again in a moment.";
   const run = async () => {
     setState("loading"); setText("");
+    if (!facts) { setText(fallback); setState("done"); return; }
     try {
-      const res = await fetch("/api/anthropic", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: `You are the marketplace intelligence engine inside ${APP_NAME}, a healthcare growth platform. Write a sharp 4-sentence executive brief for the founder${name ? ", " + name + "," : ""} summarising marketplace health. Use these live figures: pipeline value £24.6M up 28% month on month; 1,248 live opportunities; 8,473 clinicians; 2,140 organisations; matches this month 412; Middle East demand up 34% with agency supply lagging; 12 NHS framework deadlines closing within 7 days; clinician sign-ups at a weekly high. British English, confident and specific, no bullet points, no em dashes, no preamble.` }] }) });
-      const data = await res.json(); const t = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("").trim();
+      const res = await fetch("/api/anthropic", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 600, messages: [{ role: "user", content: `You are writing a short, honest status note for the founder${name ? ", " + name + "," : ""} of ${APP_NAME}, a healthcare workforce marketplace that has just launched. Use ONLY these facts and invent nothing else, including no revenue, pipeline, matches or growth rates: ${facts} Write 3 sentences in British English: where the platform stands, which side of the marketplace most needs building, and one concrete priority for this week. No bullet points, no em dashes, no preamble.` }] }) });
+      const data = await res.json(); const t = (data.content || []).filter((x) => x.type === "text").map((x) => x.text).join("").trim();
       setText(t || fallback);
     } catch (e) { setText(fallback); } setState("done");
   };
@@ -2788,66 +2826,83 @@ function AiBrief({ name }) {
     <div className="card" style={{ padding: 0, overflow: "hidden" }}>
       <div className="row" style={{ background: "var(--navy)", padding: "14px 18px", gap: 10 }}><Sparkles size={17} color="#5FE6DC" /><span style={{ color: "#fff", fontWeight: 600, fontSize: 14.5 }} className="disp">{name ? name + "'s daily brief" : "Daily brief"}</span><span className="chip" style={{ marginLeft: "auto", background: "rgba(0,194,184,.16)", color: "#5FE6DC" }}>AI</span></div>
       <div style={{ padding: 18 }}>
-        {state === "idle" && <><p className="muted" style={{ marginTop: 0, fontSize: 14 }}>A live, written read on the whole marketplace, in one tap.</p><button className="btn btn-ai" style={{ width: "100%", justifyContent: "center" }} onClick={run}><Sparkles size={16} /> Generate brief</button></>}
-        {state === "loading" && <div className="row muted" style={{ gap: 10, fontSize: 14, padding: "10px 0" }}><Loader2 size={17} className="pulse" color="#2D6BFF" /> Reading the marketplace…</div>}
+        {state === "idle" && <><p className="muted" style={{ marginTop: 0, fontSize: 14 }}>A written read on where Qura stands, from your real account figures only.</p><button className="btn btn-ai" style={{ width: "100%", justifyContent: "center" }} onClick={run}><Sparkles size={16} /> Generate brief</button></>}
+        {state === "loading" && <div className="row muted" style={{ gap: 10, fontSize: 14, padding: "10px 0" }}><Loader2 size={17} className="pulse" color="#2D6BFF" /> Reading the figures…</div>}
         {state === "done" && <div className="fade"><p style={{ marginTop: 0, fontSize: 14.5, lineHeight: 1.65 }}>{text}</p><button className="btn btn-ghost" style={{ fontSize: 13, padding: "8px 14px" }} onClick={run}>Refresh</button></div>}
       </div>
     </div>
   );
 }
-function LiveFeed() {
-  const [items, setItems] = useState(() => FEED_POOL.slice(0, 6).map((x, i) => ({ ...x, id: i, ago: (i + 1) * 3 })));
-  const idRef = useRef(100);
-  useEffect(() => { const iv = setInterval(() => { const pick = FEED_POOL[Math.floor(Math.random() * FEED_POOL.length)]; setItems((prev) => [{ ...pick, id: idRef.current++, ago: 0 }, ...prev.map((p) => ({ ...p, ago: p.ago + 1 }))].slice(0, 7)); }, 3200); return () => clearInterval(iv); }, []);
+
+function LiveFeed({ acc }) {
+  // Real events only: accounts as they are created. This used to pick a random
+  // invented line every 3 seconds and stamp it "just now", including things
+  // like "Guy's & St Thomas' matched with 3 radiology partners" about real NHS
+  // trusts that had never used Qura. No names or emails are shown here.
+  const recent = (acc.market || []).filter((u) => u.created_at).sort((x, y) => Date.parse(y.created_at) - Date.parse(x.created_at)).slice(0, 8);
+  const label = (u) => { const g = MARKET_GROUPS.find((m) => m.roles.includes(String(u.role || "").toLowerCase())); return g ? "A new " + g.l.replace(/s$/, "").toLowerCase().replace("workforce & medical supplier", "supplier").replace("healthcare provider", "healthcare provider") + " joined" : "A new account was created"; };
   return (
     <div className="card" style={{ padding: 18 }}>
-      <SectionHead title="Live activity" action={<span className="row" style={{ gap: 7, fontSize: 12.5, fontWeight: 600, color: "var(--ok)" }}><span className="live" /> Live</span>} />
-      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>{items.map((it, i) => (<div key={it.id} className={i === 0 ? "feed-in row" : "row"} style={{ gap: 12, padding: "11px 0", borderBottom: i < items.length - 1 ? "1px solid var(--line)" : "none" }}><div style={{ width: 32, height: 32, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: it.c === "ok" ? "var(--ok-bg)" : it.c === "blue" ? "#EEF3FF" : it.c === "violet" ? "var(--violet-soft)" : "var(--cyan-soft)" }}><it.icon size={15} color={it.c === "ok" ? "#0F7A45" : it.c === "blue" ? "#1E54E6" : it.c === "violet" ? "#5B3FD6" : "#06776F"} /></div><div style={{ flex: 1, fontSize: 13.5 }}><b style={{ fontWeight: 600 }}>{it.who}</b> {it.txt}</div><span className="faint" style={{ fontSize: 11.5, whiteSpace: "nowrap" }}>{it.ago === 0 ? "just now" : `${it.ago}m`}</span></div>))}</div>
+      <SectionHead title="Recent sign-ups" action={<span className="faint" style={{ fontSize: 12 }}>From your database</span>} />
+      {acc.loading ? <div className="faint" style={{ fontSize: 13 }}>Loading…</div>
+        : recent.length ? <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>{recent.map((u, i) => (
+          <div key={u.id || i} className="row" style={{ gap: 12, padding: "10px 0", borderBottom: i < recent.length - 1 ? "1px solid var(--line)" : "none" }}>
+            <div style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, display: "grid", placeItems: "center", background: "var(--cyan-soft)" }}><Users size={14} color="#06776F" /></div>
+            <div style={{ flex: 1, fontSize: 13.5 }}>{label(u)}</div>
+            <span className="faint" style={{ fontSize: 11.5, whiteSpace: "nowrap" }}>{agoLabel(u.created_at)}</span>
+          </div>))}</div>
+        : <div className="faint" style={{ fontSize: 13, lineHeight: 1.6 }}>Sign-ups will appear here as they happen.</div>}
     </div>
   );
 }
-const Balance = () => {
-  const sides = [{ l: "Agencies", n: 642, d: "+38", i: Briefcase, c: "#2D6BFF", bg: "#EEF3FF", role: "Supply of business development" }, { l: "Hospitals", n: 1498, d: "+71", i: Building2, c: "#00C2B8", bg: "var(--cyan-soft)", role: "Demand for talent" }, { l: "Clinicians", n: 8473, d: "+204", i: Stethoscope, c: "#7C5CFF", bg: "var(--violet-soft)", role: "Supply of talent" }];
+
+const Balance = ({ acc }) => {
+  const icon = { clinician: Stethoscope, supplier: Briefcase, provider: Building2 };
+  const bg = { clinician: "var(--violet-soft)", supplier: "#EEF3FF", provider: "var(--cyan-soft)" };
   return (
     <div className="card" style={{ padding: 18 }}>
-      <SectionHead title="Three-sided marketplace" action={<span className="chip chip-grey">2,140 organisations</span>} />
-      <div className="grid g3">{sides.map((s) => (<div key={s.l} style={{ borderRadius: 13, padding: 16, background: s.bg }}><div className="row" style={{ justifyContent: "space-between" }}><s.i size={20} color={s.c} /><span className="chip" style={{ background: "#fff", color: s.c }}>{s.d} / wk</span></div><div className="disp" style={{ fontSize: 24, fontWeight: 700, marginTop: 10, color: "var(--navy)" }}>{s.n.toLocaleString()}</div><div style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>{s.l}</div><div className="muted" style={{ fontSize: 11.5, marginTop: 2 }}>{s.role}</div></div>))}</div>
-      <div className="row" style={{ gap: 18, marginTop: 16, flexWrap: "wrap" }}>{[["Fill rate", "87%", "+4pt"], ["Avg time to match", "2.3 days"], ["Matches this month", "412"], ["Take rate", "6.5%"]].map(([l, v, d]) => (<div key={l}><span className="muted" style={{ fontSize: 12.5 }}>{l}</span><div className="disp row" style={{ fontSize: 18, fontWeight: 700, gap: 6 }}>{v}{d && <span className="up" style={{ fontSize: 12 }}>{d}</span>}</div></div>))}</div>
+      <SectionHead title="Three-sided marketplace" action={<span className="chip chip-grey">{acc.loading ? "…" : acc.total + " accounts"}</span>} />
+      <div className="grid g3">{acc.groups.map((g) => { const I = icon[g.k]; return (
+        <div key={g.k} style={{ borderRadius: 13, padding: 16, background: bg[g.k] }}>
+          <I size={20} color={g.c} />
+          <div className="disp" style={{ fontSize: 24, fontWeight: 700, marginTop: 10, color: "var(--navy)" }}>{acc.loading ? "…" : g.n}</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>{g.l}</div>
+          <div className="muted" style={{ fontSize: 11.5, marginTop: 2 }}>{g.role}</div>
+        </div>); })}</div>
+      {acc.unassigned > 0 && <div className="faint" style={{ fontSize: 12, marginTop: 12 }}>{acc.unassigned} {acc.unassigned === 1 ? "account has" : "accounts have"} not chosen a role yet.</div>}
+      <div className="faint" style={{ fontSize: 12, marginTop: 8, lineHeight: 1.55 }}>Fill rate, time to match and take rate will show here once there are completed introductions to measure.</div>
     </div>
   );
 };
+
 const CommandCenter = ({ go, name }) => {
-  const [period, setPeriod] = useState("30d");
+  const acc = useLiveAccounts();
+  const g = (k) => (acc.groups.find((x) => x.k === k) || { n: 0 }).n;
+  const v = (n) => (acc.loading ? "…" : acc.error ? "—" : n);
   return (
     <div>
-      <IllustrativeBanner />
       <div className="row" style={{ justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
-        <div><div className="ph-accent" /><h1 className="disp" style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-.025em" }}>Marketplace Command Centre (MCC)</h1><div className="muted row" style={{ fontSize: 14.5, marginTop: 8, gap: 8 }}><span className="live" /> Everything happening across {APP_NAME}, live</div></div>
-        <div className="row" style={{ gap: 4, background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 12, padding: 4 }}>{["7d", "30d", "QTD"].map((p) => (<button key={p} onClick={() => setPeriod(p)} style={{ padding: "7px 15px", fontSize: 13, fontWeight: 600, border: "none", borderRadius: 9, cursor: "pointer", transition: ".15s", background: period === p ? "var(--blue)" : "#fff", color: period === p ? "#fff" : "var(--navy)", boxShadow: period === p ? "0 1px 3px rgba(45,107,255,.35)" : "var(--sh-xs)" }}>{p}</button>))}</div>
+        <div><div className="ph-accent" /><h1 className="disp" style={{ fontSize: 30, fontWeight: 700, letterSpacing: "-.025em" }}>Marketplace Command Centre (MCC)</h1>
+          <div className="muted row" style={{ fontSize: 14.5, marginTop: 8, gap: 8 }}>{acc.error ? "Account figures could not be loaded." : <><span className="live" /> Live from your database</>}</div></div>
       </div>
       <div className="grid g4 fade" style={{ marginBottom: 16 }}>
-        <Kpi label="Marketplace pipeline" prefix="£" suffix="M" value={24.6} decimals={1} delta="28% MoM" icon={Gauge} accent="cyan" />
-        <Kpi label="Live opportunities" value={1248} delta="12% MoM" icon={Target} />
-        <Kpi label="Clinicians on platform" value={8473} delta="204 this week" icon={Stethoscope} accent="violet" />
-        <Kpi label="Matches this month" value={412} delta="19% MoM" icon={Link2} accent="cyan" />
+        <Stat label="Marketplace accounts" value={String(v(acc.total))} delta={acc.loading || acc.error ? "" : acc.thisWeek + " this week"} icon={Users} />
+        <Stat label="Clinicians" value={String(v(g("clinician")))} icon={Stethoscope} accent="violet" />
+        <Stat label="Suppliers" value={String(v(g("supplier")))} icon={Briefcase} />
+        <Stat label="Decision-makers in register" value="4,040" delta="1,450 organisations" icon={Target} accent="cyan" />
       </div>
       <div className="grid main" style={{ marginBottom: 16, alignItems: "start" }}>
         <div className="grid" style={{ gap: 16 }}>
-          <Balance />
-          <div className="card" style={{ padding: 18 }}><SectionHead title="Marketplace pipeline value (£M)" action={<span className="chip chip-cyan"><TrendingUp size={12} /> 28% MoM</span>} /><Chart kind="gmv" data={GMV_TREND} height={220} /></div>
-          <div className="grid g2">
-            <div className="card" style={{ padding: 18 }}><SectionHead title="Pipeline by region (£M)" action={<DemoTag />} />{REGIONS.map((r) => (<div key={r.r} style={{ marginBottom: 12 }}><div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span>{r.r}</span><span style={{ fontWeight: 600 }}>£{r.v}M</span></div><div style={{ height: 7, borderRadius: 6, background: "#EDF1F8" }}><div style={{ height: "100%", borderRadius: 6, width: `${(r.v / 10.3) * 100}%`, background: r.c }} /></div></div>))}</div>
-            <div className="card" style={{ padding: 18 }}><SectionHead title="Conversion funnel" action={<DemoTag />} />{FUNNEL.map((f, i) => (<div key={f.s} style={{ marginBottom: 11 }}><div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span>{f.s}</span><span className="muted">{f.n.toLocaleString()} · {f.pct}%</span></div><div style={{ height: 7, borderRadius: 6, background: "#EDF1F8" }}><div style={{ height: "100%", borderRadius: 6, width: `${f.pct}%`, background: i === 4 ? "var(--ok)" : "var(--blue)" }} /></div></div>))}</div>
+          <Balance acc={acc} />
+          <div className="card" style={{ padding: 18 }}>
+            <SectionHead title="Pipeline, matches and revenue" />
+            <div className="muted" style={{ fontSize: 13.5, lineHeight: 1.65 }}>These appear once there is real activity to report: introductions accepted, placements made and subscriptions paid. Nothing is shown until then, so every figure on this page is one you can stand behind.</div>
           </div>
         </div>
         <div className="grid" style={{ gap: 16 }}>
-          <AiBrief name={name} /><LiveFeed />
-          <div className="card" style={{ padding: 18 }}><SectionHead title="Needs attention" />{ALERTS.map((a, i) => (<div key={i} className="row" style={{ gap: 10, padding: "9px 0", borderBottom: i < ALERTS.length - 1 ? "1px solid var(--line)" : "none" }}><AlertCircle size={16} color={a.c === "red" ? "var(--red)" : a.c === "amber" ? "var(--amber)" : "var(--ok)"} style={{ flexShrink: 0 }} /><span style={{ fontSize: 13.5 }}>{a.txt}</span></div>))}</div>
+          <AiBrief name={name} acc={acc} />
+          <LiveFeed acc={acc} />
         </div>
-      </div>
-      <div className="grid g2">
-        <div className="card" style={{ padding: 18 }}><SectionHead title="Top agencies by won value" action={<Trophy size={16} color="#F2A33C" />} />{TOP_AGENCIES.map((a, i) => (<div key={a.n} className="row" style={{ gap: 12, padding: "10px 0", borderBottom: i < TOP_AGENCIES.length - 1 ? "1px solid var(--line)" : "none" }}><span className="disp faint" style={{ fontSize: 14, fontWeight: 700, width: 18 }}>{i + 1}</span><div style={{ width: 34, height: 34, borderRadius: 9, background: "var(--navy)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{a.n[0]}</div><div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14 }}>{a.n}</div><div className="faint" style={{ fontSize: 12 }}>{a.w} deals won</div></div><span className="disp" style={{ fontWeight: 700 }}>{a.v}</span></div>))}</div>
-        <div className="card" style={{ padding: 18 }}><SectionHead title="Highest-value opportunities" action={<button className="btn btn-ghost" style={{ fontSize: 13, padding: "7px 12px" }} onClick={() => go("opportunities")}>View all <ChevronRight size={14} /></button>} />{TOP_OPPS.map((o, i) => (<div key={o.o} className="row" style={{ gap: 12, padding: "10px 0", borderBottom: i < TOP_OPPS.length - 1 ? "1px solid var(--line)" : "none" }}><div style={{ width: 34, height: 34, borderRadius: 9, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><Building2 size={16} color="#1E54E6" /></div><div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14 }}>{o.o}</div><div className="faint row" style={{ fontSize: 12, gap: 6 }}>{o.r} · <span className="chip chip-grey" style={{ padding: "1px 8px" }}>{o.m}</span></div></div><span className="disp" style={{ fontWeight: 700 }}>{o.v}</span></div>))}</div>
       </div>
     </div>
   );
@@ -4787,6 +4842,12 @@ function QuraJoinBlock({ earlyFocus }) {
     } catch (e) {}
   };
 
+  // After launch there is nothing to request. Organisation accounts open at the
+  // same instant as the seed switch, so a "Request access" form would send
+  // people through a manual approval queue for something they can now simply
+  // sign up to. The block renders nothing once the launch instant has passed.
+  if (live) return null;
+
   return (
     <div style={{ maxWidth: 820, margin: "26px auto 0" }}>
       {done ? (
@@ -4823,7 +4884,7 @@ function QuraJoinBlock({ earlyFocus }) {
               className="btn lift"
               style={{ background: "#00C2B8", color: "#04231F", fontWeight: 800, padding: "12px 22px" }}
             >
-              {live ? "Request access" : "Get early access"}
+              Get early access
             </button>
           </div>
           {err ? <div style={{ textAlign: "center", color: "#C8102E", fontSize: 13, marginTop: 8 }}>{err}</div> : null}
