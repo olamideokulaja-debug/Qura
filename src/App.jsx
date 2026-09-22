@@ -701,12 +701,15 @@ const TARIFFS = [
   { spec: "Oncology", session: "£800", day: "£1,460", wli: "£70/hr", trend: "+5%" },
   { spec: "Dermatology", session: "£700", day: "£1,280", wli: "£60/hr", trend: "+2%" },
 ];
-const SITES = [
+const SITES_SEED = [
   { name: "Ealing Neighbourhood Health Hub", type: "Neighbourhood health centre", open: "Opens Aug 2026", mgr: "Site Manager, NW London", clinical: ["Sonographers ×3", "Audiologists ×2", "Echocardiographer ×1"], nonclinical: ["Reception ×2", "Bookings coordinator"], shortlisted: 14, status: "Shortlisting" },
   { name: "Croydon Community Diagnostic Centre", type: "Community diagnostic centre", open: "Live now", mgr: "CDC Programme Lead, South London", clinical: ["Radiographers ×4", "MRI radiographer ×2"], nonclinical: ["Admin team ×3", "Site coordinator"], shortlisted: 9, status: "Hiring" },
   { name: "Leeds North Diagnostic Hub", type: "Community diagnostic centre", open: "Opens Sep 2026", mgr: "Operational Manager, West Yorkshire", clinical: ["Sonographers ×2", "Biomedical scientists ×2"], nonclinical: ["Reception ×2"], shortlisted: 5, status: "Planning" },
 ];
-const MOBILE_UNITS = [
+// Example records, off at launch: invented people and sites, and real companies
+// marked "Verified" that Qura has not verified.
+const SITES = seedActive() ? SITES_SEED : [];
+const MOBILE_UNITS_SEED = [
   { name: "InHealth", spec: "Mobile MRI, CT & breast screening", coverage: "National", clients: "Private + NHS", status: "Verified" },
   { name: "Vanguard Healthcare Solutions", spec: "Mobile theatres & endoscopy units", coverage: "National", clients: "Private + NHS", status: "Verified" },
   { name: "Medneo", spec: "Mobile & modular MRI and CT", coverage: "National", clients: "Private", status: "Verified" },
@@ -714,6 +717,9 @@ const MOBILE_UNITS = [
   { name: "Alliance Medical Mobile", spec: "Mobile CT, MRI & PET-CT", coverage: "National", clients: "Private + NHS", status: "Verified" },
   { name: "Cobalt Mobile Imaging", spec: "Mobile MRI & PET-CT", coverage: "South & Midlands", clients: "Private", status: "New" },
 ];
+// Example records, off at launch: invented people and sites, and real companies
+// marked "Verified" that Qura has not verified.
+const MOBILE_UNITS = seedActive() ? MOBILE_UNITS_SEED : [];
 const CHANNELS = [
   { k: "Mobile app", h: "Qura for iOS & Android", i: Smartphone }, { k: "Website", h: "qurahealth.org", i: Globe },
   { k: "LinkedIn", h: "/company/qura", i: Linkedin }, { k: "Instagram", h: "@qura.crm", i: Instagram },
@@ -1443,14 +1449,18 @@ const Meetings = ({ sent = [], booked = [], onBook, onEdit, onDelete }) => {
 const Pipeline = ({ sent = [], moves = {}, onMove, onBack, lost = {}, onWon, onLost, market = "all" }) => {
   const [openKey, setOpenKey] = useState(null);
   const base = [];
-  STAGES.forEach((st, si) => st.deals.forEach((d) => base.push({ o: d.o, v: d.v, si })));
+  // The stage columns stay; the example deals in them do not. They were invented
+  // values against real trusts (Imperial College £420K, Guy's & St Thomas'
+  // £310K, Derby & Burton £345K "won"). Only deals you have actually saved,
+  // passed in as "sent", appear after launch.
+  STAGES.forEach((st, si) => (seedActive() ? st.deals : []).forEach((d) => base.push({ o: d.o, v: d.v, si })));
   sent.forEach((s) => base.push({ o: s.org, v: s.val, si: 2, isNew: true }));
   const deals = base.map((d) => { const key = d.o + "|" + d.v; return { ...d, key, si: moves[key] != null ? moves[key] : d.si }; });
   const sel = deals.find((d) => d.key === openKey);
   const lostN = Object.keys(lost).length;
   return (
   <div>
-    <PageHead title="Pipeline & CRM" sub={convMoney("£24.6M", market) + " across 5 stages"} right={<div className="row" style={{ gap: 8 }}><span className="chip chip-grey">Tap a deal to open it</span>{CURRENCY[market].rate !== 1 && <span className="chip" style={{ background: "var(--cyan-soft)", color: "#06776F" }}>Converted at {CURRENCY[market].sym}{CURRENCY[market].rate}/£</span>}{lostN > 0 && <span className="chip" style={{ background: "var(--red-bg)", color: "var(--red)" }}>{lostN} lost</span>}</div>} />
+    <PageHead title="Pipeline & CRM" sub={deals.length ? deals.length + (deals.length === 1 ? " deal" : " deals") + " across " + STAGES.length + " stages" : "Save an opportunity to start your pipeline"} right={<div className="row" style={{ gap: 8 }}><span className="chip chip-grey">Tap a deal to open it</span>{CURRENCY[market].rate !== 1 && <span className="chip" style={{ background: "var(--cyan-soft)", color: "#06776F" }}>Converted at {CURRENCY[market].sym}{CURRENCY[market].rate}/£</span>}{lostN > 0 && <span className="chip" style={{ background: "var(--red-bg)", color: "var(--red)" }}>{lostN} lost</span>}</div>} />
     <div className="row scrollx" style={{ gap: 14, overflowX: "auto", alignItems: "flex-start", paddingBottom: 8 }}>{STAGES.map((st, si) => { const col = deals.filter((d) => d.si === si && !lost[d.key]); return (<div key={si} style={{ minWidth: 220, flex: "1 0 220px" }}><div className="row" style={{ justifyContent: "space-between", marginBottom: 10 }}><span style={{ fontWeight: 600, fontSize: 14 }}>{st.name}</span><span className="chip chip-grey">{col.length}</span></div><div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{col.map((d) => (<button key={d.key} onClick={() => setOpenKey(d.key)} className="card lift" style={{ padding: 14, width: "100%", textAlign: "left", cursor: "pointer", border: d.isNew ? "1.5px solid var(--cyan)" : "1px solid var(--line)" }}><div className="row" style={{ justifyContent: "space-between", gap: 6 }}><div style={{ fontWeight: 600, fontSize: 14 }}>{d.o}</div>{d.isNew && <span className="chip chip-cyan" style={{ fontSize: 10 }}>New</span>}</div><div className="disp" style={{ fontWeight: 700, fontSize: 16, marginTop: 6, color: si === STAGES.length - 1 ? "var(--ok)" : "var(--text)" }}>{convMoney(d.v, market)}</div><div style={{ height: 4, borderRadius: 4, marginTop: 10, background: "#EDF1F8" }}><div style={{ height: "100%", width: `${(si + 1) * 20}%`, borderRadius: 4, background: si === STAGES.length - 1 ? "var(--ok)" : "var(--blue)" }} /></div></button>))}</div></div>); })}</div>
     {openKey && sel && (<><div onClick={() => setOpenKey(null)} style={{ position: "fixed", inset: 0, background: "rgba(10,23,51,.4)", zIndex: 60 }} /><div className="fade" style={{ position: "fixed", top: 0, right: 0, bottom: 0, width: "min(420px, 92vw)", background: "#fff", zIndex: 61, boxShadow: "var(--sh-lg)", display: "flex", flexDirection: "column" }}>
       <div style={{ background: "radial-gradient(120% 90% at 100% 0%, #14294C 0%, var(--navy) 60%)", padding: "20px 22px", color: "#fff" }}><div className="row" style={{ justifyContent: "space-between" }}><span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC" }}>{STAGES[sel.si].name}</span><button onClick={() => setOpenKey(null)} style={{ background: "none", color: "#fff" }}><X size={20} /></button></div><h2 className="disp" style={{ fontSize: 22, fontWeight: 700, marginTop: 14 }}>{sel.o}</h2><div className="num" style={{ fontSize: 28, fontWeight: 700, marginTop: 6 }}>{convMoney(sel.v, market)}</div></div>
@@ -1762,7 +1772,7 @@ const Analytics = () => (
   </div>
 );
 
-const EXECS = [
+const EXECS_SEED = [
   { name: "Dr. Margaret Ellison", title: "Chief Medical Officer", sector: "Former NHS acute trust", avail: "Available now", match: 96, note: "Seeking international CMO or board advisory roles." },
   { name: "David Osei", title: "Chief People Officer", sector: "Workforce & HR transformation", avail: "1 month", match: 92, note: "Large-scale workforce redesign and TUPE experience." },
   { name: "Fiona Grant", title: "Chief Operating Officer", sector: "Acute & community", avail: "Available now", match: 90, note: "Turnaround and elective recovery specialist." },
@@ -1770,6 +1780,9 @@ const EXECS = [
   { name: "Susan Okafor", title: "Chief Nursing Officer", sector: "Former NHS trust", avail: "2 weeks", match: 89, note: "Open to UK, Gulf and international provider roles." },
   { name: "James Whitfield", title: "Director of Strategy", sector: "ICS & commissioning", avail: "1 month", match: 87, note: "Post-transition, seeking provider or investor-side strategy roles." },
 ];
+// Example records, off at launch: invented people and sites, and real companies
+// marked "Verified" that Qura has not verified.
+const EXECS = seedActive() ? EXECS_SEED : [];
 
 function ExecNetwork({ onToast }) {
   const [saved, setSaved] = useState([]);
@@ -1783,7 +1796,7 @@ function ExecNetwork({ onToast }) {
     <div>
       <PageHead title="Executive network" sub="Senior non-clinical leaders and ex-clinicians in corporate roles, many from the NHS transition, open to roles worldwide" right={<span className="chip chip-cyan"><Sparkles size={12} /> C-suite & senior leaders</span>} />
       <div className="card" style={{ padding: 16, marginBottom: 18, background: "var(--cyan-soft)", border: "none" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><Briefcase size={18} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 13.5, lineHeight: 1.55 }}>With the NHS moving to direct government running, thousands of senior roles have been affected. Qura surfaces available chief medical, nursing, people, operating and strategy officers, and ex-clinicians who have moved into corporate leadership, for providers and investors hiring worldwide.</div></div></div>
-      <div className="grid-3">{EXECS.map((c, i) => { const on = saved.includes(c.name); return (
+      <div className="grid-3">{EXECS.length ? (EXECS.map((c, i) => { const on = saved.includes(c.name); return (
         <div key={i} className="card lift" style={{ padding: 18 }}>
           <div className="row" style={{ justifyContent: "space-between" }}><div style={{ width: 46, height: 46, borderRadius: 999, background: "#EEF3FF", color: "#1E54E6", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{c.name.split(" ").slice(-2).map((x) => x[0]).join("")}</div><span className="chip chip-cyan"><Sparkles size={11} /> {c.match}%</span></div>
           <div style={{ fontWeight: 600, fontSize: 15, marginTop: 12 }}>{c.name}</div>
@@ -1793,7 +1806,7 @@ function ExecNetwork({ onToast }) {
           <div className="row" style={{ justifyContent: "space-between", marginTop: 12 }}><span className="chip chip-low">{c.avail}</span></div>
           <button onClick={() => save(c)} disabled={on} className={"btn " + (on ? "btn-light" : "btn-ghost")} style={{ width: "100%", justifyContent: "center", marginTop: 12, padding: "9px" }}>{on ? <><Check size={14} /> Saved to shortlist</> : <><UserCheck size={14} /> Shortlist</>}</button>
         </div>
-      ); })}</div>
+      ); })) : <div className="card" style={{ padding: 36, textAlign: "center", gridColumn: "1/-1" }}><div className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>No executives listed yet. Senior leaders appear here as they join and verify.</div></div>}</div>
     </div>
   );
 }
@@ -2875,6 +2888,10 @@ const Balance = ({ acc }) => {
 
 const CommandCenter = ({ go, name }) => {
   const acc = useLiveAccounts();
+  // The same hook the Decision makers page uses, so the two always agree. This
+  // was typed in as 4,040 and was stale within the hour.
+  const { contacts: regContacts, loading: regLoading } = useContacts();
+  const reg = { contacts: regContacts || [], loading: regLoading };
   const g = (k) => (acc.groups.find((x) => x.k === k) || { n: 0 }).n;
   const v = (n) => (acc.loading ? "…" : acc.error ? "—" : n);
   return (
@@ -2887,7 +2904,7 @@ const CommandCenter = ({ go, name }) => {
         <Stat label="Marketplace accounts" value={String(v(acc.total))} delta={acc.loading || acc.error ? "" : acc.thisWeek + " this week"} icon={Users} />
         <Stat label="Clinicians" value={String(v(g("clinician")))} icon={Stethoscope} accent="violet" />
         <Stat label="Suppliers" value={String(v(g("supplier")))} icon={Briefcase} />
-        <Stat label="Decision-makers in register" value="4,040" delta="1,450 organisations" icon={Target} accent="cyan" />
+        <Stat label="Decision-makers in register" value={reg.loading ? "…" : reg.contacts.length.toLocaleString()} delta={reg.loading ? "" : new Set(reg.contacts.map((c) => c.org)).size.toLocaleString() + " organisations"} icon={Target} accent="cyan" />
       </div>
       <div className="grid main" style={{ marginBottom: 16, alignItems: "start" }}>
         <div className="grid" style={{ gap: 16 }}>
@@ -3112,25 +3129,25 @@ function TariffRates() {
 const StaffingBoard = () => (
   <div>
     <PageHead title="Neighbourhood & CDC staffing" sub="New sites announce roles and shortlist staff, clinical and non-clinical, in one place" right={<button className="btn btn-primary"><Plus size={15} /> Announce a site</button>} />
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>{SITES.map((s, i) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>{SITES.length ? (SITES.map((s, i) => (
       <div key={i} className="card lift" style={{ padding: 20 }}>
         <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}><div><div className="row" style={{ gap: 9, flexWrap: "wrap" }}><span style={{ fontWeight: 700, fontSize: 16 }}>{s.name}</span><span className="chip chip-grey">{s.type}</span></div><div className="muted row" style={{ fontSize: 13, gap: 12, marginTop: 5, flexWrap: "wrap" }}><span className="row" style={{ gap: 4 }}><MapPin size={12} /> {s.mgr}</span><span className="row" style={{ gap: 4 }}><CalendarClock size={12} /> {s.open}</span></div></div><span className={"chip " + (s.status === "Hiring" ? "chip-low" : s.status === "Shortlisting" ? "chip-cyan" : "chip-grey")}>{s.status}</span></div>
         <div className="grid g2" style={{ gap: 16, marginTop: 16 }}><div><div className="eyebrow" style={{ marginBottom: 8 }}>Clinical roles</div><div className="row" style={{ gap: 7, flexWrap: "wrap" }}>{s.clinical.map((r) => <span key={r} className="chip" style={{ background: "#EEF3FF", color: "#1E54E6" }}><Stethoscope size={12} /> {r}</span>)}</div></div><div><div className="eyebrow" style={{ marginBottom: 8 }}>Non-clinical roles</div><div className="row" style={{ gap: 7, flexWrap: "wrap" }}>{s.nonclinical.map((r) => <span key={r} className="chip chip-grey">{r}</span>)}</div></div></div>
         <div className="row" style={{ justifyContent: "space-between", marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line)" }}><span className="faint" style={{ fontSize: 13 }}>{s.shortlisted} candidates shortlisted</span><button className="btn btn-ghost" style={{ fontSize: 13, padding: "8px 14px" }}><UserCheck size={14} /> Shortlist staff</button></div>
       </div>
-    ))}</div>
+    ))) : <div className="card" style={{ padding: 36, textAlign: "center", gridColumn: "1/-1" }}><div className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>No sites listed yet. New and expanding sites appear here as organisations post them.</div></div>}</div>
   </div>
 );
 const MobileUnits = () => (
   <div>
     <PageHead title="Mobile unit providers" sub="Private mobile diagnostic providers supplying capacity to the NHS" right={<span className="chip chip-cyan"><Truck size={13} /> Verified providers</span>} />
-    <div className="grid-2">{MOBILE_UNITS.map((m, i) => (
+    <div className="grid-2">{MOBILE_UNITS.length ? (MOBILE_UNITS.map((m, i) => (
       <div key={i} className="card lift" style={{ padding: 18 }}>
         <div className="row" style={{ justifyContent: "space-between" }}><div className="row" style={{ gap: 14 }}><div style={{ width: 46, height: 46, borderRadius: 12, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><Truck size={20} color="#1E54E6" /></div><div><div style={{ fontWeight: 600, fontSize: 15 }}>{m.name}</div><div className="muted" style={{ fontSize: 13 }}>{m.spec}</div></div></div><span className={"chip " + (m.status === "Verified" ? "chip-low" : "chip-grey")}><BadgeCheck size={12} /> {m.status}</span></div>
         <div className="row" style={{ gap: 12, marginTop: 12, flexWrap: "wrap" }}><span className="faint row" style={{ fontSize: 12.5, gap: 4 }}><MapPin size={12} /> {m.coverage}</span><span className="faint row" style={{ fontSize: 12.5, gap: 4 }}><Building2 size={12} /> {m.clients}</span></div>
         <button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center", marginTop: 14, padding: "9px" }}><Link2 size={14} /> Connect</button>
       </div>
-    ))}</div>
+    ))) : <div className="card" style={{ padding: 36, textAlign: "center", gridColumn: "1/-1" }}><div className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>No mobile unit providers listed yet. Providers appear here once they join and are verified.</div></div>}</div>
   </div>
 );
 const BrandShowcase = () => (
@@ -3629,7 +3646,7 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
   // register, which holds 4,040 named contacts across 1,450 organisations, and
   // "50+ countries reached" described no measure we actually keep. Qura
   // operates in 5 markets and that is the number that can be evidenced.
-  const stats = [{ n: "32+", l: "Combined years in healthcare" }, { n: "13,000+", l: "Combined LinkedIn following" }, { n: "4,040", l: "Named decision-makers" }, { n: "5", l: "Markets" }];
+  const stats = [{ n: "32+", l: "Combined years in healthcare" }, { n: "13,000+", l: "Combined LinkedIn following" }, { n: "4,000+", l: "Named decision-makers" }, { n: "5", l: "Markets" }];
   const edge = [
     { i: Brain, t: "A decade of real deals, encoded", b: "Qura's analytics are shaped by 10 years of contracts our experts have actually closed, so every score reflects how the market really behaves.", c: "#5B3FD6", bg: "var(--violet-soft)" },
     { i: Zap, t: "AI that works the way experts work", b: "The platform scans thousands of opportunities, scores fit and drafts proposals in seconds, following the playbook that built a multi-million-pound pipeline.", c: "#06776F", bg: "var(--cyan-soft)" },
@@ -4142,7 +4159,7 @@ function Login({ onNext, onHome, onSignup }) {
                   reached" described no measure we keep, against a register of
                   4,040; "50+ countries" was not a number we could show anyone.
                   All three are now things we can evidence on request. */}
-              {[["13,000+", "Combined LinkedIn following"], ["4,040", "Named decision-makers"], ["5", "Markets"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
+              {[["13,000+", "Combined LinkedIn following"], ["4,000+", "Named decision-makers"], ["5", "Markets"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
         </div>
       </div>
       <div className="login-auth" style={{ flex: "1 1 0", background: "#fff", padding: "46px 42px", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
