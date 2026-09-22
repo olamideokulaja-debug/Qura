@@ -840,19 +840,18 @@ function OnboardingChecklist({ go, sentN = 0, bookedN = 0 }) {
 }
 const Dashboard = ({ go, sentN = 0, bookedN = 0, name }) => (
   <div>
-    <IllustrativeBanner />
-    <PageHead title={"Welcome back" + (name ? ", " + name : "")} sub="Here is what is moving across your markets today." right={<button className="btn btn-ai" onClick={() => go("proposals")}><Sparkles size={16} /> New proposal</button>} />
+        <PageHead title={"Welcome back" + (name ? ", " + name : "")} sub="Here is what is moving across your markets today." right={<button className="btn btn-ai" onClick={() => go("proposals")}><Sparkles size={16} /> New proposal</button>} />
     <OnboardingChecklist go={go} sentN={sentN} bookedN={bookedN} />
     <div className="grid-stats" style={{ marginBottom: 18 }}>
-      <Stat label="Live opportunities" value="1,248" delta="12% vs 30d" icon={Target} />
-      <Stat label="Pipeline value" value="£24.6M" delta="21% vs 30d" icon={GitBranch} accent="cyan" />
-      <Stat label="Meetings booked" value="86" delta="9% vs 30d" icon={Calendar} />
-      <Stat label="Proposals sent" value="63" delta="14% vs 30d" icon={FileText} accent="cyan" />
+      <Stat label="Live opportunities" value="—" delta="No activity yet" icon={Target} />
+      <Stat label="Pipeline value" value="—" delta="No activity yet" icon={GitBranch} accent="cyan" />
+      <Stat label="Meetings booked" value="—" delta="No activity yet" icon={Calendar} />
+      <Stat label="Proposals sent" value="—" delta="No activity yet" icon={FileText} accent="cyan" />
     </div>
     <div className="grid-2" style={{ marginBottom: 18 }}>
       <div className="card" style={{ padding: 20 }}>
-        <SectionHead title="Pipeline value trend" action={<span className="chip chip-blue">£M</span>} />
-        <Chart kind="pipeline" data={PIPE_DATA} height={210} />
+        <SectionHead title="Pipeline value trend" />
+        <div className="muted" style={{ fontSize: 13.5, lineHeight: 1.65, padding: "18px 0" }}>Your pipeline value over time appears here once you are tracking opportunities.</div>
       </div>
       <div className="card" style={{ padding: 20 }}>
         <SectionHead title="Top opportunities" action={<button className="btn btn-ghost" style={{ padding: "7px 12px", fontSize: 13 }} onClick={() => go("opportunities")}>View all</button>} />
@@ -1401,13 +1400,15 @@ const DecisionMakers = ({ plan = "starter", onToast }) => {
 };
 
 const Outreach = () => {
-  const seq = [{ ch: "Email", to: "Sarah Whitfield", subj: "Theatre staffing partnership", status: "Opened", icon: Mail }, { ch: "LinkedIn", to: "Khalid Al-Mansoori", subj: "Connection + intro note", status: "Replied", icon: Users }, { ch: "Email", to: "Dr. Amara Okeke", subj: "Follow-up: radiographers", status: "Sent", icon: Mail }, { ch: "Call task", to: "James Patterson", subj: "Discovery call prep", status: "Scheduled", icon: Calendar }];
+  // This listed invented outreach to named people (Sarah Whitfield, Khalid
+  // Al-Mansoori, Dr. Amara Okeke) with invented open and reply statuses.
+  // Real sequences appear here once they are created.
+  const seq = [];
   return (
     <div>
-      <IllustrativeBanner />
       <PageHead title="Outreach" sub="Multi-channel sequences across email, LinkedIn and calls" right={<button className="btn btn-primary"><Plus size={16} /> New sequence</button>} />
-      <div className="grid-stats" style={{ marginBottom: 18 }}><Stat label="Active sequences" value="14" icon={Send} /><Stat label="Open rate" value="62%" delta="6% vs 30d" icon={Mail} accent="cyan" /><Stat label="Reply rate" value="28%" delta="4% vs 30d" icon={MessageSquare} /><Stat label="Meetings booked" value="19" icon={Calendar} accent="cyan" /></div>
-      <div className="card" style={{ padding: 20 }}><SectionHead title="Live sequence: Q3 framework push" />{seq.map((s, i) => (<div key={i} className="row" style={{ gap: 14, padding: "13px 0", borderBottom: i < seq.length - 1 ? "1px solid var(--line)" : "none" }}><div style={{ width: 38, height: 38, borderRadius: 10, background: "#EEF3FF", display: "grid", placeItems: "center" }}><s.icon size={16} color="#1E54E6" /></div><div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14 }}>{s.subj}</div><div className="muted" style={{ fontSize: 12.5 }}>{s.ch} · to {s.to}</div></div><span className={"chip " + (s.status === "Replied" ? "chip-low" : s.status === "Opened" ? "chip-blue" : "chip-grey")}>{s.status}</span></div>))}</div>
+      <div className="grid-stats" style={{ marginBottom: 18 }}><Stat label="Active sequences" value="—" delta="No activity yet" icon={Send} /><Stat label="Open rate" value="—" delta="No activity yet" icon={Mail} accent="cyan" /><Stat label="Reply rate" value="—" delta="No activity yet" icon={MessageSquare} /><Stat label="Meetings booked" value="—" delta="No activity yet" icon={Calendar} accent="cyan" /></div>
+      <div className="card" style={{ padding: 20 }}><SectionHead title="Outreach sequences" />{seq.length ? (seq.map((s, i) => (<div key={i} className="row" style={{ gap: 14, padding: "13px 0", borderBottom: i < seq.length - 1 ? "1px solid var(--line)" : "none" }}><div style={{ width: 38, height: 38, borderRadius: 10, background: "#EEF3FF", display: "grid", placeItems: "center" }}><s.icon size={16} color="#1E54E6" /></div><div style={{ flex: 1 }}><div style={{ fontWeight: 600, fontSize: 14 }}>{s.subj}</div><div className="muted" style={{ fontSize: 12.5 }}>{s.ch} · to {s.to}</div></div><span className={"chip " + (s.status === "Replied" ? "chip-low" : s.status === "Opened" ? "chip-blue" : "chip-grey")}>{s.status}</span></div>))) : <div className="muted" style={{ fontSize: 13.5, lineHeight: 1.65, padding: "18px 0" }}>Sequences you create appear here, with each message and its status.</div>}</div>
     </div>
   );
 };
@@ -1753,11 +1754,10 @@ const Intel = () => (
 const Analytics = () => (
   <div>
     <PageHead title="Analytics" sub="Performance across markets, specialties and stages" />
-    <IllustrativeBanner />
-    <div className="grid-stats" style={{ marginBottom: 18 }}><Stat label="Win rate" value="34%" delta="5pt vs 30d" icon={Award} accent="cyan" /><Stat label="Avg deal size" value="£412K" delta="8% vs 30d" icon={TrendingUp} /><Stat label="Sales cycle" value="38 days" icon={Clock} /><Stat label="Active markets" value="5" icon={Globe} accent="cyan" /></div>
+    <div className="grid-stats" style={{ marginBottom: 18 }}><Stat label="Win rate" value="—" delta="No activity yet" icon={Award} accent="cyan" /><Stat label="Avg deal size" value="—" delta="No activity yet" icon={TrendingUp} /><Stat label="Sales cycle" value="—" delta="No activity yet" icon={Clock} /><Stat label="Active markets" value="5" icon={Globe} accent="cyan" /></div>
     <div className="grid-2">
-      <div className="card" style={{ padding: 20 }}><SectionHead title="Pipeline by region (£M)" action={<DemoTag />} /><Chart kind="region" data={REGION_DATA} height={240} /></div>
-      <div className="card" style={{ padding: 20 }}><SectionHead title="Opportunities by specialty" action={<DemoTag />} /><Chart kind="specialty" data={SPEC_DATA} height={240} /><div className="row" style={{ flexWrap: "wrap", gap: 10, justifyContent: "center" }}>{SPEC_DATA.map((s, i) => <span key={i} className="row" style={{ fontSize: 12.5, gap: 6 }}><span style={{ width: 9, height: 9, borderRadius: 3, background: s.c }} />{s.name} {s.value}%</span>)}</div></div>
+      <div className="card" style={{ padding: 20 }}><SectionHead title="Pipeline by region" /><div className="muted" style={{ fontSize: 13.5, lineHeight: 1.65, padding: "18px 0" }}>Your pipeline by region appears here once you are tracking opportunities.</div></div>
+      <div className="card" style={{ padding: 20 }}><SectionHead title="Opportunities by specialty" /><div className="muted" style={{ fontSize: 13.5, lineHeight: 1.65, padding: "18px 0" }}>The mix of specialties in your pipeline appears here once there is one.</div></div>
     </div>
   </div>
 );
@@ -1895,9 +1895,8 @@ const FindAgencies = () => {
 };
 const HospitalDash = ({ go }) => (
   <div>
-    <IllustrativeBanner />
-      <PageHead title="Welcome back" sub="Find the right partner, faster. Spend more time on patient care." right={<button className="btn btn-primary" onClick={() => go("findAgencies")}><Search size={16} /> Find agencies</button>} />
-    <div className="grid-stats" style={{ marginBottom: 18 }}><Stat label="Open requirements" value="6" icon={FileText} /><Stat label="Matched agencies" value="23" icon={Briefcase} accent="cyan" /><Stat label="Shortlisted clinicians" value="11" icon={Stethoscope} /><Stat label="Avg time to fill" value="9 days" delta="3d faster" icon={Clock} accent="cyan" /></div>
+    <PageHead title="Welcome back" sub="Find the right partner, faster. Spend more time on patient care." right={<button className="btn btn-primary" onClick={() => go("findAgencies")}><Search size={16} /> Find agencies</button>} />
+    <div className="grid-stats" style={{ marginBottom: 18 }}><Stat label="Open requirements" value="—" delta="No activity yet" icon={FileText} /><Stat label="Matched agencies" value="—" delta="No activity yet" icon={Briefcase} accent="cyan" /><Stat label="Shortlisted clinicians" value="—" delta="No activity yet" icon={Stethoscope} /><Stat label="Avg time to fill" value="—" delta="No activity yet" icon={Clock} accent="cyan" /></div>
     <div className="card" style={{ padding: 20 }}><SectionHead title="Agencies on Qura" action={<button className="btn btn-ghost" style={{ padding: "7px 12px", fontSize: 13 }} onClick={() => go("findAgencies")}>View all</button>} />{AGENCIES.length ? (AGENCIES.slice(0, 3).map((a, i) => (<div key={i} className="row" style={{ justifyContent: "space-between", padding: "12px 0", borderBottom: i < 2 ? "1px solid var(--line)" : "none" }}><div className="row" style={{ gap: 12 }}><div style={{ width: 38, height: 38, borderRadius: 10, background: "var(--navy)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{a.name[0]}</div><div><div style={{ fontWeight: 600, fontSize: 14 }}>{a.name}</div><div className="muted" style={{ fontSize: 12.5 }}>{a.spec}</div></div></div>{a.framework ? <span className="chip chip-cyan">Framework</span> : null}</div>))) : <div className="faint" style={{ fontSize: 13, lineHeight: 1.6, padding: "8px 0" }}>Agencies you engage will appear here.</div>}</div>
   </div>
 );
@@ -2183,14 +2182,13 @@ function GPHub({ go, name }) {
   ];
   return (
     <div>
-      <IllustrativeBanner />
       <PageHead title="GP practices & federations" sub="Fill sessions faster and see who is available now, with light-touch sign-up and no procurement sign-off." right={<button className="btn btn-primary" onClick={() => go("feed")}><Rss size={16} /> Post a session</button>} />
       <div className="card" style={{ padding: 16, marginBottom: 18, background: "var(--cyan-soft)", border: "none" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><Stethoscope size={18} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 13.5, lineHeight: 1.55 }}>A dedicated home for primary care. Post salaried and locum GP sessions, browse verified GPs and ARRS roles, and tap Qura's market intelligence for your PCN or federation, an area of Qura expertise.</div></div></div>
       <div className="grid-stats" style={{ marginBottom: 18 }}>
-        <Stat label="Available GPs" value="640+" delta="live now" icon={Stethoscope} />
-        <Stat label="Sessions filled" value="1,900" delta="last 90d" icon={Calendar} accent="cyan" />
-        <Stat label="Avg. time to fill" value="2.4 days" delta="vs 9 days" icon={Clock} />
-        <Stat label="PCNs on Qura" value="118" delta="and growing" icon={Users} accent="cyan" />
+        <Stat label="Available GPs" value="—" delta="No activity yet" icon={Stethoscope} />
+        <Stat label="Sessions filled" value="—" delta="No activity yet" icon={Calendar} accent="cyan" />
+        <Stat label="Avg. time to fill" value="—" delta="No activity yet" icon={Clock} />
+        <Stat label="PCNs on Qura" value="—" delta="No activity yet" icon={Users} accent="cyan" />
       </div>
       <div className="grid g3">{cards.map(([t, d, I, k]) => (
         <div key={t} className="card lift" style={{ padding: 22, cursor: "pointer" }} onClick={() => go(k)}>
