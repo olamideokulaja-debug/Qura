@@ -41,14 +41,25 @@ export const ENTITLEMENTS = {
 // and is only honoured when the user has no paid plan of their own. A real
 // purchase always wins, and the comp simply expires by date, so the Stripe
 // webhook and the referral scheme can never fight over qura_plan.
+// The founders' accounts are always entitled to at least Growth. Identified by
+// account id, which a user cannot change, rather than by role: roles are
+// written from the client, so "operator means Growth" would let anyone grant
+// themselves Growth. A paid plan above Growth still wins.
+const FOUNDER_IDS = new Set([
+  "0235b440-acb2-4fed-9b08-5c6077243793", // olamideokulaja@qurahealth.org
+  "b8aea6f6-41e0-4913-9deb-0b50d5e8eeb3", // olafolawiyo@qurahealth.org
+  "aa58f73a-4d87-40f5-abc3-c1bc913d691a", // olamideokulaja@gmail.com
+]);
+
 export async function planOf(userId) {
+  const lift = (p) => (FOUNDER_IDS.has(userId) && (SUPPLIER_RANK[tierOf(p)] ?? 0) < 2 ? "supplier:growth" : p);
   try {
     const plan = await kvGet(userId, "qura_plan");
-    if (plan) return plan;
+    if (plan) return lift(plan);
     const comp = await kvGet(userId, "qura_comp");
-    if (comp && comp.plan && comp.until && Date.parse(comp.until) > Date.now()) return comp.plan;
-    return plan;
-  } catch (e) { return null; }
+    if (comp && comp.plan && comp.until && Date.parse(comp.until) > Date.now()) return lift(comp.plan);
+    return lift(plan);
+  } catch (e) { return lift(null); }
 }
 
 // Standard 402-style block payload the app understands as "upgrade to unlock".
