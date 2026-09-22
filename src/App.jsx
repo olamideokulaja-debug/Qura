@@ -1505,6 +1505,15 @@ const FEED_SEED = [
   { id: "nz1", fragile: true, org: "Auckland Community Diagnostics", who: "Hana Williams", title: "Service Manager", init: "HW", ago: "5h", body: "Like most of New Zealand, we rely heavily on overseas-trained sonographers, with the majority of new registrants each year coming from abroad. We are recruiting 3 sonographers, with a supported supervision and orientation period on arrival.", reqs: ["3 sonographers", "Overseas-trained welcome", "Supervision & orientation"], market: "newzealand", budget: "NZ$900K", status: 0, posted: "Wed 06:55", responders: 4 },
   { id: "nz2", fragile: true, org: "Wellington Regional Hospital", who: "Dr. James Patel", title: "Radiology Lead", init: "JP", ago: "1d", body: "Expanding our MRI service and need experienced MRI radiographers. Relocation support and registration assistance provided for international applicants.", reqs: ["MRI radiographers", "Relocation support", "Registration assistance"], market: "newzealand", budget: "NZ$620K", status: 1, posted: "Tue 09:20", responders: 5 },
 ];
+// A saved copy must never bring invented records back. window.storage is kept
+// per account in the database (and in the browser as a fallback), so every
+// account that opened the inbox before launch had these enquiries SAVED, and
+// they were restored on each load after the seed switch had turned them off.
+// Anything restored is filtered against the example ids and people here.
+const SEED_FEED_IDS = new Set(FEED_SEED.map((p) => p.id));
+const SEED_PEOPLE = new Set(FEED_SEED.map((p) => p.who));
+const unseedFeed = (a) => (seedActive() ? a : (Array.isArray(a) ? a : []).filter((p) => !SEED_FEED_IDS.has(p && p.id)));
+const unseedBooked = (a) => (seedActive() ? a : (Array.isArray(a) ? a : []).filter((m) => !SEED_PEOPLE.has(m && m.with)));
 
 function LiveFeedScreen({ onBook, onToast, role = "operator", market = "all", onMarket, displayName, go }) {
   const [feed, setFeed] = useState(seedActive() ? FEED_SEED : []);
@@ -1517,7 +1526,7 @@ function LiveFeedScreen({ onBook, onToast, role = "operator", market = "all", on
   const [statusFilter, setStatusFilter] = useState(null);
   const [draftMarket, setDraftMarket] = useState(market !== "all" ? market : "nhs");
   const [draftBudget, setDraftBudget] = useState("");
-  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_feed"); if (r?.value) setFeed(JSON.parse(r.value)); } catch (e) {} try { const s = await window.storage?.get("qura_feed_saved"); if (s?.value) setSaved(JSON.parse(s.value)); } catch (e) {} try { const c = await window.storage?.get("qura_catalogue"); if (c?.value) setUserCat(JSON.parse(c.value)); } catch (e) {} try { const a = await window.storage?.get("qura_feed_showan"); if (a?.value) setShowAn(JSON.parse(a.value)); } catch (e) {} try { const b = await window.storage?.get("qura_feed_filter"); if (b && b.value != null) setStatusFilter(JSON.parse(b.value)); } catch (e) {} setHyd(true); })(); }, []);
+  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_feed"); if (r?.value) setFeed(unseedFeed(JSON.parse(r.value))); } catch (e) {} try { const s = await window.storage?.get("qura_feed_saved"); if (s?.value) setSaved(JSON.parse(s.value)); } catch (e) {} try { const c = await window.storage?.get("qura_catalogue"); if (c?.value) setUserCat(JSON.parse(c.value)); } catch (e) {} try { const a = await window.storage?.get("qura_feed_showan"); if (a?.value) setShowAn(JSON.parse(a.value)); } catch (e) {} try { const b = await window.storage?.get("qura_feed_filter"); if (b && b.value != null) setStatusFilter(JSON.parse(b.value)); } catch (e) {} setHyd(true); })(); }, []);
   useEffect(() => { if (hyd) try { window.storage?.set("qura_feed", JSON.stringify(feed)); } catch (e) {} }, [feed, hyd]);
   useEffect(() => { if (hyd) try { window.storage?.set("qura_feed_saved", JSON.stringify(saved)); } catch (e) {} }, [saved, hyd]);
   useEffect(() => { if (hyd) try { window.storage?.set("qura_feed_showan", JSON.stringify(showAn)); } catch (e) {} }, [showAn, hyd]);
@@ -1625,7 +1634,7 @@ function SuppliersScreen({ onBook, onToast, role }) {
   const [cShow, setCShow] = useState(false);
   const [cEdit, setCEdit] = useState(null);
   const [cf, setCf] = useState({ n: "", s: "", lead: "" });
-  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_catalogue"); if (r?.value) setCat(JSON.parse(r.value)); } catch (e) {} try { const so = await window.storage?.get("qura_sup_sort"); if (so?.value) setSort(JSON.parse(so.value)); } catch (e) {} try { const fe = await window.storage?.get("qura_feed"); if (fe?.value) setFeed(JSON.parse(fe.value)); } catch (e) {} setChyd(true); })(); }, []);
+  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_catalogue"); if (r?.value) setCat(JSON.parse(r.value)); } catch (e) {} try { const so = await window.storage?.get("qura_sup_sort"); if (so?.value) setSort(JSON.parse(so.value)); } catch (e) {} try { const fe = await window.storage?.get("qura_feed"); if (fe?.value) setFeed(unseedFeed(JSON.parse(fe.value))); } catch (e) {} setChyd(true); })(); }, []);
   useEffect(() => { if (chyd) try { window.storage?.set("qura_catalogue", JSON.stringify(cat)); } catch (e) {} }, [cat, chyd]);
   useEffect(() => { if (chyd) try { window.storage?.set("qura_sup_sort", JSON.stringify(sort)); } catch (e) {} }, [sort, chyd]);
   const openAdd = () => { setCEdit(null); setCf({ n: "", s: "", lead: "" }); setCShow(true); };
@@ -1693,7 +1702,7 @@ function SuppliersScreen({ onBook, onToast, role }) {
 function SupplierInbox({ go, onBook, onToast, market = "all" }) {
   const [feed, setFeed] = useState(seedActive() ? FEED_SEED : []);
   const [userCat, setUserCat] = useState(null);
-  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_feed"); if (r?.value) setFeed(JSON.parse(r.value)); } catch (e) {} try { const c = await window.storage?.get("qura_catalogue"); if (c?.value) setUserCat(JSON.parse(c.value)); } catch (e) {} })(); }, []);
+  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_feed"); if (r?.value) setFeed(unseedFeed(JSON.parse(r.value))); } catch (e) {} try { const c = await window.storage?.get("qura_catalogue"); if (c?.value) setUserCat(JSON.parse(c.value)); } catch (e) {} })(); }, []);
   const matches = feed.map((p) => ({ p, sup: matchKit(p, userCat) })).filter((m) => m.sup.length > 0 && m.p.status < 3 && (market === "all" || m.p.market === market));
   const newN = matches.filter((m) => m.p.status === 0).length;
   const respond = (p) => { onBook?.({ type: "Intro call", with: p.who, org: p.org, when: "To schedule", status: "Pending", isNew: true }); onToast?.("Response sent · intro call logged to meetings"); };
@@ -1729,7 +1738,7 @@ function Leaderboard({ go, market = "all" }) {
   const [metric, setMetric] = useState("win");
   const [displayPrev, setDisplayPrev] = useState({});
   const [loaded, setLoaded] = useState(false);
-  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_feed"); if (r?.value) setFeed(JSON.parse(r.value)); } catch (e) {} try { const c = await window.storage?.get("qura_catalogue"); if (c?.value) setCat(JSON.parse(c.value)); } catch (e) {} try { const m = await window.storage?.get("qura_lb_metric"); if (m?.value) setMetric(JSON.parse(m.value)); } catch (e) {} try { const p = await window.storage?.get("qura_lb_prev"); if (p?.value) setDisplayPrev(JSON.parse(p.value)); } catch (e) {} setLoaded(true); })(); }, []);
+  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_feed"); if (r?.value) setFeed(unseedFeed(JSON.parse(r.value))); } catch (e) {} try { const c = await window.storage?.get("qura_catalogue"); if (c?.value) setCat(JSON.parse(c.value)); } catch (e) {} try { const m = await window.storage?.get("qura_lb_metric"); if (m?.value) setMetric(JSON.parse(m.value)); } catch (e) {} try { const p = await window.storage?.get("qura_lb_prev"); if (p?.value) setDisplayPrev(JSON.parse(p.value)); } catch (e) {} setLoaded(true); })(); }, []);
   useEffect(() => { if (loaded) try { window.storage?.set("qura_lb_metric", JSON.stringify(metric)); } catch (e) {} }, [metric, loaded]);
   const scopedFeed = market === "all" ? feed : feed.filter((p) => p.market === market);
   const list = [catSupplier(cat), ...SUPPLIERS].filter(Boolean).map((s) => ({ s, pf: perfFrom(s.id, scopedFeed) })).filter((x) => !x.pf.isNew);
@@ -4343,9 +4352,9 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   const neededPlan = planOrder.find((pk) => (PLAN_ACCESS[pk] || []).includes(active)) || "growth";
   const unlockList = PREMIUM_FEATURES.filter(([k]) => (PLAN_ACCESS[neededPlan] || []).includes(k) && !((PLAN_ACCESS[plan] || []).includes(k))).map((ft) => ft[1]).join(", ");
   const activeLabel = (nav.find((n) => n.k === active) || {}).l || "this";
-  const [feedPosts, setFeedPosts] = useState(FEED_SEED);
+  const [feedPosts, setFeedPosts] = useState(seedActive() ? FEED_SEED : []);
   const [userCat, setUserCat] = useState(null);
-  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_feed"); if (r?.value) setFeedPosts(JSON.parse(r.value)); } catch (e) {} try { const c = await window.storage?.get("qura_catalogue"); if (c?.value) setUserCat(JSON.parse(c.value)); } catch (e) {} })(); }, [active]);
+  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_feed"); if (r?.value) setFeedPosts(unseedFeed(JSON.parse(r.value))); } catch (e) {} try { const c = await window.storage?.get("qura_catalogue"); if (c?.value) setUserCat(JSON.parse(c.value)); } catch (e) {} })(); }, [active]);
   const inboxNew = feedPosts.filter((p) => p.status === 0 && matchKit(p, userCat).length > 0).length;
   const [open, setOpen] = useState(false);
   const [toast, setToast] = useState(null);
@@ -4399,7 +4408,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   const markWon = (key) => setMoves((m) => ({ ...m, [key]: STAGES.length - 1 }));
   const markLost = (key) => setLost((l) => ({ ...l, [key]: true }));
   const [hydrated, setHydrated] = useState(false);
-  useEffect(() => { (async () => { try { const a = await window.storage?.get("qura_sent"); if (a?.value) setSent(JSON.parse(a.value)); } catch (e) {} try { const b = await window.storage?.get("qura_booked"); if (b?.value) setBooked(JSON.parse(b.value)); } catch (e) {} try { const c = await window.storage?.get("qura_moves"); if (c?.value) setMoves(JSON.parse(c.value)); } catch (e) {} try { const d2 = await window.storage?.get("qura_lost"); if (d2?.value) setLost(JSON.parse(d2.value)); } catch (e) {} try { const mkt = await window.storage?.get("qura_market"); if (mkt?.value) setMarket(JSON.parse(mkt.value)); } catch (e) {} try { const up = await window.storage?.get("qura_upgrade"); if (up && up.value != null) setUpgradeTo(JSON.parse(up.value)); } catch (e) {} setHydrated(true); })(); }, []);
+  useEffect(() => { (async () => { try { const a = await window.storage?.get("qura_sent"); if (a?.value) setSent(JSON.parse(a.value)); } catch (e) {} try { const b = await window.storage?.get("qura_booked"); if (b?.value) setBooked(unseedBooked(JSON.parse(b.value))); } catch (e) {} try { const c = await window.storage?.get("qura_moves"); if (c?.value) setMoves(JSON.parse(c.value)); } catch (e) {} try { const d2 = await window.storage?.get("qura_lost"); if (d2?.value) setLost(JSON.parse(d2.value)); } catch (e) {} try { const mkt = await window.storage?.get("qura_market"); if (mkt?.value) setMarket(JSON.parse(mkt.value)); } catch (e) {} try { const up = await window.storage?.get("qura_upgrade"); if (up && up.value != null) setUpgradeTo(JSON.parse(up.value)); } catch (e) {} setHydrated(true); })(); }, []);
   useEffect(() => { if (hydrated) try { window.storage?.set("qura_sent", JSON.stringify(sent)); } catch (e) {} }, [sent, hydrated]);
   useEffect(() => { if (hydrated) try { window.storage?.set("qura_booked", JSON.stringify(booked)); } catch (e) {} }, [booked, hydrated]);
   useEffect(() => { if (hydrated) try { window.storage?.set("qura_moves", JSON.stringify(moves)); } catch (e) {} }, [moves, hydrated]);
