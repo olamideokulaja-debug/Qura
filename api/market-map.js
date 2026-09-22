@@ -2,29 +2,49 @@ import { getUser, kvGet } from "./_auth.js";
 import { CONTACTS } from "./_contacts.js";
 import { limited } from "./_ratelimit.js";
 import { regionOf, UK_REGIONS } from "./_regions.js";
+import { buildRegister } from "./_register.js";
 
 // The market map, computed rather than asserted.
 //
-// It used to be a fixed table of 8 regions written into the front end, showing
-// the same numbers forever under a heading that said "updated continuously".
-// Every figure here is now counted from something real:
+// Every figure here is counted from something real:
 //
 //   Opportunities   procurement notices from the live tender feed, grouped by
 //                   the region on the notice
-//   Decision-makers the register in api/contacts.js, grouped by the region we
-//                   can infer from the organisation name
+//   Decision-makers the SAME register the Decision makers page uses: the base
+//                   file, plus contacts added through the admin panel, plus
+//                   contacts harvested from procurement notices, deduplicated,
+//                   minus anyone a founder has removed
 //   Suppliers       subscribers. Zero until they arrive, and shown as zero
 //                   rather than filled in with a plausible number
+//
+// THE DECISION-MAKER COUNT USED TO DISAGREE WITH THE DECISION MAKERS PAGE. This
+// file counted only the static base file (3,836 people) while the register page
+// counted base + additions + notice contacts - removals (4,058). The comment
+// here claimed they were the same register; they were not. Both now build the
+// list through buildRegister, so two screens can no longer show two totals.
 //
 // Where a figure cannot be computed it is returned as null, and the page says
 // so, which is the honest alternative to inventing one.
 
-// Rough regional mapping from organisation and place names. Deliberately
-// conservative: anything unmatched falls to "Not mapped" rather than being
-// pushed into the nearest region to make a chart look fuller.
-
-
-
+async function loadRegister() {
+  let removed = new Set();
+  try {
+    const log = (await kvGet("shared", "contact_removals")) || [];
+    removed = new Set((Array.isArray(log) ? log : []).map((r) => String(r.name || "").toLowerCase()));
+  } catch (e) {}
+  let added = [];
+  try {
+    const rows = (await kvGet("shared", "contact_additions")) || [];
+    added = Array.isArray(rows) ? rows : [];
+  } catch (e) {}
+  let harvested = [];
+  try {
+    const rows = (await kvGet("shared", "notice_contacts")) || [];
+    harvested = Array.isArray(rows) ? rows : [];
+  } catch (e) {}
+  const built = buildRegister(CONTACTS, added, harvested);
+  return built.list.filter((c) => c && c.name && !removed.has(String(c.name).toLowerCase()));
+}
 
 export default async function handler(req, res) {
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
@@ -53,15 +73,15 @@ export default async function handler(req, res) {
     row(reg || "Not mapped").opportunities += 1;
   }
 
-  // Decision-makers, from the same register the Decision makers page uses.
-  for (const c of CONTACTS) {
-    const reg = regionOf(c.org + " " + (c.role || ""));
+  const register = await loadRegister();
+  for (const c of register) {
+    const reg = regionOf((c.org || "") + " " + (c.role || ""));
     row(reg || "Not mapped").decisionMakers += 1;
   }
 
   const totals = {
     opportunities: Object.values(rows).reduce((a, r) => a + r.opportunities, 0),
-    decisionMakers: CONTACTS.length,
+    decisionMakers: register.length,
     suppliers: 0,
     regionsWithActivity: Object.values(rows).filter((r) => r.opportunities > 0 || r.decisionMakers > 0).length,
   };
