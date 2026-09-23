@@ -23,10 +23,14 @@ const CF = "https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Se
 // European Union, which covers Ireland and 26 other member states. Different
 // format from the UK sources, so it is normalised separately below.
 const TED = "https://api.ted.europa.eu/v3/notices/search";
+// Canada: every open federal tender as one CSV, refreshed by CanadaBuys each
+// day. About 6.5 MB and 900 rows; the health services ones are picked out by
+// their UNSPSC code in caTenders() below.
 const CANADA = "https://canadabuys.canada.ca/opendata/pub/openTenderNotice-ouvertAvisAppelOffres.csv";
 // United States federal opportunities. Needs a free personal key from SAM.gov,
 // set as SAMGOV_API_KEY in Vercel. Personal keys allow only about 10 calls a
-// day, so this makes exactly one call per run and no retries.
+// day: see US_NAICS for how many a run makes, and the handler for the
+// same-day reuse that keeps manual re-runs from spending more.
 const SAM = "https://api.sam.gov/opportunities/v2/search";
 const TODAY_ISO = new Date().toISOString().slice(0, 10);
 
@@ -51,6 +55,31 @@ const INDEPENDENT_HEALTH = /\b(spire|nuffield|circle health|hca healthcare|ramsa
 // procurement publisher running a staffing framework both used to slip in
 // through the personnel CPV code, which does not look at who is buying.
 const NOT_HEALTH_BUYER = /\b(county council|city council|borough council|district council|parish council|\bcouncil\b|police|fire and rescue|university of|college|academy trust|school|housing association|bip solutions|ministry of defence|home office|dwp|hmrc)\b/i;
+
+// Councils commission public health in England (drug and alcohol treatment,
+// sexual health, mental health recovery) and social care everywhere in the UK,
+// and some run staffing frameworks for it. On 23 September about 30 open
+// council notices of that kind were being excluded because a council is not a
+// "health buyer". They are admitted now when the notice is coded as health
+// services (CPV 851...) or supply of personnel (CPV 796...). Councils often
+// file drug, alcohol and mental health services under the wider "health and
+// social work" family (85...), which also holds childcare, so those count
+// only when the title itself is about health or care work. A council's
+// roads, schools or IT contracts still stay out.
+const COUNCIL_BUYER = /\b(council|combined authority|scotland excel)\b/i;
+const NEVER_BUYER = /\b(police|fire and rescue|university of|college|academy trust|school|housing association|bip solutions|ministry of defence|home office|dwp|hmrc)\b/i;
+const CPV_COUNCIL_OK = ["851", "796"];
+const COUNCIL_HEALTH_WORDS = /\b(health|substance|drugs?|alcohol|addiction|harm reduction|recovery|mental|psycholog\w*|therap\w*|nurs(e|es|ing)|clinical|care at home|home care|domiciliary|reablement|care workers?|agency workers|staffing|hospice|dementia)\b/i;
+const NOT_CARE_WORK = /\b(early learning|childcare|nursery|school|education|transport|catering)\b/i;
+
+function councilHealthNotice(buyer, cpv, title) {
+  const b = String(buyer || "");
+  const c = String(cpv || "");
+  if (!COUNCIL_BUYER.test(b) || NEVER_BUYER.test(b)) return false;
+  if (CPV_COUNCIL_OK.some((p) => c.startsWith(p))) return true;
+  const t = String(title || "");
+  return c.startsWith("85") && COUNCIL_HEALTH_WORDS.test(t) && !NOT_CARE_WORK.test(t);
+}
 
 function healthBuyer(name) {
   const b = String(name || "");
@@ -83,7 +112,7 @@ function relevant(rel) {
   // about temporary staff regardless of buyer, which is how a council's
   // business support contract and a procurement publisher's framework reached
   // a healthcare feed.
-  if (!healthBuyer(buyer)) return false;
+  if (!healthBuyer(buyer)) return councilHealthNotice(buyer, cpv, t.title);
   const wordHit = WORKFORCE_WORDS.test(text);
   if (CPV_PERSONNEL.some((p) => cpv.startsWith(p))) return true;
   if (CPV_HEALTH_SERVICES.some((p) => cpv.startsWith(p))) return true;
@@ -238,7 +267,9 @@ function normalise(rel, source, url) {
     title: (t.title || "Untitled notice").slice(0, 140),
     buyer: buyer.replace(/\s+/g, " ").trim(),
     region: region(rel),
-    market: BUYER_PATTERNS.test(buyer) ? "NHS" : "Private",
+    // "Public" is UK public sector outside the NHS, which today means councils.
+    // Calling a council contract "NHS" would be wrong, and "Private" more so.
+    market: BUYER_PATTERNS.test(buyer) ? "NHS" : (COUNCIL_BUYER.test(buyer) ? "Public" : "Private"),
     profession: ((t.classification || {}).description) || "Healthcare services",
     rate: money(t, rel) || "Value not stated",
     need: (t.mainProcurementCategory || "services"),
@@ -361,13 +392,32 @@ async function euTenders(sinceIso) {
   }
 }
 
-// US federal notices, narrowed to temporary staffing (NAICS 561320). Checked
-// against live data: that code returns a small, high-quality set dominated by
-// Veterans Affairs and Health and Human Services clinical staffing, which is
-// exactly the work a healthcare workforce supplier bids for. Broader codes
-// return thousands of records and would need paging the daily quota cannot pay
-// for.
+// US federal notices. Temporary staffing (NAICS 561320) alone gave 1 open
+// opportunity on 23 September, so the search now covers the clinical service
+// codes federal health buyers (Veterans Affairs, Indian Health Service, Defense
+// Health Agency) actually use. One call per code: 6 a day, inside the personal
+// key's allowance of about 10, and the handler reuses the same day's results
+// if the refresh is run again, so a manual rebuild never spends more.
+const US_NAICS = [
+  ["561320", "Temporary healthcare staffing"],
+  ["621111", "Physician services"],
+  ["621330", "Mental health services"],
+  ["621399", "Allied health services"],
+  ["621999", "Ambulatory health services"],
+  ["622110", "Hospital services"],
+];
+
 async function usTenders(sinceIso) {
+  const all = [];
+  const seen = new Set();
+  for (const [code, label] of US_NAICS) {
+    const rows = await usTendersFor(sinceIso, code, label);
+    for (const r of rows) { if (!seen.has(r.id)) { seen.add(r.id); all.push(r); } }
+  }
+  return all;
+}
+
+async function usTendersFor(sinceIso, ncode, label) {
   const key = process.env.SAMGOV_API_KEY;
   if (!key) return [];
   const us = (d) => {
@@ -376,7 +426,7 @@ async function usTenders(sinceIso) {
   };
   const url = SAM + "?api_key=" + encodeURIComponent(key) +
     "&postedFrom=" + us(sinceIso) + "&postedTo=" + us(new Date().toISOString()) +
-    "&ncode=561320&limit=100";
+    "&ncode=" + ncode + "&limit=100";
   const d = await getJson(url);
   // SAM returns every notice type for the code. On 23 September, 7 of the 11
   // kept were Award Notices, 1 a sole-source Justification and 2 Special
@@ -410,7 +460,7 @@ async function usTenders(sinceIso) {
       buyer: dept.replace(/\s+/g, " ").trim().slice(0, 120),
       region: state,
       market: "International",
-      profession: "Temporary healthcare staffing",
+      profession: label,
       // US solicitations usually publish no figure until award, but awarded
       // notices carry one. Read it where it exists rather than hardcoding.
       rate: fmt(Number((o.award || {}).amount), "USD") || "Value not stated",
@@ -424,6 +474,111 @@ async function usTenders(sinceIso) {
       live: true,
     };
   });
+}
+
+// A small CSV reader: quoted fields, doubled quotes and line breaks inside
+// quotes, which the CanadaBuys file uses in its description columns.
+function parseCsv(text) {
+  const rows = [];
+  let row = [], field = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else q = false; }
+      else field += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") { row.push(field); field = ""; }
+    else if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+    else if (c !== "\r") field += c;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+// Canada: open federal tenders for health services. Kept when the notice is a
+// service and carries a UNSPSC health services code (8510, 8511, 8512, or the
+// general 85000000). Food, catering and lab-research codes elsewhere in 85 are
+// left out, and so is temporary help (80111600), which in Canada is almost all
+// IT and administrative staffing for Defence.
+async function caTenders() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 25000);
+  let text = "";
+  try {
+    const r = await fetch(CANADA, { signal: ctrl.signal, headers: { "User-Agent": "QuraTenderBot/1.0 (+https://qurahealth.org)" } });
+    if (!r.ok) return [];
+    text = await r.text();
+  } catch (e) {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+  const rows = parseCsv(text.replace(/^\uFEFF/, ""));
+  if (rows.length < 2) return [];
+  const head = rows[0];
+  const col = (name) => head.indexOf(name);
+  const C = {
+    title: col("title-titre-eng"), ref: col("referenceNumber-numeroReference"),
+    published: col("publicationDate-datePublication"), closes: col("tenderClosingDate-appelOffresDateCloture"),
+    start: col("expectedContractStartDate-dateDebutContratPrevue"),
+    unspsc: col("unspsc"), unspscDesc: col("unspscDescription-eng"),
+    category: col("procurementCategory-categorieApprovisionnement"),
+    delivery: col("regionsOfDelivery-regionsLivraison-eng"),
+    buyer: col("contractingEntityName-nomEntitContractante-eng"),
+    province: col("contractingEntityAddressProvince-entiteContractanteAdresseProvince-eng"),
+    cName: col("contactInfoName-informationsContactNom"), cEmail: col("contactInfoEmail-informationsContactCourriel"),
+    cPhone: col("contactInfoPhone-contactInfoTelephone"), url: col("noticeURL-URLavis-eng"),
+    desc: col("tenderDescription-descriptionAppelOffres-eng"),
+  };
+  if (C.title < 0 || C.ref < 0 || C.unspsc < 0) return [];
+  const get = (r, i) => (i >= 0 && r[i] != null ? String(r[i]) : "");
+  const list = (v) => v.split(/[\n,]+/).map((x) => x.replace(/^\s*\*/, "").trim()).filter(Boolean);
+  const HEALTH = (c) => c === "85000000" || /^851[012]/.test(c);
+  const today = new Date().toISOString().slice(0, 10);
+  const out = [];
+  for (const r of rows.slice(1)) {
+    if (!/SRV/.test(get(r, C.category))) continue;
+    // The first code is the notice's main subject. A notice that merely lists
+    // a health code among many (a weather-station clean-up, food testing) is
+    // not health work.
+    const codes = list(get(r, C.unspsc));
+    if (!codes.length || !HEALTH(codes[0])) continue;
+    const closes = get(r, C.closes).slice(0, 10);
+    if (closes && closes < today) continue;
+    const ref = get(r, C.ref).trim();
+    if (!ref) continue;
+    const given = get(r, C.url).trim();
+    // Many rows carry no link, or a generic supplier-portal dashboard. The
+    // CanadaBuys page for the reference number always opens the notice.
+    const url = /merx\.com/.test(given) ? given : "https://canadabuys.canada.ca/en/tender-opportunities/tender-notice/" + ref.toLowerCase();
+    const PROV = { ON: "Ontario", QC: "Quebec", BC: "British Columbia", AB: "Alberta", MB: "Manitoba", SK: "Saskatchewan",
+      NS: "Nova Scotia", NB: "New Brunswick", NL: "Newfoundland and Labrador", PE: "Prince Edward Island",
+      YT: "Yukon", NT: "Northwest Territories", NU: "Nunavut" };
+    const places = list(get(r, C.delivery)).filter((p) => !/^canada$/i.test(p)).map((p) => PROV[p] || p);
+    const buyer = get(r, C.buyer).replace(/\s+/g, " ").trim() || "Government of Canada";
+    out.push({
+      id: "cb_" + ref,
+      title: get(r, C.title).replace(/\s+/g, " ").trim().slice(0, 140) || "Untitled notice",
+      buyer: buyer.slice(0, 120),
+      region: places[0] || PROV[get(r, C.province).trim()] || get(r, C.province).trim() || "Canada",
+      market: "International",
+      profession: (list(get(r, C.unspscDesc))[0] || "Health services").slice(0, 80),
+      rate: "Value not stated",
+      need: "services",
+      start: get(r, C.start).slice(0, 10) || "Not stated",
+      closes,
+      note: get(r, C.desc).replace(/\s+/g, " ").trim().slice(0, 260),
+      source: "CanadaBuys",
+      url,
+      publishedAt: get(r, C.published).slice(0, 10),
+      noticeContacts: [contactRecord({
+        name: get(r, C.cName), org: buyer, email: get(r, C.cEmail), phone: get(r, C.cPhone),
+        source: "CanadaBuys", url,
+      })].filter((c) => c.email || c.phone),
+      live: true,
+    });
+  }
+  return out;
 }
 
 // Both UK sources return one page at a time with a "next" link. Only reading
@@ -472,12 +627,35 @@ export default async function handler(req, res) {
     // six, not the 45 days intended. Measured 22 September 2026: the feed held
     // 5 open UK healthcare notices; asking for tenders only gives 18, across
     // the full window. Award filtering in relevant() stays as a second guard.
-    const [fts, cf, eu, us] = await Promise.all([
+    const sb = createClient(sbUrl, service, { auth: { persistSession: false } });
+    const kvRead = async (owner, key) => {
+      const { data } = await sb.from("kv").select("value").eq("owner", owner).eq("key", key).maybeSingle();
+      if (!data) return null;
+      try { return JSON.parse(data.value); } catch { return data.value; }
+    };
+    const prev = (await kvRead("shared", "tenders")) || {};
+
+    // SAM allows about 10 calls a day on a personal key and usTenders() makes
+    // 6, so a second refresh on the same day reuses the morning's US results.
+    // Worked out per run: TODAY_ISO is fixed when the function first loads, and
+    // a warm instance can live past midnight.
+    const runDay = new Date().toISOString().slice(0, 10);
+    const usCached = US_ENABLED && prev && prev.usCache && prev.usCache.on === runDay && Array.isArray(prev.usCache.items);
+    const [fts, cf, eu, usFresh, ca] = await Promise.all([
       getPaged(FTS + "?updatedFrom=" + encodeURIComponent(since.toISOString().replace(/\.\d+Z$/, "Z")) + "&limit=100&stages=tender"),
       getPaged(CF + "?publishedFrom=" + isoDay + "&size=100&stages=tender"),
       euTenders(since.toISOString()),
-      US_ENABLED ? usTenders(since.toISOString()) : Promise.resolve([]),
+      US_ENABLED && !usCached ? usTenders(since.toISOString()) : Promise.resolve(null),
+      caTenders(),
     ]);
+    // If SAM refused (quota) and returned nothing, keep yesterday's US notices
+    // rather than emptying the market; stillOpen() below drops any that closed.
+    const us = !US_ENABLED ? [] : usCached ? prev.usCache.items
+      : (Array.isArray(usFresh) && usFresh.length) ? usFresh
+      : ((prev.usCache && Array.isArray(prev.usCache.items)) ? prev.usCache.items : []);
+    const usCache = usCached ? prev.usCache
+      : (Array.isArray(usFresh) && usFresh.length) ? { on: runDay, items: usFresh }
+      : (prev.usCache || null);
 
     // Per-source caps. The EU board carries roughly a hundred times the volume
     // of the UK sources, so without a cap it swallows the feed and an NHS
@@ -487,8 +665,8 @@ export default async function handler(req, res) {
     // notice displaced a British one, so switching the US on quietly cost a
     // UK supplier a fifth of what they came for. The ceiling now rises by
     // more than the American allowance.
-    const CAP = { eu: 20, us: 20 };
-    const FEED_CAP = US_ENABLED ? 120 : 100;
+    const CAP = { eu: 20, us: 30, ca: 20 };
+    const FEED_CAP = 170;
     // The EU and US sources give the closing date as YYYY-MM-DD. Closed ones
     // are dropped BEFORE the cap, or they use up places a live notice should
     // have: 10 of the 36 international notices had closed on 23 September.
@@ -498,6 +676,7 @@ export default async function handler(req, res) {
     let items = [
       ...(Array.isArray(eu) ? eu : []).filter(stillOpen).slice(0, CAP.eu),
       ...(Array.isArray(us) ? us : []).filter(stillOpen).slice(0, CAP.us),
+      ...(Array.isArray(ca) ? ca : []).filter(stillOpen).slice(0, CAP.ca),
     ];
     // Notice URLs, verified against the live sites. The identifier differs by
     // source and neither is the ocid: Find a Tender uses the release id
@@ -573,20 +752,12 @@ export default async function handler(req, res) {
         }
       });
 
-    const sb = createClient(sbUrl, service, { auth: { persistSession: false } });
-    const kvRead = async (owner, key) => {
-      const { data } = await sb.from("kv").select("value").eq("owner", owner).eq("key", key).maybeSingle();
-      if (!data) return null;
-      try { return JSON.parse(data.value); } catch { return data.value; }
-    };
-
     // Which of today's notices are actually NEW? Alerts fire on those only,
     // or a supplier would be pinged daily about the same notice.
-    const prev = (await kvRead("shared", "tenders")) || {};
     const prevIds = new Set(((prev && prev.items) || []).map((i) => i.id));
     const fresh = unique.filter((i) => !prevIds.has(i.id));
 
-    const payload = { items: unique, refreshedAt: new Date().toISOString(), sources: ["Find a Tender", "Contracts Finder", "TED (EU)", "SAM.gov (US)"] };
+    const payload = { items: unique, refreshedAt: new Date().toISOString(), sources: ["Find a Tender", "Contracts Finder", "TED (EU)", "SAM.gov (US)", "CanadaBuys"], usCache };
     await sb.from("kv").upsert({ owner: "shared", key: "tenders", value: JSON.stringify(payload) }, { onConflict: "owner,key" });
 
     // ---------------------------------------------------------------------
@@ -687,7 +858,7 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(200).json({ ok: true, count: unique.length, fresh: fresh.length, alerted, scanned: { uk: ((fts && fts.releases) || []).length + ((cf && cf.releases) || []).length, eu: (eu || []).length, us: (us || []).length } });
+    return res.status(200).json({ ok: true, count: unique.length, fresh: fresh.length, alerted, scanned: { uk: ((fts && fts.releases) || []).length + ((cf && cf.releases) || []).length, eu: (eu || []).length, us: (us || []).length, usFromCache: Boolean(usCached), ca: (ca || []).length } });
   } catch (e) {
     await alertFounders("cron-tenders", "Tender refresh failed", String((e && e.message) || e));
     return res.status(500).json({ error: String((e && e.message) || e) });
