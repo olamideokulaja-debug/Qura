@@ -3695,32 +3695,31 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
   }, [navMenu]);
   const [policy, setPolicy] = useState(null);
   const [lens, setLens] = useState("global");
-  const [tick, setTick] = useState(0);
-  useEffect(() => { const id = setInterval(() => setTick((t) => t + 1), 2600); return () => clearInterval(id); }, []);
-  const LENSES = [{ k: "global", l: "Global" }, { k: "uk", l: "UK & Ireland" }, { k: "anz", l: "Australia & NZ" }, { k: "me", l: "Middle East" }, { k: "intl", l: "International" }];
-  const SVC_C = { Vacancy: "#1E54E6", Insourcing: "#0E8C7E", Intelligence: "#00A79D", Candidate: "#5B3FD6" };
-  const TEASER = [
-    { region: "uk", role: "Consultant Sonographer", org: "Central Manchester NHS Trust", loc: "Manchester", ago: "4m", svc: "Vacancy" },
-    { region: "uk", role: "Fertility Sonographer", org: "Boutique clinic, Harley Street", loc: "London W1", ago: "11m", svc: "Vacancy" },
-    { region: "uk", role: "Salaried GP (4 sessions)", org: "GP Federation", loc: "Birmingham", ago: "17m", svc: "Vacancy" },
-    { region: "uk", role: "Complex Care Nurse (paediatric)", org: "Complex care provider", loc: "Leeds", ago: "22m", svc: "Vacancy" },
-    { region: "uk", role: "Weekend endoscopy insourcing", org: "Community Diagnostic Centre", loc: "London", ago: "3m", svc: "Insourcing" },
-    { region: "uk", role: "Board papers summarised for you", org: "North Central London ICB", loc: "London", ago: "just now", svc: "Intelligence" },
-    { region: "anz", role: "Sonographer (obstetric)", org: "Imaging group", loc: "Sydney, South West", ago: "6m", svc: "Vacancy" },
-    { region: "anz", role: "Radiographer (CT)", org: "Regional health service", loc: "Auckland, NZ", ago: "14m", svc: "Vacancy" },
-    { region: "anz", role: "Cardiac Sonographer", org: "Private imaging network", loc: "Melbourne", ago: "19m", svc: "Vacancy" },
-    { region: "me", role: "Radiographer (MRI)", org: "Hospital group", loc: "Doha", ago: "9m", svc: "Vacancy" },
-    { region: "me", role: "Theatre Nurse", org: "Private hospital", loc: "Dubai", ago: "27m", svc: "Vacancy" },
-    { region: "intl", role: "Sonographer", org: "Diagnostics provider", loc: "Lagos", ago: "21m", svc: "Vacancy" },
-    { region: "intl", role: "Available now: Band 7 Sonographer", org: "Verified candidate", loc: "relocating, EU", ago: "8m", svc: "Candidate" },
-  ];
-  // Illustrative until launch, then nothing. These are invented roles with
-  // invented organisations, and a visitor cannot tell them from real listings,
-  // so they must go at the same instant as the server-side seed rather than
-  // sitting on the landing page indefinitely.
-  const teaser = seedActive() ? TEASER : [];
-  const feed = lens === "global" ? teaser : teaser.filter((x) => x.region === lens);
-  const shown = feed.length ? Array.from({ length: Math.min(4, feed.length) }, (_, i) => feed[(tick + i) % feed.length]) : [];
+  // The homepage feed shows real open tenders from the public procurement
+  // portals, read from /api/public-tenders. It used to rotate 13 invented
+  // listings ("Consultant Sonographer, Central Manchester NHS Trust") that
+  // switched off at launch, after which the card said "0 live now" while the
+  // platform held dozens of real notices. Australia & NZ and the Middle East
+  // were dropped as lenses: Qura has no tender source for either, and a lens
+  // that can only ever be empty is a claim it cannot keep.
+  const LENSES = [{ k: "global", l: "Global" }, { k: "uk", l: "UK & Ireland" }, { k: "intl", l: "International" }];
+  const [pub, setPub] = useState(null);
+  useEffect(() => {
+    let dead = false;
+    fetch("/api/public-tenders").then((r) => (r.ok ? r.json() : null)).then((d) => { if (!dead && d) setPub(d); }).catch(() => {});
+    return () => { dead = true; };
+  }, []);
+  const liveCount = pub ? (lens === "global" ? pub.count : (pub.counts || {})[lens] || 0) : null;
+  const shown = pub ? (((pub.items || {})[lens]) || []) : [];
+  const closesLabel = (c) => {
+    const v = String(c || "");
+    if (!v) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      const d = Math.ceil((Date.parse(v + "T23:59:59Z") - Date.now()) / 86400000);
+      return d <= 0 ? "Closes today" : d === 1 ? "Closes in 1 day" : "Closes in " + d + " days";
+    }
+    return v === "today" ? "Closes today" : "Closes in " + v;
+  };
   // Every figure here must be one we can show someone. "1000+" understated the
   // register, which holds 4,040 named contacts across 1,450 organisations, and
   // "50+ countries reached" described no measure we actually keep. Qura
@@ -3829,8 +3828,7 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
               render, and they do not move while someone is trying to read. */}
           <div className="reveal row" style={{ gap: 7, justifyContent: "center", flexWrap: "wrap", marginTop: 22 }}>
             {[["\u{1F1EC}\u{1F1E7}", "United Kingdom"], ["\u{1F1E6}\u{1F1FA}", "Australia"],
-              ["\u{1F1FA}\u{1F1F8}", "United States"], ["\u{1F1EA}\u{1F1FA}", "European Union"],
-              ["\u{1F30D}", "50+ countries"]].map(([fl, label]) => (
+              ["\u{1F1FA}\u{1F1F8}", "United States"], ["\u{1F1EA}\u{1F1FA}", "European Union"]].map(([fl, label]) => (
               <span key={label} className="chip" style={{ padding: "6px 12px", fontSize: 12.5, background: "var(--card)", border: "1px solid var(--line)", color: "var(--muted)" }}>
                 <span style={{ marginRight: 6, fontSize: 14 }} aria-hidden="true">{fl}</span>{label}
               </span>
@@ -3845,7 +3843,7 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
           <QuraJoinBlock earlyFocus={earlyFocus} />
 
           <div className="muted reveal" style={{ fontSize: 13.5, marginTop: 30, textAlign: "center" }}>
-            92 seconds on what {APP_NAME} does and who it is for. Launching 22 September 2026.
+            92 seconds on what {APP_NAME} does and who it is for. Live since 22 September 2026.
           </div>
 
           {/* Film and live feed side by side. The feed is the single most
@@ -3855,20 +3853,20 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
             <div style={{ background: "var(--navy)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 16, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
               <div className="row" style={{ justifyContent: "space-between", padding: "2px 6px 10px" }}>
                 <span className="row" style={{ gap: 9, color: "#fff", fontWeight: 600, fontSize: 13.5 }}><span style={{ position: "relative", width: 9, height: 9 }}><span style={{ position: "absolute", inset: 0, borderRadius: 999, background: "#22E0A1" }} /><span style={{ position: "absolute", inset: 0, borderRadius: 999, background: "#22E0A1", animation: "quraPulse 1.8s infinite" }} /></span>Live marketplace</span>
-                <span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC", fontSize: 10.5 }}>{feed.length} live now</span>
+                <span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC", fontSize: 10.5 }}>{liveCount == null ? "Loading" : liveCount + " live now"}</span>
               </div>
               <div className="row" style={{ gap: 6, flexWrap: "wrap", padding: "0 2px 12px" }}>{LENSES.map((x) => (<button key={x.k} onClick={() => setLens(x.k)} style={{ cursor: "pointer", padding: "5px 11px", borderRadius: 999, fontSize: 11.5, fontWeight: 600, transition: "all .15s ease", background: lens === x.k ? "#00C2B8" : "rgba(255,255,255,.06)", color: lens === x.k ? "#04211F" : "#C4D0E6", border: "1px solid " + (lens === x.k ? "#00C2B8" : "rgba(255,255,255,.14)") }}>{x.l}</button>))}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, minHeight: 0, overflow: "hidden", WebkitMaskImage: "linear-gradient(#000 82%, transparent 100%)", maskImage: "linear-gradient(#000 82%, transparent 100%)" }}>{shown.slice(0, 8).map((it, i) => (
-                <div key={i} className="row" style={{ gap: 12, padding: "11px 12px", borderRadius: 12, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.07)" }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 999, background: SVC_C[it.svc] || "#5FE6DC", flexShrink: 0 }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, minHeight: 0, overflow: "hidden", WebkitMaskImage: "linear-gradient(#000 82%, transparent 100%)", maskImage: "linear-gradient(#000 82%, transparent 100%)" }}>{shown.slice(0, 8).map((it) => (
+                <div key={it.id} className="row" style={{ gap: 12, padding: "11px 12px", borderRadius: 12, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.07)" }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 999, background: it.lens === "uk" ? "#1E54E6" : "#5B3FD6", flexShrink: 0 }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ color: "#fff", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.role}</div>
-                    <div style={{ color: "#8295B6", fontSize: 12, marginTop: 2 }}><span style={{ filter: "blur(4.5px)", userSelect: "none" }}>{it.org}</span> · {it.loc}</div>
+                    <div style={{ color: "#fff", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.title}</div>
+                    <div style={{ color: "#8295B6", fontSize: 12, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{[it.buyer, it.where].filter(Boolean).join(" \u00b7 ")}</div>
                   </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}><span style={{ fontSize: 10, fontWeight: 700, color: SVC_C[it.svc] || "#5FE6DC" }}>{it.svc}</span><div style={{ color: "#6B7C9C", fontSize: 11, marginTop: 3 }}>{it.ago}</div></div>
+                  <div style={{ textAlign: "right", flexShrink: 0 }}><span style={{ fontSize: 10, fontWeight: 700, color: it.lens === "uk" ? "#6E9BFF" : "#A48BFF" }}>{it.source}</span><div style={{ color: "#6B7C9C", fontSize: 11, marginTop: 3 }}>{closesLabel(it.closes)}</div></div>
                 </div>
-              ))}{!shown.length && <div style={{ color: "#8295B6", fontSize: 13, padding: "18px 6px" }}>New listings opening in this market shortly.</div>}</div>
-              <button onClick={onEnter} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 13, flexShrink: 0, background: "#00C2B8", color: "#04211F", fontWeight: 700 }}>Sign in to see who is hiring <ArrowRight size={16} /></button>
+              ))}{pub && !shown.length && <div style={{ color: "#8295B6", fontSize: 13, padding: "18px 6px" }}>No open tenders in this market today. The feed refreshes every morning.</div>}</div>
+              <button onClick={onEnter} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 13, flexShrink: 0, background: "#00C2B8", color: "#04211F", fontWeight: 700 }}>Sign in to see every live tender <ArrowRight size={16} /></button>
             </div>
           </div>
 
