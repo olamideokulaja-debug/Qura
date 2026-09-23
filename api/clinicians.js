@@ -48,11 +48,17 @@ function toCard(owner, p) {
   };
 }
 
+// The Apple and Google review accounts hold a verified GP profile so reviewers
+// can see the clinician side working. Real suppliers must never be shown a test
+// account as a real clinician, so these are kept out of Talent entirely.
+const REVIEW_EMAIL = /^play\.review(\.[a-z]+)?@qurahealth\.org$/i;
+const isReviewAccount = (p) => Boolean(p && p.email && REVIEW_EMAIL.test(String(p.email)));
+
 async function loadVerifiedTalent() {
   const rows = await kvListByKey(PROFILE_KEY);
   const cards = [];
   for (const { owner, value } of rows) {
-    if (value && isVerified(value)) {
+    if (value && isVerified(value) && !isReviewAccount(value)) {
       const card = toCard(owner, value);
       try { const sum = await kvGet(owner, "cv_summary"); if (sum && sum.summary) card.summary = sum.summary; } catch (e) {}
       // Career+ clinicians get priority visibility: flagged and surfaced first.
@@ -75,20 +81,27 @@ export default async function handler(req, res) {
   const shortlist = (await kvGet(user.id, SHORTLIST_KEY)) || [];
   const ids = Array.isArray(shortlist) ? shortlist : [];
 
-  if (req.method === "GET") {
-    let talent = await loadVerifiedTalent();
-    // Sample profiles only while there is nothing real and only before launch.
-    const usingSample = talent.length === 0 && seedActive();
-    if (usingSample) talent = SAMPLE.map((c) => ({ ...c, seeded: true }));
+  let talent = await loadVerifiedTalent();
+  // Sample profiles only while there is nothing real and only before launch.
+  const usingSample = talent.length === 0 && seedActive();
+  if (usingSample) talent = SAMPLE.map((c) => ({ ...c, seeded: true }));
 
+  // The saved shortlist can hold clinicians who have since deleted their
+  // account or are no longer verified. Counting those raw showed "Shortlist (4)"
+  // on Talent while Home showed 0. Every count now comes from clinicians a
+  // supplier can actually see.
+  const visible = new Set(talent.map((c) => c.id));
+  const shown = (list) => list.filter((id) => visible.has(id));
+
+  if (req.method === "GET") {
     if (req.query && req.query.shortlist) {
-      return res.status(200).json({ items: talent.filter((c) => ids.includes(c.id)), shortlistIds: ids });
+      return res.status(200).json({ items: talent.filter((c) => ids.includes(c.id)), shortlistIds: shown(ids) });
     }
     const { profession, country } = req.query || {};
     let items = talent;
     if (profession && profession !== "All") items = items.filter((c) => c.profession === profession);
     if (country && country !== "All") items = items.filter((c) => c.country === country);
-    return res.status(200).json({ items, shortlistIds: ids, live: !usingSample });
+    return res.status(200).json({ items, shortlistIds: shown(ids), live: !usingSample });
   }
 
   if (req.method === "POST") {
@@ -96,7 +109,7 @@ export default async function handler(req, res) {
     if (!clinicianId) return res.status(400).json({ error: "clinicianId required" });
     const next = ids.includes(clinicianId) ? ids.filter((x) => x !== clinicianId) : [clinicianId, ...ids];
     await kvSet(user.id, SHORTLIST_KEY, next);
-    return res.status(200).json({ shortlistIds: next, shortlisted: next.includes(clinicianId) });
+    return res.status(200).json({ shortlistIds: shown(next), shortlisted: next.includes(clinicianId) });
   }
 
   return res.status(405).json({ error: "Method not allowed" });

@@ -57,8 +57,13 @@ function completeness(p) {
   return {
     done: done.length,
     total: REQUIRED.length,
-    // "verified" here means the required set is complete. Actual verification
-    // is still a founder checking the registration number by hand.
+    // complete: every required field is filled in, so registration is done.
+    // checked: a founder has opened the official register and confirmed the
+    // number. Only checked earns the word "verified" anywhere a person reads it.
+    complete: missing.length === 0,
+    checked: missing.length === 0 && Boolean(p && p.verifiedAt),
+    // verified: kept as "complete" for the POST response only, see the GET
+    // handler. Remove once build 7 is the oldest app in use.
     verified: missing.length === 0,
     missing,
     // Strength is required fields plus whatever optional detail has been added,
@@ -80,7 +85,17 @@ export default async function handler(req, res) {
     const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate", "sector", "registeredAt", "verifiedAt", "verifiedBy", "careerTrack", "targetRoles", "sectors", "markets", "workPatterns", "research"];
     const p = { email: user.email };
     for (const f of FIELDS) if (raw[f] !== undefined) p[f] = raw[f];
-    return res.status(200).json({ profile: p, status: completeness(p) });
+    // The app's Home screen shows "Qura Verified" whenever status.verified is
+    // true, so on a read it must mean a person has checked the register. It
+    // used to mean "form complete", which told a clinician nobody had checked
+    // that they were verified.
+    //
+    // The POST response keeps the old meaning for now, because the installed
+    // app's registration screen reads it to show "You're registered!" on the
+    // last step. Build 7 reads complete and checked instead, and then both can
+    // say the same thing.
+    const st = completeness(p);
+    return res.status(200).json({ profile: p, status: { ...st, verified: st.checked } });
   }
 
   if (req.method === "POST") {
@@ -122,7 +137,7 @@ export default async function handler(req, res) {
     // draft save from someone still typing.
     if (incoming.submit === true && !clean.registeredAt) {
       const st = completeness(clean);
-      if (!st.verified) return res.status(400).json({ error: "Some items are still missing.", missing: st.missing });
+      if (!st.complete) return res.status(400).json({ error: "Some items are still missing.", missing: st.missing });
       clean.registeredAt = new Date().toISOString();
     }
 
