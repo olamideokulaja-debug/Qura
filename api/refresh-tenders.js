@@ -273,9 +273,15 @@ async function getJson(url) {
 // The EU notice board publishes a different shape from the UK sources, so it
 // gets its own reader. Ireland is here rather than in the UK feeds.
 async function euTenders(sinceIso) {
-  const day = sinceIso.slice(0, 10).replace(/-/g, "");
+  // Calls for competition only, still open, newest first. The query used to
+  // ask for every notice type published in the window, oldest first, so of
+  // the first 100 back on 23 September, 55 were contract award or
+  // modification notices, and the 20 kept were mostly contracts already let.
+  // "sinceIso" is no longer needed: the deadline decides what is still live.
+  const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
   const body = {
-    query: "classification-cpv IN (85000000) AND publication-date>=" + day,
+    query: "classification-cpv IN (85000000) AND notice-type IN (cn-standard cn-social pin-cfc-standard pin-cfc-social)" +
+      " AND deadline-receipt-tender-date-lot>=" + today + " SORT BY publication-date DESC",
     limit: 100,
     fields: ["notice-title", "buyer-name", "publication-date", "place-of-performance",
              "publication-number", "deadline-receipt-tender-date-lot",
@@ -372,7 +378,12 @@ async function usTenders(sinceIso) {
     "&postedFrom=" + us(sinceIso) + "&postedTo=" + us(new Date().toISOString()) +
     "&ncode=561320&limit=100";
   const d = await getJson(url);
-  const rows = (d && d.opportunitiesData) || [];
+  // SAM returns every notice type for the code. On 23 September, 7 of the 11
+  // kept were Award Notices, 1 a sole-source Justification and 2 Special
+  // Notices: none of them work anyone can bid for. Only solicitations,
+  // pre-solicitations and sources-sought notices are opportunities.
+  const NOT_OPEN = /^(award notice|justification|special notice|sale of surplus property|intent to bundle)/i;
+  const rows = ((d && d.opportunitiesData) || []).filter((o) => !NOT_OPEN.test(String(o.type || "")));
   return rows.map((o) => {
     const dept = (o.fullParentPathName || "").split(".")[0] || "US federal";
     const place = (o.placeOfPerformance || {});
