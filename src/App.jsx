@@ -1468,7 +1468,9 @@ const Pipeline = ({ sent = [], moves = {}, onMove, onBack, lost = {}, onWon, onL
   // £310K, Derby & Burton £345K "won"). Only deals you have actually saved,
   // passed in as "sent", appear after launch.
   STAGES.forEach((st, si) => (seedActive() ? st.deals : []).forEach((d) => base.push({ o: d.o, v: d.v, si })));
-  sent.forEach((s) => base.push({ o: s.org, v: s.val, si: 2, isNew: true }));
+    // Deals from the database carry their own stage and id. Ones from the old
+  // local list have neither, so they keep the previous default.
+  sent.forEach((s) => base.push({ o: s.org, v: s.val, si: s.si != null ? s.si : 2, isNew: true, id: s.id }));
   const deals = base.map((d) => { const key = d.o + "|" + d.v; return { ...d, key, si: moves[key] != null ? moves[key] : d.si }; });
   const sel = deals.find((d) => d.key === openKey);
   const lostN = Object.keys(lost).length;
@@ -2807,6 +2809,60 @@ const MARKET_GROUPS = [
   { k: "supplier", l: "Workforce & medical suppliers", roles: ["agency", "supplier"], c: "#2D6BFF", role: "Supply of business development" },
   { k: "provider", l: "Healthcare providers", roles: ["hospital", "gp", "care", "provider", "healthcare_provider"], c: "#00C2B8", role: "Demand for talent" },
 ];
+
+// The team's pipeline, from the database rather than this browser's copy.
+//
+// Deals used to live in one JSON blob per account, so the two founders could
+// not see each other's, and two open tabs overwrote one another. If the
+// endpoint is unreachable the old local list is used instead, so a network
+// problem degrades to what existed before rather than to an empty screen.
+function useTeamPipeline() {
+  const [deals, setDeals] = useState([]);
+  const [ok, setOk] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const token = async () => {
+    try {
+      if (!supabase) return null;
+      const { data } = await supabase.auth.getSession();
+      return (data && data.session && data.session.access_token) || null;
+    } catch (e) { return null; }
+  };
+  const load = async () => {
+    const t = await token();
+    if (!t) { setLoading(false); return; }
+    try {
+      const r = await fetch("/api/pipeline", { headers: { Authorization: "Bearer " + t } });
+      if (!r.ok) { setOk(false); setLoading(false); return; }
+      const j = await r.json();
+      setDeals(Array.isArray(j.deals) ? j.deals : []);
+      setOk(!j.unavailable);
+    } catch (e) { setOk(false); }
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
+  const add = async (d) => {
+    const t = await token(); if (!t) return false;
+    try {
+      const r = await fetch("/api/pipeline", { method: "POST",
+        headers: { Authorization: "Bearer " + t, "Content-Type": "application/json" },
+        body: JSON.stringify({ org: d.org, role: d.role, val: d.val, source: d.source, url: d.url }) });
+      if (!r.ok) return false;
+      await load(); return true;
+    } catch (e) { return false; }
+  };
+  const patch = async (id, body) => {
+    const t = await token(); if (!t || !id) return false;
+    try {
+      const r = await fetch("/api/pipeline", { method: "PATCH",
+        headers: { Authorization: "Bearer " + t, "Content-Type": "application/json" },
+        body: JSON.stringify({ id, ...body }) });
+      if (!r.ok) return false;
+      await load(); return true;
+    } catch (e) { return false; }
+  };
+  return { deals, ok, loading, reload: load, add, patch };
+}
+
 function useLiveAccounts() {
   const [st, setSt] = useState({ loading: true, error: false, users: [] });
   useEffect(() => { (async () => {
@@ -4416,11 +4472,11 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   const editMeeting = (id, patch) => setBooked((p) => p.map((x) => x.id === id ? { ...x, ...patch } : x));
   const deleteMeeting = (id) => setBooked((p) => p.filter((x) => x.id !== id));
   const [moves, setMoves] = useState({});
-  const moveDeal = (key, cur) => setMoves((m) => ({ ...m, [key]: Math.min(cur + 1, STAGES.length - 1) }));
-  const moveBack = (key, cur) => setMoves((m) => ({ ...m, [key]: Math.max(cur - 1, 0) }));
+  const moveDeal = (key, cur) => { const id = idForKey(key); const next = Math.min(cur + 1, STAGES.length - 1); if (teamPipe.ok && id) teamPipe.patch(id, { stage: next }); setMoves((m) => ({ ...m, [key]: next })); };
+  const moveBack = (key, cur) => { const id = idForKey(key); const next = Math.max(cur - 1, 0); if (teamPipe.ok && id) teamPipe.patch(id, { stage: next }); setMoves((m) => ({ ...m, [key]: next })); };
   const [lost, setLost] = useState({});
-  const markWon = (key) => setMoves((m) => ({ ...m, [key]: STAGES.length - 1 }));
-  const markLost = (key) => setLost((l) => ({ ...l, [key]: true }));
+  const markWon = (key) => { const id = idForKey(key); if (teamPipe.ok && id) teamPipe.patch(id, { stage: STAGES.length - 1 }); setMoves((m) => ({ ...m, [key]: STAGES.length - 1 })); };
+  const markLost = (key) => { const id = idForKey(key); if (teamPipe.ok && id) teamPipe.patch(id, { lost: true }); setLost((l) => ({ ...l, [key]: true })); };
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => { (async () => { try { const a = await window.storage?.get("qura_sent"); if (a?.value) setSent(JSON.parse(a.value)); } catch (e) {} try { const b = await window.storage?.get("qura_booked"); if (b?.value) setBooked(unseedBooked(JSON.parse(b.value))); } catch (e) {} try { const c = await window.storage?.get("qura_moves"); if (c?.value) setMoves(JSON.parse(c.value)); } catch (e) {} try { const d2 = await window.storage?.get("qura_lost"); if (d2?.value) setLost(JSON.parse(d2.value)); } catch (e) {} try { const mkt = await window.storage?.get("qura_market"); if (mkt?.value) setMarket(JSON.parse(mkt.value)); } catch (e) {} try { const up = await window.storage?.get("qura_upgrade"); if (up && up.value != null) setUpgradeTo(JSON.parse(up.value)); } catch (e) {} setHydrated(true); })(); }, []);
   useEffect(() => { if (hydrated) try { window.storage?.set("qura_sent", JSON.stringify(sent)); } catch (e) {} }, [sent, hydrated]);
@@ -4430,7 +4486,18 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   useEffect(() => { if (hydrated) try { window.storage?.set("qura_upgrade", JSON.stringify(upgradeTo)); } catch (e) {} }, [upgradeTo, hydrated]);
   useEffect(() => { if (hydrated) try { window.storage?.set("qura_lost", JSON.stringify(lost)); } catch (e) {} }, [lost, hydrated]);
   const openProposal = (o) => { setPropOpp(o || null); go("proposals"); };
-  const onSaved = (opp) => { setSent((p) => [{ org: opp.org, role: opp.role, val: opp.val }, ...p]); setToast(`Proposal for ${opp.org} sent · logged to pipeline & meetings`); setTimeout(() => setToast(null), 3000); };
+  const teamPipe = useTeamPipeline();
+  // Prefer the team's deals from the database. If the endpoint is unreachable,
+  // fall back to this browser's old list so the screen still works.
+  const pipeSent = teamPipe.ok
+    ? teamPipe.deals.filter((d) => !d.lost).map((d) => ({ id: d.id, org: d.org, role: d.role, val: d.value_text || "", si: d.stage }))
+    : sent;
+  const pipeLost = teamPipe.ok
+    ? teamPipe.deals.filter((d) => d.lost).reduce((a, d) => ({ ...a, [d.org + "|" + (d.value_text || "")]: true }), {})
+    : lost;
+  const idForKey = (key) => (teamPipe.deals.find((d) => d.org + "|" + (d.value_text || "") === key) || {}).id;
+
+  const onSaved = (opp) => { if (teamPipe.ok) teamPipe.add(opp); setSent((p) => [{ org: opp.org, role: opp.role, val: opp.val }, ...p]); setToast(`Proposal for ${opp.org} sent · logged to pipeline & meetings`); setTimeout(() => setToast(null), 3000); };
   const screen = () => {
     switch (active) {
       case "command": return <CommandCenter go={go} name={firstName} />;
@@ -4451,7 +4518,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "outreach": return <Outreach />;
       case "proposals": return <Proposals onSaved={onSaved} initialOpp={propOpp} />;
       case "meetings": return <Meetings sent={sent} booked={booked} onBook={bookMeeting} onEdit={editMeeting} onDelete={deleteMeeting} />;
-      case "pipeline": return <Pipeline sent={sent} moves={moves} onMove={moveDeal} onBack={moveBack} lost={lost} onWon={markWon} onLost={markLost} market={market} />;
+      case "pipeline": return <Pipeline sent={pipeSent} moves={moves} onMove={moveDeal} onBack={moveBack} lost={pipeLost} onWon={markWon} onLost={markLost} market={market} />;
       case "weekly": return <WeeklyReport sent={sent} booked={booked} moves={moves} lost={lost} name={firstName} email={ownerEmail} market={market} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "intel": return <Intel />;
       case "analytics": return <Analytics />;
