@@ -140,7 +140,7 @@ function isPerson(name) {
   if (ORG_WORDS.test(n)) return false;
   const parts = n.split(/\s+/).filter(Boolean);
   if (parts.length < 2 || parts.length > 5) return false;
-  return parts.every((w) => /^[A-ZÀ-Þ][A-Za-zÀ-ɏ'".-]*$/.test(w));
+  return parts.every((w) => /^[A-Z\u00C0-\u00DE][A-Za-z\u00C0-\u024F'".-]*$/.test(w));
 }
 
 function initialsOfName(n) {
