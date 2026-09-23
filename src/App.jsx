@@ -6,7 +6,7 @@ import {
   ArrowRight, Star, LogOut, Mail, Briefcase, UserCheck, MessageSquare, Award,
   Globe, Loader2, Heart, Home, Linkedin, ShieldCheck, Brain, Network, Quote, Zap,
   Trophy, Link2, AlertCircle, Gauge, Activity, Ticket, Truck, BadgeCheck, ClipboardList, CalendarClock, Smartphone, Instagram, Twitter, Music2, Upload, Settings, Pencil, Trash2, Rss, Package, Inbox, ArrowUp, ArrowDown, ChevronDown, Lock,
-  Play, GraduationCap,
+  Play, GraduationCap, ExternalLink,
 } from "lucide-react";
 
 // A rotating globe, drawn on a canvas. No library: three.js would add several
@@ -870,7 +870,7 @@ const Dashboard = ({ go, sentN = 0, bookedN = 0, name }) => (
     </div>
   </div>
 );
-const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
+const Opportunities = ({ go, onPropose, onPipeline, market = "all", onToast }) => {
   const [f, setF] = useState("All"); const [q, setQ] = useState("");
   const [savedIds, setSavedIds] = useState([]);
   const saveOpp = async (o) => { const id = o.org + "|" + o.role; const entry = { id, org: o.org, role: o.role, market: o.market, val: o.val, loc: o.loc, close: o.close, source: o.source, score: o.score, pr: o.pr }; try { let list = []; try { const r = await window.storage?.get("qura_saved_opps"); if (r?.value) list = JSON.parse(r.value); } catch (e) {} if (!Array.isArray(list)) list = []; if (!list.some((x) => x.id === id)) { list = [entry, ...list]; await window.storage?.set("qura_saved_opps", JSON.stringify(list)); } } catch (e) {} setSavedIds((v) => v.includes(id) ? v : [...v, id]); if (onToast) onToast("Opportunity saved"); };
@@ -935,9 +935,23 @@ const Opportunities = ({ go, onPropose, market = "all", onToast }) => {
         {list.map((o, i) => (
           <div key={i} className="card lift" style={{ padding: 18 }}>
             <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-              <div className="row" style={{ gap: 14, flex: 1, minWidth: 0 }}><div style={{ width: 46, height: 46, borderRadius: 12, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><Building2 size={20} color="#1E54E6" /></div><div><div className="row" style={{ gap: 9 }}><span style={{ fontWeight: 600, fontSize: 15.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 420 }} title={o.org}>{o.org}</span>{o.score ? <span className="chip chip-cyan"><Sparkles size={11} /> {o.score}</span> : null}<span className="chip chip-grey" style={{ fontSize: 11 }}>{o.market}</span></div><div className="muted row hsm" style={{ fontSize: 13, gap: 14, marginTop: 4 }}><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 340, display: "inline-block", verticalAlign: "bottom" }} title={o.role}>{o.role}</span><span className="row" style={{ gap: 4 }}><MapPin size={12} />{o.loc}</span><span className="row" style={{ gap: 4 }}><Radar size={12} />{o.source}</span>{o.url ? <a href={o.url} target="_blank" rel="noreferrer" style={{ color: "var(--teal)", fontSize: 12.5 }}>Open notice</a> : null}{!o.url ? <DemoTag /> : null}</div></div></div>
+              <div className="row" style={{ gap: 14, flex: 1, minWidth: 0 }}><div style={{ width: 46, height: 46, borderRadius: 12, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><Building2 size={20} color="#1E54E6" /></div><div><div className="row" style={{ gap: 9 }}><span style={{ fontWeight: 600, fontSize: 15.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 420 }} title={o.org}>{o.org}</span>{o.score ? <span className="chip chip-cyan"><Sparkles size={11} /> {o.score}</span> : null}<span className="chip chip-grey" style={{ fontSize: 11 }}>{o.market}</span></div><div className="muted row hsm" style={{ fontSize: 13, gap: 14, marginTop: 4 }}><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 340, display: "inline-block", verticalAlign: "bottom" }} title={o.role}>{o.role}</span><span className="row" style={{ gap: 4 }}><MapPin size={12} />{o.loc}</span><span className="row" style={{ gap: 4 }}><Radar size={12} />{o.source}</span>{!o.url ? <DemoTag /> : null}</div></div></div>
               <div className="row" style={{ gap: 16 }}><div style={{ textAlign: "right" }}><div className="disp" style={{ fontWeight: 700, fontSize: 17 }}>{/^[£$€]/.test(String(o.val)) ? convMoney(o.val, market) : o.val}</div><span className="row faint" style={{ fontSize: 12, gap: 4, justifyContent: "flex-end" }}><Clock size={11} />{o.close ? "Closes " + o.close : "See notice for dates"}</span></div>{o.pr ? <span className={"chip " + prChip(o.pr)}>{prLabel(o.pr)}</span> : null}<button className={"btn hsm " + (savedIds.includes(o.org + "|" + o.role) ? "btn-light" : "btn-ghost")} onClick={() => saveOpp(o)} disabled={savedIds.includes(o.org + "|" + o.role)}>{savedIds.includes(o.org + "|" + o.role) ? <><Star size={14} fill="currentColor" /> Saved</> : <><Star size={14} /> Save</>}</button><button className="btn btn-ai hsm" onClick={() => onPropose(o)}><Sparkles size={14} /> Propose</button></div>
             </div>
+            {o.url ? (
+              <div className="row" style={{ gap: 8, flexWrap: "wrap", marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--line)" }}>
+                <a className="btn btn-primary" href={o.url} target="_blank" rel="noreferrer" style={{ fontSize: 13, padding: "9px 16px", textDecoration: "none" }}>
+                  Open on {o.source || "the source portal"} <ExternalLink size={14} />
+                </a>
+                <button className="btn btn-ghost" style={{ fontSize: 13, padding: "9px 16px" }}
+                  onClick={() => { if (onPipeline) onPipeline({ org: o.org, role: o.role, val: o.val }); else if (onToast) onToast("Could not add to pipeline"); }}>
+                  Save to pipeline
+                </button>
+                <span className="faint" style={{ fontSize: 12, alignSelf: "center" }}>
+                  Bids are submitted on {o.source || "the issuing authority's portal"}, not on Qura.
+                </span>
+              </div>
+            ) : null}
             {(o.category || o.platform || o.agency || (o.contacts && o.contacts.length)) ? (
               <div style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 12 }}>
                 <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
@@ -4431,7 +4445,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "leaderboard": return <Leaderboard go={go} market={market} />;
       case "inbox": return <SupplierInbox go={go} market={market} onBook={bookMeeting} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "dashboard": return <Dashboard go={go} name={firstName} sentN={sent.length} bookedN={booked.length} />;
-      case "opportunities": return <Opportunities go={go} market={market} onPropose={openProposal} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
+      case "opportunities": return <Opportunities go={go} market={market} onPropose={openProposal} onPipeline={onSaved} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "savedOpps": return <SavedOpps onPropose={openProposal} market={market} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "decisionMakers": return <DecisionMakers plan={plan} onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "outreach": return <Outreach />;
