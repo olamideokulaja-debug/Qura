@@ -15,6 +15,24 @@ import { kvGet } from "./_auth.js";
 // always agree.
 
 const UK_SOURCES = new Set(["Find a Tender", "Contracts Finder"]);
+
+// The EU board gives places as 3-letter country codes ("SWE"), regional codes
+// ("EE008") or "00" when unstated. Country codes become names; anything else
+// is left blank rather than shown to a visitor as an unexplained code.
+const COUNTRY = {
+  AUT: "Austria", BEL: "Belgium", BGR: "Bulgaria", HRV: "Croatia", CYP: "Cyprus", CZE: "Czechia",
+  DNK: "Denmark", EST: "Estonia", FIN: "Finland", FRA: "France", DEU: "Germany", GRC: "Greece",
+  HUN: "Hungary", IRL: "Ireland", ITA: "Italy", LVA: "Latvia", LTU: "Lithuania", LUX: "Luxembourg",
+  MLT: "Malta", NLD: "Netherlands", POL: "Poland", PRT: "Portugal", ROU: "Romania", SVK: "Slovakia",
+  SVN: "Slovenia", ESP: "Spain", SWE: "Sweden", NOR: "Norway", ISL: "Iceland", LIE: "Liechtenstein",
+  CHE: "Switzerland", GBR: "United Kingdom", USA: "United States", CAN: "Canada",
+};
+const place = (v) => {
+  const s = String(v || "").trim();
+  if (/^[A-Z]{3}$/.test(s)) return COUNTRY[s] || "";
+  if (/^[A-Z]{2}[0-9A-Z]{1,3}$/.test(s) || /^0+$/.test(s)) return "";
+  return s.slice(0, 60);
+};
 const SHOW = 12;
 
 export default async function handler(req, res) {
@@ -33,7 +51,7 @@ export default async function handler(req, res) {
     id: String(i.id || ""),
     title: String(i.title || "Untitled notice").slice(0, 140),
     buyer: String(i.buyer || "").slice(0, 120),
-    where: String(i.region || "").slice(0, 60),
+    where: place(i.region),
     closes: String(i.closes || ""),
     source: String(i.source || ""),
     lens: UK_SOURCES.has(i.source) ? "uk" : "intl",
