@@ -49,7 +49,8 @@ export default async function handler(req, res) {
     // against the list the enrichment actually produces.
     const CATEGORIES = ["All", "Imaging & Radiology", "Pathology", "Audiology", "Endoscopy",
       "Community Diagnostics", "Cardiology & Respiratory", "Cancer & Screening",
-      "Temporary Staffing", "Digital & Data", "Estates & Facilities",
+      "Mental Health & Substance Misuse", "Sexual Health", "Temporary Staffing", "Care & Support",
+      "Digital & Data", "Estates & Facilities",
       "Pharmacy & Medicines", "Consultancy & Transformation"];
     const c = CATEGORIES.includes(category) ? category : "All";
     if (!q && m === "All" && c === "All") {

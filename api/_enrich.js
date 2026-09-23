@@ -19,16 +19,29 @@ import { regionOf } from "./_regions.js";
 // trailing \b would stop "patholog" ever matching "pathology", which is
 // exactly the bug this file shipped with first time.
 const CATEGORY_RULES = [
-  ["Imaging & Radiology", /\b(?:radiolog|imaging|mri|ct scan|x-?ray|ultrasound|sonograph|mammograph|nuclear medicine|pacs|ris)/i],
+  ["Imaging & Radiology", /\b(?:radiolog|imaging|mri|ct scan|x-?ray|ultrasound|sonograph|mammograph|nuclear medicine|pacs\b|ris\b)/i],
   ["Pathology", /\b(?:patholog|histopath|cytolog|haematolog|biochemistr|microbiolog|laborator|lims|blood scienc|phlebotom)/i],
   ["Audiology", /\b(?:audiolog|hearing|ent |otolaryng|cochlear|tinnitus)/i],
   ["Endoscopy", /\b(?:endoscop|colonoscop|gastroscop|bowel scope|jag\b)/i],
   ["Community Diagnostics", /\b(?:community diagnostic|cdc\b|diagnostic centre|diagnostic hub)/i],
   ["Cardiology & Respiratory", /\b(?:cardiolog|echocardiograph|cardiac|ecg|spirometr|respiratory|sleep stud|lung function)/i],
   ["Cancer & Screening", /\b(?:cancer|oncolog|screening programme|breast screening|bowel screening|cervical)/i],
-  ["Temporary Staffing", /\b(?:agency|locum|bank staff|temporary staff|insourc|outsourc|waiting list initiative|workforce suppl)/i],
+  // Council and NHS commissioning of addiction and mental health services.
+  // Before this rule, "drug" in "drug and alcohol treatment" fell through to
+  // Pharmacy & Medicines (Derbyshire's residential rehabilitation tender,
+  // 23 September 2026). It sits above Pharmacy so that can no longer happen.
+  ["Mental Health & Substance Misuse", /\b(?:substance (?:use|misuse)|drugs? and alcohol|alcohol and drugs?|addiction|harm reduction|detox|recovery (?:service|initiation)|mental health|psychiatr|psycholog)/i],
+  ["Sexual Health", /\b(?:sexual health|genito-?urinary|contracepti|hiv\b|sti\b)/i],
+  // "agency" alone matched the boilerplate "a department or agency intends to
+  // award" on Canadian notices. It now has to be an agency for people.
+  ["Temporary Staffing", /\b(?:agency (?:staff|workers?|nurs|supply|locum)|(?:staffing|nursing|recruitment|medical) agenc|locum|bank staff|temporary staff|insourc|outsourc|waiting list initiative|workforce suppl)/i],
+  // After Temporary Staffing, so an agency framework for care workers stays a
+  // staffing notice.
+  ["Care & Support", /\b(?:care at home|home care|domiciliary|reablement|social care|dementia|care home|supported living)/i],
   ["Digital & Data", /\b(?:digital|software|electronic patient record|epr\b|informatics|data platform|cyber|interoperab)/i],
-  ["Estates & Facilities", /\b(?:estates|facilities|construction|refurbish|maintenance|cleaning|catering|decarbonis)/i],
+  // "facilities" alone caught "residential health facilities services", and
+  // "construction" caught Canada's "goods, services or construction" boilerplate.
+  ["Estates & Facilities", /\b(?:estates|facilities management|hard fm|soft fm|construction (?:works?|project|contract)|building works|refurbish|maintenance|cleaning|catering|decarbonis)/i],
   ["Pharmacy & Medicines", /\b(?:pharmac|medicine|drug|dispens|homecare medicines)/i],
   ["Consultancy & Transformation", /\b(?:consultanc|transformation|programme management|advisory|business case)/i],
 ];
@@ -54,6 +67,9 @@ const CATEGORY_TO_SPEC = {
   "Digital & Data": ["Digital Diagnostics Leadership"],
   "Estates & Facilities": ["Operations Leadership"],
   "Pharmacy & Medicines": ["Clinical Leadership"],
+  "Mental Health & Substance Misuse": ["Behavioral Health and Mental Health", "Behavioral Health", "Clinical Leadership"],
+  "Sexual Health": ["Clinical Leadership", "Neighbourhood Health Leadership"],
+  "Care & Support": ["Long-Term Care", "Aged Care", "Neighbourhood Health Leadership"],
   "Consultancy & Transformation": ["Diagnostics Transformation", "Executive Leadership"],
 };
 
