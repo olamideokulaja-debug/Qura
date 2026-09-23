@@ -3724,6 +3724,27 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
   }, []);
   const liveCount = pub ? (lens === "global" ? pub.count : (pub.counts || {})[lens] || 0) : null;
   const shown = pub ? (((pub.items || {})[lens]) || []) : [];
+  // 5 at a time, moving up one row every few seconds through the lens list.
+  // It holds still while the visitor's pointer is on the card, and skips
+  // ticks while the tab is in the background.
+  const VISIBLE = 5;
+  const [off, setOff] = useState(0);
+  const [hold, setHold] = useState(false);
+  useEffect(() => { setOff(0); }, [lens]);
+  useEffect(() => {
+    if (hold || shown.length <= VISIBLE) return undefined;
+    const t = setInterval(() => { if (!document.hidden) setOff((o) => o + 1); }, 3200);
+    return () => clearInterval(t);
+  }, [hold, shown.length]);
+  const rows = shown.length <= VISIBLE ? shown : Array.from({ length: VISIBLE }, (_, k) => shown[(off + k) % shown.length]);
+  // The homepage is a teaser. Only the opening words of each title are real;
+  // the rest of the title and the buyer are blurred stand-in text of about the
+  // right length, because the public feed does not send them at all.
+  const FILLER = ["provision of specialist services across the region under a multi-year framework agreement with options to extend", "community based support delivered by qualified clinical staff for the health board and partner organisations", "framework for the supply of clinical workforce and associated services to hospitals and care settings"];
+  const HIDDEN_BUYER = "Commissioning organisation and named contacts shown after sign in";
+  const filler = (id, n) => { const f = FILLER[String(id).length % FILLER.length]; return f.slice(0, Math.max(10, Math.min(f.length, n || 30))); };
+  const blur = { filter: "blur(4.5px)", userSelect: "none", pointerEvents: "none", flex: "1 0 22px", overflow: "hidden" };
+  const clip = { minWidth: 0, flexShrink: 1, overflow: "hidden", textOverflow: "ellipsis" };
   const closesLabel = (c) => {
     const v = String(c || "");
     if (!v) return "";
@@ -3814,7 +3835,7 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
 
       <div className="lb" data-view={view}>
       <div className="sec home" style={{ background: "radial-gradient(115% 85% at 50% -8%, #E6F4F2 0%, #F3F9FD 44%, #fff 100%)", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
-        <style>{`@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.globe-hero{position:absolute;top:330px;left:50%;transform:translate(-50%,-50%);opacity:.78;pointer-events:none;z-index:0;display:grid;place-items:center}@media(max-width:700px){.globe-hero{top:260px;opacity:.52}}.pitch-bar{margin-left:auto;margin-right:auto}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
+        <style>{`@keyframes quraTick{from{transform:translateY(70px)}to{transform:translateY(0)}}@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.globe-hero{position:absolute;top:330px;left:50%;transform:translate(-50%,-50%);opacity:.78;pointer-events:none;z-index:0;display:grid;place-items:center}@media(max-width:700px){.globe-hero{top:260px;opacity:.52}}.pitch-bar{margin-left:auto;margin-right:auto}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
         {/* Top-right of the hero, behind the content and at low opacity. It is
             decorative: it signals reach at a glance without competing with the
             headline for attention. Hidden below 1100px, where the hero is
@@ -3863,23 +3884,25 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
               persuasive thing on the page and was buried below the fold. */}
           <div className="hero-split reveal" style={{ marginTop: 16, textAlign: "left" }}>
             <div style={{ display: "flex" }}><QuraFilmPlayer /></div>
-            <div style={{ background: "var(--navy)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 16, height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <div onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)} style={{ background: "var(--navy)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 16, alignSelf: "center", display: "flex", flexDirection: "column", overflow: "hidden" }}>
               <div className="row" style={{ justifyContent: "space-between", padding: "2px 6px 10px" }}>
                 <span className="row" style={{ gap: 9, color: "#fff", fontWeight: 600, fontSize: 13.5 }}><span style={{ position: "relative", width: 9, height: 9 }}><span style={{ position: "absolute", inset: 0, borderRadius: 999, background: "#22E0A1" }} /><span style={{ position: "absolute", inset: 0, borderRadius: 999, background: "#22E0A1", animation: "quraPulse 1.8s infinite" }} /></span>Live marketplace</span>
                 <span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC", fontSize: 10.5 }}>{liveCount == null ? "Loading" : liveCount + " live now"}</span>
               </div>
               <div className="row" style={{ gap: 6, flexWrap: "wrap", padding: "0 2px 12px" }}>{LENSES.map((x) => (<button key={x.k} onClick={() => setLens(x.k)} style={{ cursor: "pointer", padding: "5px 11px", borderRadius: 999, fontSize: 11.5, fontWeight: 600, transition: "all .15s ease", background: lens === x.k ? "#00C2B8" : "rgba(255,255,255,.06)", color: lens === x.k ? "#04211F" : "#C4D0E6", border: "1px solid " + (lens === x.k ? "#00C2B8" : "rgba(255,255,255,.14)") }}>{x.l}</button>))}</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1, minHeight: 0, overflow: "hidden", WebkitMaskImage: "linear-gradient(#000 82%, transparent 100%)", maskImage: "linear-gradient(#000 82%, transparent 100%)" }}>{shown.slice(0, 8).map((it) => (
-                <div key={it.id} className="row" style={{ gap: 12, padding: "11px 12px", borderRadius: 12, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.07)" }}>
+              <div style={{ height: VISIBLE * 70 - 8, overflow: "hidden" }}>
+                <div key={lens + ":" + off} style={{ display: "flex", flexDirection: "column", gap: 8, animation: shown.length > VISIBLE && off ? "quraTick .55s ease" : "none" }}>{rows.map((it) => (
+                <div key={it.id} className="row" style={{ gap: 12, height: 62, boxSizing: "border-box", padding: "0 12px", borderRadius: 12, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.07)" }}>
                   <span style={{ width: 8, height: 8, borderRadius: 999, background: it.lens === "uk" ? "#1E54E6" : "#5B3FD6", flexShrink: 0 }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ color: "#fff", fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.title}</div>
-                    <div style={{ color: "#8295B6", fontSize: 12, marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{[it.buyer, it.where].filter(Boolean).join(" \u00b7 ")}</div>
+                    <div style={{ display: "flex", gap: 5, fontSize: 13.5, whiteSpace: "nowrap" }}><span style={{ ...clip, color: "#fff", fontWeight: 600 }}>{it.lead || String(it.title || "").split(" ").slice(0, 3).join(" ")}</span><span aria-hidden="true" style={{ ...blur, color: "#C4D0E6" }}>{filler(it.id, it.restLen)}</span></div>
+                    <div style={{ display: "flex", gap: 5, fontSize: 12, marginTop: 3, whiteSpace: "nowrap", color: "#8295B6" }}>{it.category ? <span style={{ ...clip, color: "#5FE6DC", fontWeight: 600 }}>{it.category}</span> : null}{it.where ? <span style={{ ...clip, flexShrink: 4 }}>{(it.category ? "\u00b7 " : "") + it.where}</span> : null}<span aria-hidden="true" style={blur}>{HIDDEN_BUYER.slice(0, it.buyerLen || 30)}</span></div>
                   </div>
-                  <div style={{ textAlign: "right", flexShrink: 0 }}><span style={{ fontSize: 10, fontWeight: 700, color: it.lens === "uk" ? "#6E9BFF" : "#A48BFF" }}>{it.source}</span><div style={{ color: "#6B7C9C", fontSize: 11, marginTop: 3 }}>{closesLabel(it.closes)}</div></div>
+                  <div style={{ textAlign: "right", flexShrink: 0, color: "#8FA2C4", fontSize: 11, lineHeight: 1.35 }}>{/* The portal a notice came from is left off: a visitor who knows it can go straight there. */}{closesLabel(it.closes).replace(/^Closes /, "Closes\n").split("\n").map((t, k) => <div key={k} style={k ? { color: "#fff", fontWeight: 600, fontSize: 12 } : null}>{t}</div>)}</div>
                 </div>
-              ))}{pub && !shown.length && <div style={{ color: "#8295B6", fontSize: 13, padding: "18px 6px" }}>No open tenders in this market today. The feed refreshes every morning.</div>}</div>
-              <button onClick={onEnter} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 13, flexShrink: 0, background: "#00C2B8", color: "#04211F", fontWeight: 700 }}>Sign in to see every live tender <ArrowRight size={16} /></button>
+              ))}</div>{pub && !shown.length && <div style={{ color: "#8295B6", fontSize: 13, padding: "18px 6px" }}>No open tenders in this market today. The feed refreshes every morning.</div>}</div>
+              <div className="row" style={{ gap: 7, color: "#8295B6", fontSize: 12, padding: "11px 4px 0" }}><Lock size={13} style={{ flexShrink: 0 }} />Full titles, buyers and named contacts unlock when you sign in.</div>
+              <button onClick={onEnter} className="btn" style={{ width: "100%", justifyContent: "center", marginTop: 11, flexShrink: 0, background: "#00C2B8", color: "#04211F", fontWeight: 700 }}>Sign in to see every live tender <ArrowRight size={16} /></button>
             </div>
           </div>
 
