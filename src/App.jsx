@@ -879,7 +879,20 @@ const Opportunities = ({ go, onPropose, onPipeline, market = "all", onToast }) =
   // Only offer a tab that has something behind it. An empty tab reads as a
   // broken filter, which is exactly what the United States tab did before the
   // market was derived from source.
-  const MARKET_ORDER = ["All", "NHS UK", "Private UK", "Australia", "United States", "European Union", "Canada", "United Arab Emirates", "Nigeria", "International", "Africa", "Middle East"];
+  const MARKET_ORDER = ["All", "NHS UK", "UK public sector", "Private UK", "Australia", "United States", "European Union", "Canada", "United Arab Emirates", "Nigeria", "International", "Africa", "Middle East"];
+  // Which tab a live notice belongs under, worked out from where it came from.
+  // This was called below but never defined, so building the live list threw,
+  // the error was swallowed, and the page showed no real notices at all.
+  const marketOf = (n) => {
+    const src = String((n && n.source) || "");
+    if (src === "Find a Tender" || src === "Contracts Finder") {
+      return n.market === "NHS" ? "NHS UK" : n.market === "Public" ? "UK public sector" : "Private UK";
+    }
+    if (src === "TED (EU)") return "European Union";
+    if (src === "SAM.gov (US)") return "United States";
+    if (src === "CanadaBuys") return "Canada";
+    return "International";
+  };
   // Real procurement notices from the daily feed, shown above the illustrative
   // set. Until this, the web Clinical Demand page showed only examples while
   // the live notices sat in the API unread.
