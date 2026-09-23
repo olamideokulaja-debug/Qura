@@ -140,7 +140,7 @@ function isPerson(name) {
   if (ORG_WORDS.test(n)) return false;
   const parts = n.split(/\s+/).filter(Boolean);
   if (parts.length < 2 || parts.length > 5) return false;
-  return parts.every((w) => /^[A-Z\u00C0-\u00DE][A-Za-z\u00C0-\u024F'".-]*$/.test(w));
+  return parts.every((w) => /^[A-ZÀ-Þ][A-Za-zÀ-ɏ'".-]*$/.test(w));
 }
 
 function initialsOfName(n) {
@@ -207,6 +207,16 @@ function money(t, rel) {
     }
   }
   return null;
+}
+
+// The notice's own closing date, whichever field the buyer used. Null when
+// the notice does not publish one.
+function closingDate(t) {
+  const end = ((t.tenderPeriod || {}).endDate) ||
+              ((t.enquiryPeriod || {}).endDate) ||
+              ((t.awardPeriod || {}).startDate) || null;
+  if (!end || isNaN(Date.parse(end))) return null;
+  return end;
 }
 
 function daysLeft(t) {
@@ -468,9 +478,15 @@ export default async function handler(req, res) {
     // more than the American allowance.
     const CAP = { eu: 20, us: 20 };
     const FEED_CAP = US_ENABLED ? 120 : 100;
+    // The EU and US sources give the closing date as YYYY-MM-DD. Closed ones
+    // are dropped BEFORE the cap, or they use up places a live notice should
+    // have: 10 of the 36 international notices had closed on 23 September.
+    // A notice with no published closing date is kept: it has not closed.
+    const today = new Date().toISOString().slice(0, 10);
+    const stillOpen = (i) => !(/^\d{4}-\d{2}-\d{2}$/.test(String(i.closes || "")) && String(i.closes) < today);
     let items = [
-      ...(Array.isArray(eu) ? eu : []).slice(0, CAP.eu),
-      ...(Array.isArray(us) ? us : []).slice(0, CAP.us),
+      ...(Array.isArray(eu) ? eu : []).filter(stillOpen).slice(0, CAP.eu),
+      ...(Array.isArray(us) ? us : []).filter(stillOpen).slice(0, CAP.us),
     ];
     // Notice URLs, verified against the live sites. The identifier differs by
     // source and neither is the ocid: Find a Tender uses the release id
@@ -480,6 +496,12 @@ export default async function handler(req, res) {
     for (const [pkg, source] of [[fts, "Find a Tender"], [cf, "Contracts Finder"]]) {
       for (const rel of ((pkg && pkg.releases) || [])) {
         if (!relevant(rel)) continue;
+        // A notice whose closing date has passed can no longer be bid for.
+        // daysLeft() returned null for these, which printed as a blank closing
+        // date, so expired notices sat in the feed looking live. Measured
+        // 23 September 2026: 16 of 31 Find a Tender notices had already closed.
+        const end = closingDate(rel.tender || {});
+        if (end && Date.parse(end) < Date.now()) continue;
         let url = null;
         if (source === "Find a Tender") {
           const id = String(rel.id || "").trim();
