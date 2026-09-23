@@ -407,6 +407,13 @@ const US_NAICS = [
   ["622110", "Hospital services"],
 ];
 
+// Temporary help (561320) is not health-specific: on 23 September it returned a
+// Department of Energy construction manager. Staffing notices under that code
+// count only when the title is about health work. Applied in the handler, so it
+// also cleans results reused from earlier in the day.
+const US_HEALTH_TITLE = /\b(health|medical|medicine|clinic\w*|nurs\w*|physician\w*|doctor|hospital|patient|pharmac\w*|dental|dentist|therap\w*|psych\w*|behavioral|radiolog\w*|sonograph\w*|laborator\w*|phlebotom\w*|surg\w*|anesthe\w*|paramedic|emt|perfusion\w*|optometr\w*|audiolog\w*|dietitian|counsel\w*|social work\w*|caregiver|home care|va medical|vamc)\b/i;
+const usHealthOnly = (i) => i.profession !== "Temporary healthcare staffing" || US_HEALTH_TITLE.test(String(i.title || ""));
+
 async function usTenders(sinceIso) {
   const all = [];
   const seen = new Set();
@@ -675,7 +682,7 @@ export default async function handler(req, res) {
     const stillOpen = (i) => !(/^\d{4}-\d{2}-\d{2}$/.test(String(i.closes || "")) && String(i.closes) < today);
     let items = [
       ...(Array.isArray(eu) ? eu : []).filter(stillOpen).slice(0, CAP.eu),
-      ...(Array.isArray(us) ? us : []).filter(stillOpen).slice(0, CAP.us),
+      ...(Array.isArray(us) ? us : []).filter(stillOpen).filter(usHealthOnly).slice(0, CAP.us),
       ...(Array.isArray(ca) ? ca : []).filter(stillOpen).slice(0, CAP.ca),
     ];
     // Notice URLs, verified against the live sites. The identifier differs by
