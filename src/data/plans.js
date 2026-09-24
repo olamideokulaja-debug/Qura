@@ -13,7 +13,10 @@ export const ALL_PREMIUM = ["proposals", "analytics", "leaderboard", "intel", "p
 
 export const CREDIT_TIERS = { trial: { dm: 15, invite: 15 }, starter: { dm: 5, invite: 10 }, growth: { dm: 25, invite: 30 }, enterprise: { dm: 100, invite: 100 } };
 
-export const PLAN_ACCESS = { trial: ALL_PREMIUM, starter: [], growth: ALL_PREMIUM, enterprise: ALL_PREMIUM };
+// Starter used to unlock nothing premium, which made the paid plan worse than
+// the free trial. It now includes the market and public-sector intelligence;
+// Growth adds AI proposals, analytics and the leaderboard.
+export const PLAN_ACCESS = { trial: ALL_PREMIUM, starter: ["intel", "psintel"], growth: ALL_PREMIUM, enterprise: ALL_PREMIUM };
 
 export const FEED_STAGES = [
   ["Requirement posted", "A healthcare organisation posts a live requirement."],
