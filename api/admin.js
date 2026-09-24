@@ -120,7 +120,10 @@ export default async function handler(req, res) {
         if (!profile) return res.status(404).json({ error: "No clinician profile for that account." });
 
         if (action === "clinician-verify") {
-          const req7 = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded"];
+          // Same list the Admin screen uses to enable the button. This one also
+          // demanded a CV, which is no longer required, so a complete profile
+          // with no CV showed a live button that the server then refused.
+          const req7 = ["category", "profession", "regBody", "regNumber", "country", "experienceYears"];
           const missing = req7.filter((k) => { const v = profile[k]; return v === undefined || v === null || v === "" || v === false; });
           if (missing.length) return res.status(400).json({ error: "Profile is incomplete.", missing });
           profile.verifiedAt = new Date().toISOString();
@@ -200,12 +203,32 @@ export default async function handler(req, res) {
     if (error) return res.status(500).json({ error: error.message });
     const users = (list && list.users) || [];
     const ids = users.map((u) => u.id);
+    // The role can live in 2 places: qura_role (set on the web or here in
+    // Admin) and the account record (set by the mobile app). Reading only the
+    // first showed "No role yet" for people who had chosen one on their phone.
     const roles = {};
+    const accounts = {};
     if (ids.length) {
-      const { data: kv } = await admin.from("kv").select("owner,value").eq("key", "qura_role").in("owner", ids);
-      (kv || []).forEach((r) => { try { roles[r.owner] = JSON.parse(r.value); } catch { roles[r.owner] = r.value; } });
+      const { data: kv } = await admin.from("kv").select("owner,key,value").in("key", ["qura_role", "account"]).in("owner", ids);
+      (kv || []).forEach((r) => {
+        let v; try { v = JSON.parse(r.value); } catch { v = r.value; }
+        if (r.key === "qura_role") roles[r.owner] = v; else accounts[r.owner] = v || {};
+      });
     }
-    return res.status(200).json({ users: users.map((u) => ({ id: u.id, email: u.email, created_at: u.created_at, role: roles[u.id] || null })) });
+    const APP_ROLE = { clinician: "clinician", supplier: "agency", agency: "agency", healthcare_provider: "hospital", hospital: "hospital", gp: "gp", care: "care", operator: "operator" };
+    return res.status(200).json({ users: users.map((u) => {
+      const m = u.user_metadata || {};
+      const acc = accounts[u.id] || {};
+      const org = acc.org && typeof acc.org === "object" ? acc.org.name : acc.org;
+      const fromApp = APP_ROLE[acc.role] || APP_ROLE[acc.lens] || null;
+      return {
+        id: u.id, email: u.email, created_at: u.created_at,
+        role: roles[u.id] || fromApp || null,
+        name: m.full_name || [m.first_name, m.last_name].filter(Boolean).join(" ") || [acc.firstName, acc.lastName].filter(Boolean).join(" ") || "",
+        company: m.company || org || "",
+        confirmed: Boolean(u.email_confirmed_at),
+      };
+    }) });
   } catch (e) {
     return res.status(500).json({ error: String(e.message || e) });
   }
