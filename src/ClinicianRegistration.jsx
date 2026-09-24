@@ -16,6 +16,8 @@ import { PageHead, SectionHead } from "./components/ui.jsx";
 import { AHP_TYPES, DOCTOR_SPECIALTIES, NURSE_TYPES, PROTECTED_LIST,
          REG_BODY, RESIDENCE_LIST, SCIENCE_TYPES } from "./data/clinical.js";
 import { supabase } from "./supabase.js";
+// Refer & Reward. Renders nothing until the programme is switched on.
+import ReferCard from "./ReferCard.jsx";
 // Career direction, kept separate from professional background so a
 // registration never caps what someone is shown.
 import { CAREER_TRACKS, SECTORS, WORK_AUTH, WORK_PATTERNS, NO_REGISTRATION_REASONS } from "./data/careers.js";
@@ -180,6 +182,7 @@ export default function ClinicianRegistration({ onToast }) {
   if (done) return (
     <div>
       <PageHead title="Register with Qura" sub="Registration and profile checks" />
+      <div style={{ maxWidth: 640, margin: "0 auto" }}><ReferCard /></div>
       <div className="card" style={{ padding: 40, textAlign: "center", maxWidth: 640, margin: "0 auto" }}>
         <div style={{ width: 64, height: 64, borderRadius: 999, background: "var(--cyan-soft)", display: "grid", placeItems: "center", margin: "0 auto 16px" }}><Check size={30} color="#06776F" /></div>
         {/* "Registered" and a shield read as an endorsement Qura has not given
@@ -194,6 +197,7 @@ export default function ClinicianRegistration({ onToast }) {
   return (
     <div>
       <PageHead title="Register with Qura" sub="Complete your registration to join the network. Every field is required, so hospitals know each Qura clinician is qualified and employable straight away." right={<span className="chip chip-cyan"><ShieldCheck size={12} /> Complete profiles only</span>} />
+      <ReferCard />
       <div className="grid g2" style={{ gap: 16, alignItems: "start" }}>
         <div className="card" style={{ padding: 22 }}>
           <SectionHead title="1. Profession" />
@@ -273,7 +277,7 @@ export default function ClinicianRegistration({ onToast }) {
                       onClick={() => setTargetRoles(on ? targetRoles.filter((x) => x !== r) : [...targetRoles, r])}
                       style={{ cursor: "pointer", border: "none", fontSize: 11.5, fontWeight: 600,
                         background: on ? "var(--cyan-soft)" : "#EEF1F7", color: on ? "var(--teal)" : "#5A6783" }}>
-                      {on ? "\u2713 " : ""}{r}
+                      {on ? "✓ " : ""}{r}
                     </button>
                   );
                 })}
@@ -288,7 +292,7 @@ export default function ClinicianRegistration({ onToast }) {
                       onClick={() => setSectors(on ? sectors.filter((x) => x !== sec) : [...sectors, sec])}
                       style={{ cursor: "pointer", border: "none", fontSize: 11.5, fontWeight: 600,
                         background: on ? "var(--cyan-soft)" : "#EEF1F7", color: on ? "var(--teal)" : "#5A6783" }}>
-                      {on ? "\u2713 " : ""}{sec}
+                      {on ? "✓ " : ""}{sec}
                     </button>
                   );
                 })}
@@ -324,7 +328,7 @@ export default function ClinicianRegistration({ onToast }) {
                   onClick={() => setPatterns(on ? patterns.filter((x) => x !== p) : [...patterns, p])}
                   style={{ cursor: "pointer", border: "none", fontSize: 11.5, fontWeight: 600,
                     background: on ? "var(--cyan-soft)" : "#EEF1F7", color: on ? "var(--teal)" : "#5A6783" }}>
-                  {on ? "\u2713 " : ""}{p}
+                  {on ? "✓ " : ""}{p}
                 </button>
               );
             })}
