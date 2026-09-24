@@ -51,7 +51,10 @@ const teaser = (title) => {
   let words = String(title || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
   const total = words.join(" ").length;
   let i = 0;
-  while (i < words.length - 1 && (CODE.test(words[i]) || DASH.test(words[i]))) i++;
+  // An all-capitals prefix before a dash is usually the buyer's own code
+  // ("NHSWYICB - Leeds ..."), which would name the buyer, so it goes too.
+  const PREFIX = (k) => /^[A-Z&]{3,}$/.test(words[k]) && DASH.test(words[k + 1] || "");
+  while (i < words.length - 1 && (CODE.test(words[i]) || DASH.test(words[i]) || PREFIX(i))) i++;
   words = words.slice(i);
   if (words.length > 2 && COUNTRIES.has(words[0]) && DASH.test(words[1])) words = words.slice(2);
   // Never more than 3 real words, and never most of a short title.
