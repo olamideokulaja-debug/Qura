@@ -47,6 +47,10 @@
       "destination": "/solutions.html"
     },
     {
+      "source": "/fragile-professions",
+      "destination": "/fragile-professions.html"
+    },
+    {
       "source": "/pricing",
       "destination": "/pricing.html"
     },
