@@ -61,6 +61,24 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
   const business = mode === "up" && (role ? role !== "clinician" : Boolean(roleLabel) && roleLabel !== "Clinician");
   const [company, setCompany] = useState("");
   const [phone, setPhone] = useState("");
+  // Refer & Reward. A personal invite link (/join?ref=CODE) leaves the code on
+  // this device for 30 days; it is sent with the new account and attributed on
+  // the server. It can also be typed or corrected here.
+  const [refCode, setRefCode] = useState(() => {
+    try {
+      const q = new URLSearchParams(window.location.search).get("ref");
+      if (q) return String(q).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+      const saved = JSON.parse(localStorage.getItem("qura_ref") || "null");
+      if (saved && saved.code && Date.now() - Number(saved.at || 0) < 30 * 86400000) return String(saved.code).slice(0, 6);
+    } catch (e) {}
+    return "";
+  });
+  const [hadRef] = useState(() => refCode.length > 0);
+  const [refLive, setRefLive] = useState(false);
+  React.useEffect(() => {
+    if (mode !== "up") return;
+    fetch("/api/referrals?public=1").then((r) => r.json()).then((j) => setRefLive(!!(j && j.live))).catch(() => {});
+  }, [mode]);
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [first, setFirst] = useState("");
@@ -102,7 +120,8 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
               { full_name: fullName, first_name: first.trim(), last_name: last.trim() },
               business ? { company: company.trim().replace(/\s+/g, " ").slice(0, 120) } : {},
               business && phone.trim() ? { phone: phone.trim().slice(0, 40) } : {},
-              role ? { signup_role: role } : {}),
+              role ? { signup_role: role } : {},
+              !business && /^[A-Z0-9]{6}$/.test(refCode) ? { referral_code: refCode } : {}),
           },
         });
         if (error) setMsg(authMessage(error.message));
@@ -179,6 +198,12 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
             <div className="login-field"><input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="e.g. Apex Allied Health" /></div>
             <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "16px 0 0" }}>Phone <span className="faint" style={{ fontWeight: 500 }}>(optional, for a quick welcome call)</span></label>
             <div className="login-field"><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+44 7700 900000" /></div>
+          </>
+        )}
+        {up && !business && (hadRef || refLive) && (
+          <>
+            <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>Invite code <span className="faint" style={{ fontWeight: 500 }}>(optional, if a colleague invited you)</span></label>
+            <div className="login-field"><input value={refCode} maxLength={6} onChange={(e) => setRefCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} placeholder="e.g. PWV55M" style={{ letterSpacing: 2 }} /></div>
           </>
         )}
         <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>Work email</label>
