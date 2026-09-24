@@ -54,7 +54,12 @@ function authMessage(msg) {
   return msg;
 }
 
-export default function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAccount, onBackToSignIn }) {
+export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCreateAccount, onBackToSignIn }) {
+  // Anyone signing up as a business gives the company name up front, so the
+  // founders can tell who is behind an account. Clinicians do not. The role
+  // key is used when the page passes it; the label is the fallback.
+  const business = mode === "up" && (role ? role !== "clinician" : Boolean(roleLabel) && roleLabel !== "Clinician");
+  const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [first, setFirst] = useState("");
@@ -71,6 +76,7 @@ export default function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAcco
     if (!supabase) { setMsg("Accounts are not switched on yet."); return; }
     if (!email || !pw) { setMsg("Enter your email and password."); return; }
     if (mode === "up" && (!first.trim() || !last.trim())) { setMsg("Please enter your first name and surname so we know how to address you."); return; }
+    if (business && company.trim().length < 2) { setMsg("Please enter the name of your company or organisation."); return; }
     setBusy(true); setMsg("");
     try {
       if (mode === "up") {
@@ -91,7 +97,10 @@ export default function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAcco
             // Set here rather than relying on the dashboard Site URL, which is
             // one setting away from silently sending people to the wrong page.
             emailRedirectTo: window.location.origin + "/confirmed.html",
-            data: { full_name: fullName, first_name: first.trim(), last_name: last.trim() },
+            data: Object.assign(
+              { full_name: fullName, first_name: first.trim(), last_name: last.trim() },
+              business ? { company: company.trim().replace(/\s+/g, " ").slice(0, 120) } : {},
+              role ? { signup_role: role } : {}),
           },
         });
         if (error) setMsg(authMessage(error.message));
@@ -161,6 +170,12 @@ export default function AuthPanel({ mode = "in", roleLabel, onHome, onCreateAcco
               <div className="login-field"><input value={last} onChange={(e) => setLast(e.target.value)} placeholder="Okafor" /></div>
             </div>
           </div>
+        )}
+        {business && (
+          <>
+            <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>Company or organisation</label>
+            <div className="login-field"><input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="e.g. Apex Allied Health" /></div>
+          </>
         )}
         <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>Work email</label>
         <div className="login-field"><Mail size={16} className="faint" /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@qurahealth.org" /></div>

@@ -15,6 +15,17 @@ import { FRAMEWORK_STATUS, frameworkLabel } from "./data/frameworks.js";
 // Which verification route a clinician is on, and what that route actually
 // requires you to check before marking them verified.
 import { VERIFICATION_ROUTES } from "./data/verification.js";
+
+// Plain names for the profile fields the API reports as missing. The raw keys
+// ("regBody") meant nothing to the person deciding whether to verify.
+const FIELD_NAMES = {
+  category: "clinical area", profession: "profession", regBody: "regulator",
+  regNumber: "registration number", country: "country", experienceYears: "years of experience",
+};
+// The route's shortLabel ("Register checked") is what a hospital reads AFTER
+// verification. Shown here before anyone has checked, it read as though the
+// check had already been done.
+const ROUTE_NAMES = { register: "Route: professional register", credentials: "Route: credentials" };
 import { AGENCIES } from "./data/marketplace.js";
 import { supabase } from "./supabase.js";
 
@@ -156,10 +167,15 @@ export default function AdminOps() {
     setBusy("cl" + owner);
     try {
       const t = await token();
-      await fetch("/api/admin", { method: "POST", headers: { authorization: "Bearer " + t, "content-type": "application/json" },
+      const r = await fetch("/api/admin", { method: "POST", headers: { authorization: "Bearer " + t, "content-type": "application/json" },
         body: JSON.stringify({ action: on ? "clinician-verify" : "clinician-unverify", owner }) });
+      // A refusal used to vanish silently, so a tap looked like it did nothing.
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        setMsg((j.error || "That did not save.") + (j.missing && j.missing.length ? " Missing: " + j.missing.join(", ") + "." : ""));
+      } else setMsg(on ? "Marked verified." : "Verification withdrawn.");
       await load();
-    } catch (e) {}
+    } catch (e) { setMsg("That did not save. Check your connection and try again."); }
     setBusy("");
   };
 
@@ -441,6 +457,7 @@ export default function AdminOps() {
         </div>
       ) : tab === "clinicians" ? (
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          {msg ? <div style={{ fontSize: 13, padding: "12px 16px", background: "var(--bg)", borderBottom: "1px solid var(--line)" }}>{msg}</div> : null}
           {clinicians === null ? <div style={{ padding: 18 }} className="muted">Loading...</div>
           : !clinicians.length ? <div style={{ padding: 18 }} className="muted">No clinician profiles yet.</div>
           : clinicians.map((c) => {
@@ -461,7 +478,7 @@ export default function AdminOps() {
                       {[c.profession, c.category, c.country].filter(Boolean).join(" · ")}
                     </div>
                     <div style={{ fontSize: 13.5, marginTop: 5 }}>
-                      <b>{c.regBody || "No body"}</b>{c.regNumber ? " · " + c.regNumber : ""}
+                      <b>{c.regBody || "No regulator given"}</b>{c.regNumber ? " · " + c.regNumber : ""}
                       {c.experienceYears ? " · " + c.experienceYears : ""}
                       {c.cvUploaded ? " · CV on file" : " · no CV"}
                     </div>
@@ -484,7 +501,7 @@ export default function AdminOps() {
                         <div style={{ marginTop: 8, padding: "10px 12px", borderRadius: 10, background: "var(--bg)" }}>
                           <div className="row" style={{ gap: 7, flexWrap: "wrap" }}>
                             <span className="chip" style={{ fontSize: 10.5, fontWeight: 700, background: "var(--cyan-soft)", color: "var(--teal)" }}>
-                              {route.shortLabel}
+                              {ROUTE_NAMES[route.id] || route.label}
                             </span>
                             {c.noRegistrationReason ? (
                               <span className="faint" style={{ fontSize: 12 }}>{c.noRegistrationReason.replace(/-/g, " ")}</span>
@@ -496,11 +513,20 @@ export default function AdminOps() {
                           {route.checks.map((chk) => (
                             <div key={chk} style={{ fontSize: 12.5, marginTop: 3 }}>· {chk}</div>
                           ))}
+                          {route.id === "register" && !c.registerUrl ? (
+                            <div style={{ fontSize: 12.5, marginTop: 8, color: "var(--amber)" }}>
+                              Qura has no link to this regulator's register. If you cannot find a public
+                              register, ask the clinician for their registration certificate and photo ID
+                              before verifying.
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })()}
                     {c.missing.length ? (
-                      <div className="muted" style={{ fontSize: 12.5, marginTop: 5 }}>Still missing: {c.missing.join(", ")}</div>
+                      <div style={{ fontSize: 12.5, marginTop: 5, color: "var(--amber)" }}>
+                        Cannot be verified yet. Still missing: {c.missing.map((k) => FIELD_NAMES[k] || k).join(", ")}.
+                      </div>
                     ) : null}
                   </div>
                   <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
@@ -513,7 +539,10 @@ export default function AdminOps() {
                       <button className="btn btn-light" style={{ fontSize: 13 }} disabled={busy === "cl" + c.owner}
                         onClick={() => verifyClinician(c.owner, false)}>Withdraw</button>
                     ) : (
-                      <button className="btn btn-primary" style={{ fontSize: 13 }}
+                      // Greyed out, not just inert, when the profile is incomplete: on a
+                      // phone a disabled button looked identical to a live one, so a
+                      // tap that did nothing read as a fault.
+                      <button className="btn btn-primary" style={{ fontSize: 13, opacity: ready ? 1 : 0.4, cursor: ready ? "pointer" : "not-allowed" }}
                         disabled={!ready || busy === "cl" + c.owner}
                         title={ready ? "" : "This profile is not complete yet"}
                         onClick={() => verifyClinician(c.owner, true)}>

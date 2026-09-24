@@ -2076,7 +2076,7 @@ function AdminScreen({ ownerEmail }) {
       {users && users.length === 0 && !err && <div className="muted" style={{ padding: 20 }}>No users yet.</div>}
       {users && users.length > 0 && (<div className="card" style={{ padding: 8 }}>{users.map((u, i) => (
         <div key={u.id} className="row" style={{ justifyContent: "space-between", gap: 12, padding: 14, borderBottom: i < users.length - 1 ? "1px solid var(--line)" : "none", flexWrap: "wrap" }}>
-          <div style={{ minWidth: 0 }}><div className="row" style={{ gap: 8 }}><span style={{ fontWeight: 600, fontSize: 14 }}>{u.email}</span>{ownerEmail && u.email && u.email.toLowerCase() === ownerEmail.toLowerCase() && <span className="chip chip-cyan" style={{ fontSize: 10 }}>You</span>}</div><div className="muted" style={{ fontSize: 12 }}>{u.role ? ("Role: " + u.role) : "No role yet"}{u.created_at ? " · joined " + new Date(u.created_at).toLocaleDateString() : ""}</div></div>
+          <div style={{ minWidth: 0 }}><div className="row" style={{ gap: 8 }}><span style={{ fontWeight: 600, fontSize: 14 }}>{u.email}</span>{ownerEmail && u.email && u.email.toLowerCase() === ownerEmail.toLowerCase() && <span className="chip chip-cyan" style={{ fontSize: 10 }}>You</span>}</div><div className="muted" style={{ fontSize: 12 }}>{[u.name, u.company || (u.role && u.role !== "clinician" ? "no company given" : "")].filter(Boolean).join(" · ")}{u.name || u.company || (u.role && u.role !== "clinician") ? <br /> : null}{u.role ? ("Role: " + u.role) : "No role yet"}{u.created_at ? " · joined " + new Date(u.created_at).toLocaleDateString("en-GB") : ""}{u.confirmed === false ? " · email not confirmed" : ""}</div></div>
           <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>{ROLES.map(([k, l]) => (<button key={k} disabled={saving === u.id} onClick={() => assign(u.id, k)} style={{ padding: "6px 11px", fontSize: 12.5, fontWeight: 600, borderRadius: 9, cursor: "pointer", border: "1px solid var(--line)", background: u.role === k ? "var(--blue)" : "#fff", color: u.role === k ? "#fff" : "var(--navy)", opacity: saving === u.id ? 0.6 : 1 }}>{l}</button>))}</div>
         </div>
       ))}</div>)}
@@ -4694,6 +4694,37 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
 }
 
 /* ===================== root ===================== */
+function CompanyGate({ onSaved, onLogout }) {
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const save = async () => {
+    const v = name.trim().replace(/\s+/g, " ");
+    if (v.length < 2) { setMsg("Please enter the name of your company or organisation."); return; }
+    setBusy(true); setMsg("");
+    try {
+      const { error } = await supabase.auth.updateUser({ data: { company: v.slice(0, 120) } });
+      if (error) { setMsg("That did not save. Please try again."); setBusy(false); return; }
+      onSaved();
+    } catch (e) { setMsg("That did not save. Please try again."); }
+    setBusy(false);
+  };
+  return (
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, background: "radial-gradient(135% 120% at 0% 0%, #102A4F 0%, #0A1730 46%, #070E20 100%)" }}>
+      <div className="card" style={{ width: "100%", maxWidth: 440, padding: 30 }}>
+        <Wordmark />
+        <h2 className="disp" style={{ fontSize: 24, fontWeight: 700, margin: "22px 0 6px" }}>One more thing</h2>
+        <p className="muted" style={{ marginTop: 0, fontSize: 14, lineHeight: 1.55 }}>Which company or organisation are you with? It is shown to the Qura team only, and helps us set up your account.</p>
+        <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "18px 0 6px" }}>Company or organisation</label>
+        <input className="in" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Apex Allied Health" onKeyDown={(e) => e.key === "Enter" && save()} />
+        {msg && <div className="muted" style={{ fontSize: 13, marginTop: 12 }}>{msg}</div>}
+        <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 18 }} disabled={busy} onClick={save}>{busy ? "Saving..." : "Continue"}</button>
+        <button className="btn btn-light" style={{ width: "100%", justifyContent: "center", marginTop: 10 }} onClick={onLogout}>Sign out</button>
+      </div>
+    </div>
+  );
+}
+
 function RoleChoiceScreen({ onPick, onHome }) {
   // Before launch a self-registered account can only be a clinician. The
   // business roles are reachable through an approved early-access request,
@@ -4726,7 +4757,7 @@ function RoleChoiceScreen({ onPick, onHome }) {
             </div>
           </div>
         ) : null}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>{roles.map((r) => (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>{roles.filter((r) => r.k !== "operator").map((r) => (
           <button key={r.k} disabled={!businessOpen && r.k !== "clinician"}
             onClick={() => { if (businessOpen || r.k === "clinician") onPick(r.k); }}
             style={{ textAlign: "left", padding: "22px 22px 20px",
@@ -5162,6 +5193,14 @@ export default function App() {
   useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_profile_name"); setProfileName(r?.value || ""); } catch (e) {} })(); }, [session, stage]);
   const email = ((session && session.user && session.user.email) || "").toLowerCase();
   const founder = FOUNDER_IDENTITY[email] || null;
+  // Business accounts give a company name before they get in, so the founders
+  // can tell who is behind each one. Accounts created before the sign-up form
+  // asked for it are caught here. Clinicians, founders and the app review
+  // accounts are not asked.
+  const [companySaved, setCompanySaved] = useState(false);
+  const needsCompany = Boolean(session && session.user) && !founder && !companySaved && role && role !== "clinician" &&
+    !/^play\.review(\.[a-z]+)?@qurahealth\.org$/.test(email) &&
+    !String(((session.user.user_metadata || {}).company) || "").trim();
   // The plan as the screens understand it. Two fixes in one place:
   //
   // 1. Normalise the stored label. The payment webhook writes "group:key", for
@@ -5273,9 +5312,10 @@ export default function App() {
       {stage === "landing" && <Landing onEnter={goSignIn} onDemo={() => setStage("demo")} earlyFocus={earlyFocus} />}
       {stage === "demo" && <DemoBooking onHome={home} onSignIn={goSignIn} />}
       {stage === "roleChoice" && <RoleChoiceScreen onPick={pickRole} onHome={home} />}
-      {stage === "auth" && <AuthPanel mode={authMode} roleLabel={authMode === "up" && pendingRole ? roleLabelOf(pendingRole) : null} onHome={home} onCreateAccount={() => setStage("roleChoice")} onBackToSignIn={() => { setPendingRole(null); setAuthMode("in"); }} />}
+      {stage === "auth" && <AuthPanel mode={authMode} role={authMode === "up" ? pendingRole : null} roleLabel={authMode === "up" && pendingRole ? roleLabelOf(pendingRole) : null} onHome={home} onCreateAccount={() => setStage("roleChoice")} onBackToSignIn={() => { setPendingRole(null); setAuthMode("in"); }} />}
       {stage === "signup" && <Signup onHome={home} onSignIn={goSignIn} onChoose={(pl, annual) => { choosePlan(pl, annual); setStage("app"); }} />}
-      {stage === "app" && role && <Shell clinProfile={clinProfile} authUser={session && session.user} role={role} trial={trial} plan={effectivePlan} onPlan={choosePlan} onExtend={extendTrial} onSignup={() => setStage("signup")} onLogout={logout} onHome={home} onSwitch={switchRole} isOwner={isOwner} ownerEmail={email} profileName={profileName} onProfileName={setProfileName} founder={founder} />}
+      {stage === "app" && role && needsCompany && <CompanyGate onSaved={() => setCompanySaved(true)} onLogout={logout} />}
+      {stage === "app" && role && !needsCompany && <Shell clinProfile={clinProfile} authUser={session && session.user} role={role} trial={trial} plan={effectivePlan} onPlan={choosePlan} onExtend={extendTrial} onSignup={() => setStage("signup")} onLogout={logout} onHome={home} onSwitch={switchRole} isOwner={isOwner} ownerEmail={email} profileName={profileName} onProfileName={setProfileName} founder={founder} />}
     </div>
   );
 }
