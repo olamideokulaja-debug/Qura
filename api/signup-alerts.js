@@ -1,5 +1,6 @@
 import { adminClient, kvRead, kvWrite, sendMailEach, owners } from "./_waitlist.js";
 import { bump } from "./_metrics.js";
+import { claim, evaluate, allRows, CLAIM_WINDOW_DAYS } from "./_referral.js";
 
 // GET /api/signup-alerts
 //
@@ -54,7 +55,34 @@ export default async function handler(req, res) {
   const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
   if (error) return res.status(500).json({ error: error.message });
   const now = Date.now();
-  const fresh = ((data && data.users) || []).filter((u) =>
+  const allUsers = (data && data.users) || [];
+
+  // Refer & Reward. An account created through a personal invite link, or with
+  // a code typed at sign-up on the phone, carries the code on the account. It
+  // is attributed here, whichever device it came from, and any referral whose
+  // person has since qualified is moved on. Neither step sends anything to the
+  // new user.
+  const invitedBy = {};
+  try {
+    const rows = await allRows(admin);
+    const recOf = {};
+    for (const r of rows) recOf[r.owner] = r.value;
+    for (const u of allUsers) {
+      const code = (u.user_metadata || {}).referral_code;
+      if (!code || (recOf[u.id] && recOf[u.id].referredBy)) continue;
+      if (now - Date.parse(u.created_at) > CLAIM_WINDOW_DAYS * 86400000) continue;
+      await claim(admin, u, code, "signup");
+    }
+    for (const r of await allRows(admin)) {
+      if (!r.value.referredBy) continue;
+      invitedBy[r.owner] = r.value.referredBy;
+      if (["pending", "eligible", "capped"].includes(r.value.status || "pending")) await evaluate(admin, r.owner);
+    }
+  } catch (e) { console.error("[referrals] " + (e.message || e)); }
+  const emailOf = {};
+  for (const u of allUsers) emailOf[u.id] = u.email || "";
+
+  const fresh = allUsers.filter((u) =>
     u.email_confirmed_at &&
     String(u.created_at) >= since &&
     now - Date.parse(u.email_confirmed_at) >= SETTLE_MS &&
@@ -90,6 +118,7 @@ export default async function handler(req, res) {
       business: !!roleKey && roleKey !== "clinician",
       joined: u.created_at,
       personalEmail: FREE_MAIL.test(u.email || ""),
+      invitedBy: invitedBy[u.id] ? emailOf[invitedBy[u.id]] || "a Qura member" : "",
     };
   });
 
@@ -104,6 +133,7 @@ export default async function handler(req, res) {
     line("Role", p.role, "Not chosen yet") +
     line("Company", p.company, "Not given") +
     (p.phone ? line("Phone", p.phone, "") : "") +
+    (p.invitedBy ? line("Invited by", p.invitedBy, "") : "") +
     line("Joined", ukTime(p.joined) + " UK time", "") +
     "</table>" +
     (p.business ? '<div style="margin-top:8px;padding:8px 10px;background:#E8FAF8;border-radius:8px;font-size:13px"><b>Business account.</b> A welcome call within 24 hours is the single best way to turn this into a paying customer. ' +
