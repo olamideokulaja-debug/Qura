@@ -27,8 +27,12 @@ export const ENTITLEMENTS = {
   internationalMarkets: (plan) => (SUPPLIER_RANK[tierOf(plan)] ?? 0) >= 2,
   // AI assistant: Growth and above (explicitly a Growth feature)
   aiAssistant: (plan) => (SUPPLIER_RANK[tierOf(plan)] ?? 0) >= 2,
-  // ICB & council intelligence: Intelligence/Growth tier and above
-  intelligence: (plan) => (SUPPLIER_RANK[tierOf(plan)] ?? 0) >= 2,
+  // ICB & council intelligence and decision-maker contact details: Starter/Team
+  // and above (24 September 2026: Starter used to unlock nothing premium, which
+  // made the paid plan worse than the free trial).
+  intelligence: (plan) => (SUPPLIER_RANK[tierOf(plan)] ?? 0) >= 1,
+  // Exporting the directory in bulk: Growth/Intelligence and above.
+  contactsExport: (plan) => (SUPPLIER_RANK[tierOf(plan)] ?? 0) >= 2,
   // introductions included (any paid supplier plan)
   introductionsIncluded: (plan) => (SUPPLIER_RANK[tierOf(plan)] ?? 0) >= 1,
   // clinician: Career+ gives priority visibility etc. (clinician core stays free)
@@ -51,10 +55,27 @@ const FOUNDER_IDS = new Set([
   "aa58f73a-4d87-40f5-abc3-c1bc913d691a", // olamideokulaja@gmail.com
 ]);
 
+// A trial lasts 7 days, plus 3 if extended once. The start is written by
+// api/trial.js on the server; the browser can read it but cannot change it.
+export const TRIAL_DAYS = 7;
+export function trialActive(trial) {
+  if (!trial || typeof trial.start !== "number") return false;
+  const days = TRIAL_DAYS + (Number(trial.extra) || 0);
+  return Date.now() < trial.start + days * 86400000;
+}
+
+// qura_plan and qura_trial can only be written by the server (Stripe webhook,
+// api/trial.js, founder Admin). Database rules stop the browser writing them,
+// so a plan here is one somebody paid for or a founder granted.
 export async function planOf(userId) {
   const lift = (p) => (FOUNDER_IDS.has(userId) && (SUPPLIER_RANK[tierOf(p)] ?? 0) < 2 ? "supplier:growth" : p);
   try {
-    const plan = await kvGet(userId, "qura_plan");
+    let plan = await kvGet(userId, "qura_plan");
+    const key = plan ? String(plan).split(":").pop().toLowerCase() : "";
+    if (key === "trial" || key === "pilot") {
+      const trial = await kvGet(userId, "qura_trial");
+      plan = trialActive(trial) ? plan : null;
+    }
     if (plan) return lift(plan);
     const comp = await kvGet(userId, "qura_comp");
     if (comp && comp.plan && comp.until && Date.parse(comp.until) > Date.now()) return lift(comp.plan);
