@@ -28,6 +28,8 @@ const FIELD_NAMES = {
 const ROUTE_NAMES = { register: "Route: professional register", credentials: "Route: credentials" };
 import { AGENCIES } from "./data/marketplace.js";
 import { supabase } from "./supabase.js";
+// Refer & Reward pilot, kept in its own file.
+import AdminReferrals from "./AdminReferrals.jsx";
 
 export default function AdminOps() {
   const [tab, setTab] = useState("intros");
@@ -173,7 +175,13 @@ export default function AdminOps() {
       if (!r.ok) {
         const j = await r.json().catch(() => ({}));
         setMsg((j.error || "That did not save.") + (j.missing && j.missing.length ? " Missing: " + j.missing.join(", ") + "." : ""));
-      } else setMsg(on ? "Marked verified." : "Verification withdrawn.");
+      } else {
+        setMsg(on ? "Marked verified." : "Verification withdrawn.");
+        // Refer & Reward: opening the referral list re-checks every referral,
+        // so one that this verification qualifies is marked eligible (and the
+        // founders emailed) now rather than at the next 10-minute run.
+        fetch("/api/referrals?admin=1", { headers: { authorization: "Bearer " + t } }).catch(() => {});
+      }
       await load();
     } catch (e) { setMsg("That did not save. Check your connection and try again."); }
     setBusy("");
@@ -231,13 +239,15 @@ export default function AdminOps() {
 
   return (
     <div style={{ marginBottom: 28 }}>
-      <div className="row" style={{ gap: 8, marginBottom: 14 }}>
-        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["orgs", "Organisation claims" + (orgClaims && orgClaims.length ? " (" + orgClaims.length + ")" : "")], ["frameworks", "Frameworks" + (fwEntries && fwEntries.length ? " (" + fwEntries.length + ")" : "")], ["vault", "Documents" + (vaultDocs && vaultDocs.length ? " (" + vaultDocs.length + ")" : "")], ["suppliers", "Supplier ratings" + (claims && claims.length ? " (" + claims.length + ")" : "")], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
+      <div className="row" style={{ gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["orgs", "Organisation claims" + (orgClaims && orgClaims.length ? " (" + orgClaims.length + ")" : "")], ["frameworks", "Frameworks" + (fwEntries && fwEntries.length ? " (" + fwEntries.length + ")" : "")], ["vault", "Documents" + (vaultDocs && vaultDocs.length ? " (" + vaultDocs.length + ")" : "")], ["suppliers", "Supplier ratings" + (claims && claims.length ? " (" + claims.length + ")" : "")], ["referrals", "Referrals"], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
           <button key={k} className={"btn " + (tab === k ? "btn-primary" : "btn-light")} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
 
-      {tab === "intros" ? (
+      {tab === "referrals" ? (
+        <AdminReferrals />
+      ) : tab === "intros" ? (
         <div className="card" style={{ padding: 18 }}>
           <SectionHead title="Introductions" action={<span className="faint" style={{ fontSize: 12 }}>{queue ? queue.length + " total" : "Loading"}</span>} />
           <div className="faint" style={{ fontSize: 12.5, marginBottom: 12, lineHeight: 1.55 }}>
