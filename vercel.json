@@ -47,10 +47,6 @@
       "destination": "/solutions.html"
     },
     {
-      "source": "/fragile-professions",
-      "destination": "/fragile-professions.html"
-    },
-    {
       "source": "/pricing",
       "destination": "/pricing.html"
     },
@@ -61,6 +57,14 @@
     {
       "source": "/faq",
       "destination": "/faq.html"
+    },
+    {
+      "source": "/join",
+      "destination": "/join.html"
+    },
+    {
+      "source": "/refer",
+      "destination": "/join.html"
     }
   ]
 }
