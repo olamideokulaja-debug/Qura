@@ -60,6 +60,7 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
   // key is used when the page passes it; the label is the fallback.
   const business = mode === "up" && (role ? role !== "clinician" : Boolean(roleLabel) && roleLabel !== "Clinician");
   const [company, setCompany] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [first, setFirst] = useState("");
@@ -100,6 +101,7 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
             data: Object.assign(
               { full_name: fullName, first_name: first.trim(), last_name: last.trim() },
               business ? { company: company.trim().replace(/\s+/g, " ").slice(0, 120) } : {},
+              business && phone.trim() ? { phone: phone.trim().slice(0, 40) } : {},
               role ? { signup_role: role } : {}),
           },
         });
@@ -175,6 +177,8 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
           <>
             <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>Company or organisation</label>
             <div className="login-field"><input value={company} onChange={(e) => setCompany(e.target.value)} placeholder="e.g. Apex Allied Health" /></div>
+            <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "16px 0 0" }}>Phone <span className="faint" style={{ fontWeight: 500 }}>(optional, for a quick welcome call)</span></label>
+            <div className="login-field"><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+44 7700 900000" /></div>
           </>
         )}
         <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>Work email</label>

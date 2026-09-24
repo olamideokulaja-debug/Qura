@@ -1979,60 +1979,150 @@ const NetworkScreen = () => (
     {seedActive() ? <><SampleNote what="profiles" /><div className="grid-3">{CLINICIANS.slice(0, 6).map((c, i) => (<div key={i} className="card lift" style={{ padding: 18, textAlign: "center" }}><div style={{ width: 56, height: 56, borderRadius: 999, background: "#EEF3FF", color: "#1E54E6", display: "grid", placeItems: "center", margin: "0 auto", fontWeight: 700 }} className="disp">{c.name.split(" ").slice(-2).map((x) => x[0]).join("")}</div><div style={{ fontWeight: 600, fontSize: 14.5, marginTop: 10 }}>{c.name}</div><div className="muted" style={{ fontSize: 12.5 }}>{c.spec}</div><button className="btn btn-ghost" style={{ width: "100%", justifyContent: "center", marginTop: 12, padding: "8px" }}><Plus size={14} /> Connect</button></div>))}</div></> : <NothingYet title="Your network is empty" body="Connect with clinicians you have worked alongside. As people join Qura and get verified, they appear here." />}
   </div>
 );
+// Calls the Qura API as the signed-in person. Used by the paying journey:
+// trial, checkout, billing portal, enquiries and the funnel counts.
+async function quraApi(path, body) {
+  let tok = null;
+  try { const { data } = await supabase.auth.getSession(); tok = data?.session?.access_token || null; } catch (e) {}
+  const r = await fetch(path, {
+    method: body === undefined ? "GET" : "POST",
+    headers: Object.assign({ "content-type": "application/json" }, tok ? { authorization: "Bearer " + tok } : {}),
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  let j = {};
+  try { j = await r.json(); } catch (e) {}
+  if (!r.ok) throw new Error(j.error || j.message || "Something went wrong. Please try again.");
+  return j;
+}
+const trackStep = (event) => { quraApi("/api/track", { event }).catch(() => {}); };
+
+// "Contact sales" used to switch the account to Enterprise on the spot, free.
+// It now sends the founders a real enquiry and changes nothing on the account.
+function SalesEnquiry({ plan, onClose }) {
+  const [f, setF] = useState({ name: "", company: "", phone: "", message: "" });
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [err, setErr] = useState("");
+  const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
+  const send = async () => {
+    if (!f.name.trim()) { setErr("Please add your name."); return; }
+    setBusy(true); setErr("");
+    try { await quraApi("/api/sales-enquiry", { ...f, plan }); setDone(true); } catch (e) { setErr(e.message); }
+    setBusy(false);
+  };
+  const lbl = { fontSize: 13, fontWeight: 600, display: "block", margin: "12px 0 6px" };
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 120, background: "rgba(7,14,32,.55)", display: "grid", placeItems: "center", padding: 20 }}>
+      <div className="card" style={{ width: "100%", maxWidth: 460, padding: 28 }}>
+        {done ? (<>
+          <h2 className="disp" style={{ fontSize: 22, fontWeight: 700, margin: "0 0 8px" }}>Thank you</h2>
+          <p className="muted" style={{ fontSize: 14, lineHeight: 1.55 }}>One of the founders will be in touch within 1 working day to talk through {plan}. Nothing on your account has changed in the meantime.</p>
+          <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={onClose}>Close</button>
+        </>) : (<>
+          <h2 className="disp" style={{ fontSize: 22, fontWeight: 700, margin: "0 0 4px" }}>Talk to us about {plan}</h2>
+          <p className="muted" style={{ fontSize: 13.5, marginTop: 0 }}>Tell us a little about your organisation and a founder will call you back, usually the same working day.</p>
+          <label style={lbl}>Your name</label><input className="in" value={f.name} onChange={(e) => set("name", e.target.value)} />
+          <label style={lbl}>Organisation</label><input className="in" value={f.company} onChange={(e) => set("company", e.target.value)} />
+          <label style={lbl}>Phone (optional)</label><input className="in" value={f.phone} onChange={(e) => set("phone", e.target.value)} />
+          <label style={lbl}>What would you like Qura to help with?</label><textarea className="in" rows={3} value={f.message} onChange={(e) => set("message", e.target.value)} />
+          {err ? <div style={{ color: "var(--red)", fontSize: 13, marginTop: 10 }}>{err}</div> : null}
+          <div className="row" style={{ gap: 10, marginTop: 16 }}>
+            <button className="btn btn-primary" disabled={busy} onClick={send}>{busy ? "Sending..." : "Send"}</button>
+            <button className="btn btn-light" onClick={onClose}>Cancel</button>
+          </div>
+        </>)}
+      </div>
+    </div>
+  );
+}
+
 const Pricing = ({ plan, onChoose, highlight, role = "agency", market = "all", isOwner }) => {
   const [annual, setAnnual] = useState(true);
   const baseGroup = role === "agency" ? "agency" : role === "clinician" ? "clinician" : "buyer";
   const [preview, setPreview] = useState(null);
+  const [enquiry, setEnquiry] = useState(null);
+  const [busyKey, setBusyKey] = useState("");
+  const [payErr, setPayErr] = useState("");
+  const [founding, setFounding] = useState(null);
   const group = preview || baseGroup;
-  const cur = CURRENCY[market] || CURRENCY.all;
-  const fmt = (n) => cur.sym + Math.round(n * cur.rate).toLocaleString();
-  const roleBlurb = { hospital: { team: "For a single site posting vacancies and searching for candidates.", intel: "For trusts that want live ICB and council intelligence.", net: "For multi-site provider groups and whole systems." }, gp: { team: "For a practice filling sessions and finding available GPs.", intel: "For PCNs and federations that want primary-care intelligence.", net: "For large federations and super-partnerships." }, care: { team: "For a care home or provider posting roles, compliance built in.", intel: "For groups that want council, SEND and CQC intelligence.", net: "For national care and complex-care operators." } };
+  // Everything is charged in pounds, so pounds are what is shown. Outside the
+  // UK a rough local figure sits beside it, clearly marked as approximate.
+  // Before, A$, NZ$ and US$ prices were shown and then charged in pounds.
+  const local = CURRENCY[market] || CURRENCY.all;
+  const fmt = (n) => "£" + Math.round(n).toLocaleString();
+  const approx = (n) => local.code === "GBP" ? "" : "about " + local.sym + Math.round(n * local.rate).toLocaleString();
+  useEffect(() => { trackStep("pricing_viewed"); fetch("/api/founding").then((r) => r.json()).then(setFounding).catch(() => {}); }, []);
+  const roleBlurb = { hospital: { team: "For a single site posting vacancies and searching for candidates.", intel: "For trusts that want live ICB and council intelligence.", net: "For multi-site provider groups and whole systems." }, gp: { team: "For a practice filling sessions and finding available GPs.", intel: "For PCNs and federations that want primary-care intelligence.", net: "For large federations and super-partnerships." }, care: { team: "For a care home or provider posting roles, compliance built in.", intel: "For groups that want council, SEND and CQC intelligence.", net: "For national care groups and local authority partnerships." } };
   const bb = roleBlurb[(!preview && roleBlurb[role]) ? role : "hospital"];
   const SETS = {
     agency: [
-      { key: "trial", name: "7-day free trial", free: true, blurb: "Full access for 7 days. No card required. Sign up when you are ready.", cta: "Start free trial", feats: ["Everything in Growth", "All markets & the live feed", "Then choose a plan"] },
-      { key: "starter", name: "Starter", mo: 450, yr: 375, blurb: "For small agencies winning their first NHS and private work.", cta: "Choose Starter", feats: ["3 user seats", "UK opportunities, NHS & private", "Pipeline & CRM", "Email support"] },
-      { key: "growth", name: "Growth", mo: 1200, yr: 999, tag: "Most popular", blurb: "For growing teams selling across every market.", cta: "Choose Growth", feats: ["10 user seats", "All markets, including international", "Outreach automation", "Priority support"] },
+      { key: "trial", name: "7-day free trial", free: true, blurb: "Everything in Growth for 7 days. No card needed.", cta: "Start free trial", feats: ["Everything in Growth", "All markets & the live feed", "Then choose a plan"] },
+      { key: "starter", name: "Starter", mo: 450, yr: 375, blurb: "For small agencies winning their first NHS and private work.", cta: "Choose Starter", feats: ["3 user seats", "UK tenders, NHS, councils & private", "Decision-maker contact details", "Market & public sector intelligence", "Pipeline, alerts & email support"] },
+      { key: "growth", name: "Growth", mo: 1200, yr: 999, tag: "Most popular", blurb: "For growing teams selling across every market.", cta: "Choose Growth", feats: ["10 user seats", "Everything in Starter", "EU, US & Canada tenders", "AI proposals, analytics & leaderboard", "Directory export & priority support"] },
       { key: "enterprise", name: "Enterprise", custom: true, dark: true, blurb: "For multi-team providers and national operators.", cta: "Contact sales", feats: ["Unlimited seats", "SSO, SCIM & audit logs", "API access & integrations", "Dedicated success lead"] },
     ],
     buyer: [
-      { key: "trial", name: "7-day pilot", free: true, blurb: "Full access for 7 days. No card required.", cta: "Start pilot", feats: ["Everything in Intelligence", "Post vacancies & browse candidates", "Then choose a plan"] },
-      { key: "starter", name: "Team", mo: 350, yr: 290, blurb: bb.team, cta: "Choose Team", feats: ["5 user seats", "Post vacancies & live feed", "Candidate search & shortlists", "Email support"] },
-      { key: "growth", name: "Intelligence", mo: 900, yr: 750, tag: "Most popular", blurb: bb.intel, cta: "Choose Intelligence", feats: ["15 user seats", "ICB & council intelligence", "Analytics & insights", "Priority support"] },
+      { key: "trial", name: "7-day pilot", free: true, blurb: "Everything in Intelligence for 7 days. No card needed.", cta: "Start pilot", feats: ["Everything in Intelligence", "Post vacancies & browse candidates", "Then choose a plan"] },
+      { key: "starter", name: "Team", mo: 350, yr: 290, blurb: bb.team, cta: "Choose Team", feats: ["5 user seats", "Post vacancies & live feed", "Candidate search & shortlists", "ICB & council intelligence", "Email support"] },
+      { key: "growth", name: "Intelligence", mo: 900, yr: 750, tag: "Most popular", blurb: bb.intel, cta: "Choose Intelligence", feats: ["15 user seats", "Everything in Team", "Analytics & insights", "AI proposals", "Priority support"] },
       { key: "enterprise", name: "Network", custom: true, dark: true, blurb: bb.net, cta: "Contact sales", feats: ["Unlimited seats & sites", "SSO, SCIM & audit logs", "API & integrations", "Dedicated success lead"] },
     ],
     clinician: [
-      { key: "starter", name: "Free", free: true, freeForever: true, blurb: "Always free to join, search and apply for work.", cta: "Join free", feats: ["Unlimited job search & alerts", "Apply and message directly", "Registered profile & documents"] },
+      { key: "free", name: "Free", free: true, freeForever: true, blurb: "Always free to join, search and apply for work.", cta: "Your current plan", feats: ["Unlimited job search & alerts", "Apply and message directly", "Registered profile & documents"] },
       { key: "growth", name: "Career+", mo: 15, yr: 12, tag: "Most popular", blurb: "Premium career tools for ambitious clinicians.", cta: "Go Career+", feats: ["Salary & tariff insights", "Priority visibility to hospitals", "CPD & career planning tools"] },
       { key: null, addon: true, name: "Relocation concierge", blurb: "Pay-as-you-go support to move country: visas, registration, accommodation and more.", cta: "Available as an add-on", feats: ["Visas & registration (GMC, AHPRA)", "Accommodation & travel", "Onboarding & family support"] },
     ],
   };
   const tiers = SETS[group];
   const groupLabel = group === "agency" ? "agencies" : group === "clinician" ? "clinicians" : "hospitals, GP practices and care providers";
+  const foundingOn = group === "agency" && founding && founding.active && founding.left > 0;
+  const planKey = plan ? String(plan).split(":").pop() : null;
+  const pay = async (t) => {
+    setPayErr(""); setBusyKey(t.key);
+    const ok = await startCheckout(group + ":" + t.key, annual);
+    if (!ok) setPayErr("Checkout could not open. Please try again, or email support@qurahealth.org.");
+    setBusyKey("");
+  };
+  const click = (t) => {
+    if (!t.key || t.addon) return;
+    if (t.freeForever) return;
+    if (t.custom) { setEnquiry(t.name); return; }
+    const paid = !t.free;
+    if (paid && billingEnabled) { pay(t); return; }
+    if (onChoose) onChoose(t.key, annual);
+  };
   return (
     <div>
-      <PageHead title="Pricing" sub="Start free, then choose the plan that fits your growth." right={<div className="row" style={{ gap: 4, background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 999, padding: 4 }}>{[["Monthly", false], ["Annual", true]].map(([l, v]) => (<button key={l} onClick={() => setAnnual(v)} style={{ padding: "7px 16px", fontSize: 13, fontWeight: 600, border: "none", borderRadius: 999, cursor: "pointer", transition: ".15s", background: annual === v ? "var(--blue)" : "#fff", color: annual === v ? "#fff" : "var(--navy)", boxShadow: annual === v ? "0 1px 3px rgba(45,107,255,.35)" : "var(--sh-xs)" }}>{l}</button>))}</div>} />
+      <PageHead title="Pricing" sub="Start free, then choose the plan that fits your growth." right={<div className="row" style={{ gap: 4, background: "var(--bg)", border: "1px solid var(--line)", borderRadius: 999, padding: 4 }}>{[["Monthly", false], ["Annual", true]].map(([l, v]) => (<button key={l} onClick={() => setAnnual(v)} style={{ padding: "7px 16px", fontSize: 13, fontWeight: 600, border: "none", borderRadius: 999, cursor: "pointer", transition: ".15s", background: annual === v ? "var(--blue)" : "#fff", color: annual === v ? "#fff" : "var(--navy)" }}>{l}{v ? " (save about 2 months)" : ""}</button>))}</div>} />
       {isOwner && <div className="row" style={{ gap: 6, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}><span className="faint" style={{ fontSize: 12.5 }}>Preview pricing as:</span>{[["agency", "Agency"], ["buyer", "Hospital / GP / Care"], ["clinician", "Clinician"]].map(([k, l]) => (<button key={k} onClick={() => setPreview(k)} style={{ cursor: "pointer", padding: "6px 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, background: group === k ? "var(--navy)" : "#fff", color: group === k ? "#fff" : "var(--navy)", border: "1px solid var(--line)" }}>{l}</button>))}</div>}
       {!isOwner && <div className="faint" style={{ fontSize: 12.5, marginBottom: 14 }}>Pricing shown for {groupLabel}.</div>}
-      {plan === "trial" && <div className="chip chip-cyan" style={{ marginBottom: 16 }}><Sparkles size={12} /> You are on a free trial</div>}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(238px,1fr))", gap: 16, alignItems: "stretch" }}>{tiers.map((t) => { const isCur = plan && t.key && t.key === plan; const acc = PLAN_ACCESS[t.key] || []; return (
+      {foundingOn && <div className="card" style={{ padding: "14px 18px", marginBottom: 16, background: "linear-gradient(120deg,rgba(45,107,255,.10),#fff 70%)", border: "1px solid var(--blue)" }}><div className="row" style={{ gap: 10, flexWrap: "wrap" }}><Award size={18} color="#2D6BFF" /><div><div style={{ fontWeight: 700, fontSize: 14.5 }}>Founding offer: Growth at the Starter price for 12 months</div><div className="muted" style={{ fontSize: 13 }}>For the first {founding.total} workforce suppliers. {founding.left} of {founding.total} places left. Applied automatically when you choose Growth.</div></div></div></div>}
+      {planKey === "trial" && <div className="chip chip-cyan" style={{ marginBottom: 16 }}><Sparkles size={12} /> You are on a free trial</div>}
+      {payErr ? <div className="card" style={{ padding: 12, marginBottom: 14, color: "var(--red)", fontSize: 13.5 }}>{payErr}</div> : null}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(238px,1fr))", gap: 16, alignItems: "stretch" }}>{tiers.map((t) => { const isCur = (planKey && t.key && t.key === planKey) || (t.freeForever && !planKey); const acc = PLAN_ACCESS[t.key] || []; const fOffer = foundingOn && t.key === "growth"; return (
         <div key={t.name} className="card" style={{ padding: 26, display: "flex", flexDirection: "column", border: highlight === t.key ? "2px solid var(--cyan)" : t.free ? "2px solid var(--teal)" : t.tag ? "2px solid var(--blue)" : "1px solid var(--line)", position: "relative", background: t.free ? "linear-gradient(160deg,var(--cyan-soft),#fff 70%)" : "#fff", boxShadow: highlight === t.key ? "0 0 0 4px rgba(0,194,184,.16)" : "var(--sh-sm)" }}>
           {highlight === t.key && <span className="chip chip-cyan" style={{ position: "absolute", top: -11, right: 26 }}>For you</span>}
-          {t.tag && <span className="chip chip-blue" style={{ position: "absolute", top: -11, left: 26 }}>{t.tag}</span>}
+          {t.tag && <span className="chip chip-blue" style={{ position: "absolute", top: -11, left: 26 }}>{fOffer ? "Founding offer" : t.tag}</span>}
           {t.free && <span className="chip chip-cyan" style={{ position: "absolute", top: -11, left: 26 }}>{t.freeForever ? "Free" : "Recommended"}</span>}
           {t.addon && <span className="chip chip-low" style={{ position: "absolute", top: -11, left: 26 }}>Add-on</span>}
           <div className="disp" style={{ fontWeight: 700, fontSize: 18 }}>{t.name}</div>
           <p className="muted" style={{ fontSize: 13, margin: "6px 0 0", minHeight: 38, lineHeight: 1.45 }}>{t.blurb}</p>
-          <div className="row" style={{ gap: 6, margin: "14px 0 2px", alignItems: "baseline" }}>{t.free ? <span className="disp" style={{ fontSize: 34, fontWeight: 700, color: "var(--teal)" }}>Free</span> : t.custom ? <span className="disp" style={{ fontSize: 32, fontWeight: 700 }}>Custom</span> : t.addon ? <span className="disp" style={{ fontSize: 26, fontWeight: 700 }}>Pay as you go</span> : <><span className="disp num" style={{ fontSize: 34, fontWeight: 700 }}>{fmt(annual ? t.yr : t.mo)}</span><span className="muted" style={{ fontSize: 13 }}>/mo</span>{annual && <span className="chip chip-low" style={{ fontSize: 10.5, marginLeft: 4 }}>save {Math.round((1 - t.yr / t.mo) * 100)}%</span>}</>}</div>
-          <div className="faint" style={{ fontSize: 12, minHeight: 18 }}>{t.free ? (t.freeForever ? "Free forever, no card needed" : "7 days free, no card needed") : t.custom ? "Tailored to your organisation" : t.addon ? "Only pay for the services you use" : annual ? ("billed annually at " + fmt(t.yr * 12) + " / yr") : ("or " + fmt(t.yr) + " / mo billed annually")}</div>
+          <div className="row" style={{ gap: 6, margin: "14px 0 2px", alignItems: "baseline", flexWrap: "wrap" }}>{t.free ? <span className="disp" style={{ fontSize: 34, fontWeight: 700, color: "var(--teal)" }}>Free</span> : t.custom ? <span className="disp" style={{ fontSize: 32, fontWeight: 700 }}>Custom</span> : t.addon ? <span className="disp" style={{ fontSize: 26, fontWeight: 700 }}>Pay as you go</span> : fOffer ? <><span className="muted" style={{ fontSize: 18, textDecoration: "line-through" }}>{fmt(annual ? t.yr : t.mo)}</span><span className="disp num" style={{ fontSize: 34, fontWeight: 700 }}>{fmt(annual ? 375 : 450)}</span><span className="muted" style={{ fontSize: 13 }}>/mo</span></> : <><span className="disp num" style={{ fontSize: 34, fontWeight: 700 }}>{fmt(annual ? t.yr : t.mo)}</span><span className="muted" style={{ fontSize: 13 }}>/mo</span></>}</div>
+          <div className="faint" style={{ fontSize: 12, minHeight: 18 }}>{t.free ? (t.freeForever ? "Free forever, no card needed" : "7 days free, no card needed") : t.custom ? "Tailored to your organisation" : t.addon ? "Only pay for the services you use" : (fOffer ? "for your first 12 months, then " + fmt(annual ? t.yr : t.mo) + " / mo. " : "") + (annual ? ("Billed annually" + (fOffer ? "" : " at " + fmt(t.yr * 12) + " / yr")) : ("or " + fmt(t.yr) + " / mo billed annually")) + (approx(annual ? t.yr : t.mo) ? " · " + approx(annual ? t.yr : t.mo) + " / mo" : "")}</div>
           <div style={{ height: 1, background: "var(--line)", margin: "18px 0" }} />
           <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>{t.feats.map((f, j) => (<div key={j} className="row" style={{ gap: 9, fontSize: 13.5, alignItems: "flex-start" }}><Check size={15} color={t.tag ? "var(--blue)" : "var(--cyan)"} style={{ flexShrink: 0, marginTop: 2 }} />{f}</div>))}
-            {!t.addon && <div style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 12 }}><div className="faint" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 8 }}>Premium features</div>{PREMIUM_FEATURES.map(([pk, pl]) => { const on = acc.includes(pk); return (<div key={pk} className="row" style={{ gap: 9, fontSize: 13, marginBottom: 6, color: on ? "var(--text)" : "var(--muted)" }}>{on ? <Check size={15} color="#0E8C7E" style={{ flexShrink: 0 }} /> : <span style={{ width: 15, height: 15, borderRadius: 999, border: "1.5px solid var(--line)", flexShrink: 0 }} />}{pl}</div>); })}</div>}
+            {!t.addon && group !== "clinician" && <div style={{ borderTop: "1px solid var(--line)", marginTop: 12, paddingTop: 12 }}><div className="faint" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em", marginBottom: 8 }}>Premium features</div>{PREMIUM_FEATURES.map(([pk, pl]) => { const on = t.custom || acc.includes(pk); return (<div key={pk} className="row" style={{ gap: 9, fontSize: 13, marginBottom: 6, color: on ? "var(--text)" : "var(--muted)" }}>{on ? <Check size={15} color="#0E8C7E" style={{ flexShrink: 0 }} /> : <span style={{ width: 15, height: 15, borderRadius: 999, border: "1px solid var(--line)", flexShrink: 0 }} />}{pl}</div>); })}</div>}
           </div>
-          <button className={"btn " + (isCur ? "btn-light" : t.addon ? "btn-light" : t.free ? "btn-primary" : t.tag ? "btn-blue" : t.dark ? "btn-dark" : "btn-light")} style={{ justifyContent: "center", marginTop: 20 }} disabled={isCur || t.addon} onClick={() => { if (isCur || !t.key) return; const paid = !t.free && !t.custom && !t.addon; if (paid && billingEnabled) { startCheckout(group + ":" + t.key, annual); } else if (onChoose) { onChoose(t.key, annual); } }}>{isCur ? "Current plan" : t.cta}</button>
+          <button className={"btn " + (isCur ? "btn-light" : t.addon ? "btn-light" : t.free ? "btn-primary" : t.tag ? "btn-blue" : t.dark ? "btn-dark" : "btn-light")} style={{ justifyContent: "center", marginTop: 20 }} disabled={isCur || t.addon || busyKey === t.key} onClick={() => { if (!isCur) click(t); }}>{busyKey === t.key ? "Opening secure checkout..." : isCur ? "Current plan" : t.cta}</button>
         </div>
       ); })}</div>
-      <div className="muted" style={{ fontSize: 12.5, marginTop: 16, lineHeight: 1.5 }}>Prices shown in {cur.code} and exclude VAT. The free option needs no card. Annual plans are billed up front and save roughly two months versus paying monthly. Relocation services are charged as pay-as-you-go add-ons.</div>
+      {group !== "clinician" && <div className="card" style={{ marginTop: 18, padding: "16px 20px", background: "var(--bg)", border: "none" }}><div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 14, fontSize: 13 }}>
+        <div className="row" style={{ gap: 9, alignItems: "flex-start" }}><ShieldCheck size={16} color="#0E8C7E" style={{ flexShrink: 0, marginTop: 1 }} /><span><b>Cancel any time</b> from Settings, Manage billing. You keep access to the end of the period you paid for.</span></div>
+        <div className="row" style={{ gap: 9, alignItems: "flex-start" }}><Lock size={16} color="#0E8C7E" style={{ flexShrink: 0, marginTop: 1 }} /><span><b>Secure payment</b> by Stripe. Qura never sees or stores your card.</span></div>
+        <div className="row" style={{ gap: 9, alignItems: "flex-start" }}><TrendingUp size={16} color="#0E8C7E" style={{ flexShrink: 0, marginTop: 1 }} /><span><b>Built to pay for itself.</b> One extra contract won can cover a year of Qura.</span></div>
+      </div></div>}
+      <div className="muted" style={{ fontSize: 12.5, marginTop: 16, lineHeight: 1.5 }}>All prices are in pounds sterling and exclude VAT. Other currencies are shown as an approximate guide; your card provider converts the charge. The free option needs no card. Annual plans are billed up front and save about 2 months versus paying monthly.{group === "clinician" ? " Relocation services are charged as pay-as-you-go add-ons." : ""}</div>
+      {enquiry ? <SalesEnquiry plan={enquiry} onClose={() => setEnquiry(null)} /> : null}
     </div>
   );
 };
@@ -2041,12 +2131,52 @@ const Pricing = ({ plan, onChoose, highlight, role = "agency", market = "all", i
 // the directory removal log. Lives beside the user list so running Qura stops
 // meaning living in an email inbox.
 
+// Where people stop on the way to paying, counted by day. Sign-ups come from
+// the sign-up alerts and payments from Stripe, so neither can be inflated from
+// a browser.
+function FunnelCard({ token }) {
+  const [d, setD] = useState(null);
+  const [days, setDays] = useState(30);
+  useEffect(() => { (async () => { try { const t = await token(); const r = await fetch("/api/admin?view=funnel&days=" + days, { headers: { authorization: "Bearer " + t } }); if (r.ok) setD(await r.json()); } catch (e) {} })(); }, [days]);
+  const LABELS = { signup: "Signed up", role_picked: "Chose a role", trial_started: "Started trial", trial_extended: "Extended trial", pricing_viewed: "Viewed pricing", locked_viewed: "Hit a locked screen", checkout_started: "Opened checkout", paid: "Paid", enquiry: "Sales enquiry", billing_portal: "Opened billing" };
+  const tot = (d && d.totals) || {};
+  const order = (d && d.order) || Object.keys(LABELS);
+  return (
+    <div className="card" style={{ padding: 18, marginBottom: 16 }}>
+      <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>Paying journey, last {days} days</div>
+        <div className="row" style={{ gap: 6 }}>{[7, 30, 90].map((n) => (<button key={n} onClick={() => setDays(n)} style={{ padding: "5px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: "pointer", border: "1px solid var(--line)", background: days === n ? "var(--navy)" : "#fff", color: days === n ? "#fff" : "var(--navy)" }}>{n} days</button>))}</div>
+      </div>
+      {!d ? <div className="muted" style={{ fontSize: 13 }}>Loading...</div> : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 10 }}>{order.map((k) => (
+          <div key={k} style={{ background: "var(--bg)", borderRadius: 10, padding: "10px 12px" }}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{tot[k] || 0}</div><div className="muted" style={{ fontSize: 12 }}>{LABELS[k] || k}</div></div>
+        ))}</div>
+      )}
+      {d && d.founding ? <div className="muted" style={{ fontSize: 12.5, marginTop: 12 }}>Founding offer: {d.founding.active ? (d.founding.left + " of " + d.founding.total + " places left") : "not switched on yet (the Stripe coupons are not set up)"}.</div> : null}
+      <div className="faint" style={{ fontSize: 11.5, marginTop: 6 }}>Counting started on 24 September 2026.</div>
+    </div>
+  );
+}
+
 function AdminScreen({ ownerEmail }) {
   const [users, setUsers] = useState(null);
   const [err, setErr] = useState("");
   const [saving, setSaving] = useState("");
   const ROLES = [["operator", "Operator"], ["agency", "Agency"], ["hospital", "Hospital"], ["clinician", "Clinician"]];
   const token = async () => { try { const { data } = await supabase.auth.getSession(); return data?.session?.access_token; } catch (e) { return null; } };
+  // Plans can only be changed by a Stripe payment or here. Used for
+  // Enterprise and Network deals agreed by a founder, and for corrections.
+  const PLANS = [["free", "Free"], ["agency:starter", "Agency Starter"], ["agency:growth", "Agency Growth"], ["agency:enterprise", "Agency Enterprise"], ["buyer:starter", "Team"], ["buyer:growth", "Intelligence"], ["buyer:enterprise", "Network"], ["clinician:growth", "Career+"]];
+  const setPlanFor = async (userId, planKey, who) => {
+    if (typeof window !== "undefined" && window.confirm && !window.confirm("Set " + who + " to " + ((PLANS.find((x) => x[0] === planKey) || [])[1] || planKey) + "? This does not charge them.")) return;
+    setSaving(userId);
+    try {
+      const t = await token();
+      const r = await fetch("/api/admin", { method: "POST", headers: { authorization: "Bearer " + t, "content-type": "application/json" }, body: JSON.stringify({ action: "plan-set", userId, plan: planKey }) });
+      if (r.ok) setUsers((u) => u.map((x) => x.id === userId ? { ...x, plan: planKey === "free" ? null : planKey } : x));
+    } catch (e) {}
+    setSaving("");
+  };
   const load = async () => {
     setErr(""); setUsers(null);
     try {
@@ -2071,19 +2201,24 @@ function AdminScreen({ ownerEmail }) {
     <div>
       <AdminOps />
       <PageHead title="Admin" sub="Manage users and the role each account sees" right={<button className="btn btn-light" onClick={load}><RefreshCw size={15} /> Refresh</button>} />
+      <FunnelCard token={token} />
       {err && <div className="card" style={{ padding: 16, marginBottom: 14, background: "var(--red-bg)", border: "1px solid var(--red)", color: "var(--red)", fontSize: 13.5, lineHeight: 1.5 }}>{err}</div>}
       {users === null && <div className="muted" style={{ padding: 20 }}>Loading users...</div>}
       {users && users.length === 0 && !err && <div className="muted" style={{ padding: 20 }}>No users yet.</div>}
       {users && users.length > 0 && (<div className="card" style={{ padding: 8 }}>{users.map((u, i) => (
         <div key={u.id} className="row" style={{ justifyContent: "space-between", gap: 12, padding: 14, borderBottom: i < users.length - 1 ? "1px solid var(--line)" : "none", flexWrap: "wrap" }}>
-          <div style={{ minWidth: 0 }}><div className="row" style={{ gap: 8 }}><span style={{ fontWeight: 600, fontSize: 14 }}>{u.email}</span>{ownerEmail && u.email && u.email.toLowerCase() === ownerEmail.toLowerCase() && <span className="chip chip-cyan" style={{ fontSize: 10 }}>You</span>}</div><div className="muted" style={{ fontSize: 12 }}>{[u.name, u.company || (u.role && u.role !== "clinician" ? "no company given" : "")].filter(Boolean).join(" · ")}{u.name || u.company || (u.role && u.role !== "clinician") ? <br /> : null}{u.role ? ("Role: " + u.role) : "No role yet"}{u.created_at ? " · joined " + new Date(u.created_at).toLocaleDateString("en-GB") : ""}{u.confirmed === false ? " · email not confirmed" : ""}</div></div>
-          <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>{ROLES.map(([k, l]) => (<button key={k} disabled={saving === u.id} onClick={() => assign(u.id, k)} style={{ padding: "6px 11px", fontSize: 12.5, fontWeight: 600, borderRadius: 9, cursor: "pointer", border: "1px solid var(--line)", background: u.role === k ? "var(--blue)" : "#fff", color: u.role === k ? "#fff" : "var(--navy)", opacity: saving === u.id ? 0.6 : 1 }}>{l}</button>))}</div>
+          <div style={{ minWidth: 0 }}><div className="row" style={{ gap: 8 }}><span style={{ fontWeight: 600, fontSize: 14 }}>{u.email}</span>{ownerEmail && u.email && u.email.toLowerCase() === ownerEmail.toLowerCase() && <span className="chip chip-cyan" style={{ fontSize: 10 }}>You</span>}</div><div className="muted" style={{ fontSize: 12 }}>{[u.name, u.company || (u.role && u.role !== "clinician" ? "no company given" : "")].filter(Boolean).join(" · ")}{u.name || u.company || (u.role && u.role !== "clinician") ? <br /> : null}{u.role ? ("Role: " + u.role) : "No role yet"}{u.created_at ? " · joined " + new Date(u.created_at).toLocaleDateString("en-GB") : ""}{u.confirmed === false ? " · email not confirmed" : ""}{u.phone ? " · " + u.phone : ""}<br />{"Plan: " + (u.plan ? String(u.plan) : "free")}{u.trialStart ? " · trial started " + new Date(u.trialStart).toLocaleDateString("en-GB") : ""}</div></div>
+          <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>{ROLES.map(([k, l]) => (<button key={k} disabled={saving === u.id} onClick={() => assign(u.id, k)} style={{ padding: "6px 11px", fontSize: 12.5, fontWeight: 600, borderRadius: 9, cursor: "pointer", border: "1px solid var(--line)", background: u.role === k ? "var(--blue)" : "#fff", color: u.role === k ? "#fff" : "var(--navy)", opacity: saving === u.id ? 0.6 : 1 }}>{l}</button>))}<select value={u.plan || "free"} disabled={saving === u.id} onChange={(e) => setPlanFor(u.id, e.target.value, u.email)} style={{ padding: "6px 8px", fontSize: 12.5, borderRadius: 9, border: "1px solid var(--line)", background: "#fff" }}>{PLANS.map(([k, l]) => (<option key={k} value={k}>{l}</option>))}</select></div>
         </div>
       ))}</div>)}
     </div>
   );
 }
-function SettingsScreen({ plan, trialMsg, go, profileName, onName }) {
+function SettingsScreen({ plan, trialMsg, go, profileName, onName, isOwner }) {
+  // A paid plan gets Stripe's own billing page: card, invoices, switch or cancel.
+  const paidPlan = !!plan && !/^(trial|pilot|free)$/.test(String(plan).split(":").pop());
+  const [billingNote, setBillingNote] = useState("");
+  const openBilling = async () => { setBillingNote("Opening billing..."); try { const j = await quraApi("/api/billing-portal", {}); window.location.href = j.url; } catch (e) { setBillingNote(e.message); } };
   const [p, setP] = useState({ name: "", email: "", title: "", region: "" });
   const [n, setN] = useState({ opps: true, replies: true, forums: true, digest: false });
   const [saved, setSaved] = useState(false);
@@ -2101,9 +2236,9 @@ function SettingsScreen({ plan, trialMsg, go, profileName, onName }) {
   return (
     <div>
       <PageHead title="Settings" sub="Manage your profile and notification preferences" right={<button className="btn btn-primary" onClick={save}>{saved ? <><Check size={15} /> Saved</> : "Save changes"}</button>} />
-      <div className="card" style={{ padding: 20, marginBottom: 16, background: "linear-gradient(120deg,var(--cyan-soft),#fff 70%)" }}><div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}><div><div className="faint" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>Your plan</div><div className="disp" style={{ fontWeight: 700, fontSize: 20, marginTop: 4 }}>{plan ? (PLAN_LABEL[plan] || plan) : "No plan selected"}</div>{trialMsg && <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>{trialMsg}</div>}</div><button className="btn btn-primary" onClick={() => go && go("pricing")}>Manage plan</button></div></div>
+      <div className="card" style={{ padding: 20, marginBottom: 16, background: "linear-gradient(120deg,var(--cyan-soft),#fff 70%)" }}><div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}><div><div className="faint" style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".04em" }}>Your plan</div><div className="disp" style={{ fontWeight: 700, fontSize: 20, marginTop: 4 }}>{plan ? (PLAN_LABEL[plan] || plan) : "No plan selected"}</div>{trialMsg && <div className="muted" style={{ fontSize: 13, marginTop: 2 }}>{trialMsg}</div>}</div><div className="row" style={{ gap: 8, flexWrap: "wrap" }}>{paidPlan && <button className="btn btn-light" onClick={openBilling}>Manage billing</button>}<button className="btn btn-primary" onClick={() => go && go("pricing")}>{paidPlan ? "Change plan" : "See plans"}</button></div></div>{billingNote ? <div className="muted" style={{ fontSize: 13, marginTop: 10 }}>{billingNote}</div> : null}</div>
       <div className="card" style={{ padding: 20, marginBottom: 16 }}><SectionHead title="Your data & privacy" /><p className="muted" style={{ fontSize: 13, margin: "0 0 12px", lineHeight: 1.55 }}>Qura follows UK GDPR. Your data is stored per account, never sold, and you can access, export or erase it at any time.</p><label className="row" style={{ gap: 8, fontSize: 13, cursor: "pointer", marginBottom: 14 }}><input type="checkbox" checked={comms} onChange={(e) => setCommsV(e.target.checked)} /> I consent to receive product updates and marketing from Qura</label><div className="row" style={{ gap: 8, flexWrap: "wrap" }}><button className="btn btn-light" onClick={() => setShowPriv((v) => !v)}><ShieldCheck size={15} /> {showPriv ? "Hide" : "View"} privacy notice</button><button className="btn btn-light" onClick={downloadData}><FileText size={15} /> Download my data</button><button className="btn btn-light" style={{ color: "var(--red)" }} onClick={eraseData}><Trash2 size={15} /> Delete my data</button></div>{dnote ? <div className="chip chip-cyan" style={{ marginTop: 12 }}>{dnote}</div> : null}{showPriv ? <div style={{ marginTop: 14, borderTop: "1px solid var(--line)", paddingTop: 14 }}><PrivacyContent /></div> : null}</div>
-      <div className="card" style={{ padding: 20, marginBottom: 16 }}><SectionHead title="Testing" /><div className="row" style={{ justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div className="muted" style={{ fontSize: 13, maxWidth: 360 }}>Reset the trial, plan and onboarding walkthrough to preview the first-run experience again.</div><button className="btn btn-light" style={{ color: "var(--red)" }} onClick={async () => { for (const k of ["qura_trial", "qura_trial_welcomed", "qura_plan", "qura_upgrade", "qura_tour_done", "qura_trial_events"]) { try { await window.storage?.delete(k); } catch (e) {} } try { window.location.reload(); } catch (e) {} }}>Reset trial & onboarding</button></div></div>
+      {isOwner ? <div className="card" style={{ padding: 20, marginBottom: 16 }}><SectionHead title="Testing" /><div className="row" style={{ justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div className="muted" style={{ fontSize: 13, maxWidth: 360 }}>Reset the trial, plan and onboarding walkthrough to preview the first-run experience again.</div><button className="btn btn-light" style={{ color: "var(--red)" }} onClick={async () => { for (const k of ["qura_trial", "qura_trial_welcomed", "qura_plan", "qura_upgrade", "qura_tour_done", "qura_trial_events"]) { try { await window.storage?.delete(k); } catch (e) {} } try { window.location.reload(); } catch (e) {} }}>Reset trial & onboarding</button></div></div> : null}
       <div className="grid-2" style={{ alignItems: "start" }}>
         <div className="card" style={{ padding: 24 }}><SectionHead title="Profile" />{field("Full name", "name")}<div className="muted" style={{ fontSize: 12, margin: "-8px 0 14px" }}>This name shows on your top bar, account menu and the requirements you post.</div>{field("Work email", "email", "email")}{field("Title", "title")}{field("Region", "region")}</div>
         <div className="card" style={{ padding: 24 }}><SectionHead title="Notifications" /><div style={{ display: "flex", flexDirection: "column", gap: 4 }}>{notif.map(([k, t, d], i) => (<div key={k} className="row" style={{ justifyContent: "space-between", gap: 16, padding: "13px 0", borderBottom: i < notif.length - 1 ? "1px solid var(--line)" : "none" }}><div><div style={{ fontWeight: 600, fontSize: 14 }}>{t}</div><div className="muted" style={{ fontSize: 12.5, marginTop: 2 }}>{d}</div></div><Toggle on={n[k]} onClick={() => setN((x) => ({ ...x, [k]: !x[k] }))} /></div>))}</div></div>
@@ -4291,7 +4426,7 @@ function Login({ onNext, onHome, onSignup }) {
         <div className="row" style={{ gap: 12, margin: "18px 0", color: "var(--faint)", fontSize: 12 }}><div style={{ flex: 1, height: 1, background: "var(--line)" }} /> or continue with <div style={{ flex: 1, height: 1, background: "var(--line)" }} /></div>
         <div className="row" style={{ gap: 10 }}><button className="btn btn-light" style={{ flex: 1, justifyContent: "center", background: "var(--bg)" }} onClick={() => onNext(role)}><ShieldCheck size={15} /> SSO</button><button className="btn btn-light" style={{ flex: 1, justifyContent: "center", background: "var(--bg)" }} onClick={() => onNext(role)}><Mail size={15} /> NHS Mail</button></div>
         <div className="row" style={{ justifyContent: "center", gap: 6, marginTop: 18, fontSize: 13 }}><span className="muted">New member?</span><button onClick={onSignup} style={{ color: "var(--teal)", fontWeight: 700, background: "none", cursor: "pointer" }}>Sign up</button></div>
-        <div className="faint" style={{ fontSize: 12, textAlign: "center", marginTop: 16 }}>Prototype for internal alignment · no real credentials needed</div>
+        <div className="faint" style={{ fontSize: 12, textAlign: "center", marginTop: 16 }}>Qura Ltd, company number 17310951</div>
       </div>
     </div>
   </div>
@@ -4357,7 +4492,7 @@ function Signup({ onHome, onSignIn, onChoose }) {
             <button className={"btn " + (t.highlight ? "btn-primary" : t.tag ? "btn-blue" : "btn-light")} style={{ width: "100%", justifyContent: "center" }} onClick={() => onChoose(t.key, annual)}>{t.cta}</button>
           </div>
         ))}</div>
-        <div className="faint" style={{ fontSize: 12.5, marginTop: 24 }}>Prices exclude VAT. The free trial needs no card. Prototype for internal alignment.</div>
+        <div className="faint" style={{ fontSize: 12.5, marginTop: 24 }}>Prices are in pounds sterling and exclude VAT. The free trial needs no card. Cancel any time.</div>
       </div>
     </div>
   );
@@ -4456,6 +4591,19 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
   const neededPlan = planOrder.find((pk) => (PLAN_ACCESS[pk] || []).includes(active)) || "growth";
   const unlockList = PREMIUM_FEATURES.filter(([k]) => (PLAN_ACCESS[neededPlan] || []).includes(k) && !((PLAN_ACCESS[plan] || []).includes(k))).map((ft) => ft[1]).join(", ");
   const activeLabel = (nav.find((n) => n.k === active) || {}).l || "this";
+  // Locked screens used to render in full under a banner, so there was nothing
+  // to pay for. They now show a blurred preview, the price, and a button that
+  // goes straight to checkout.
+  const payGroup = role === "agency" ? "agency" : role === "clinician" ? "clinician" : "buyer";
+  const upgradePrice = (({ agency: { starter: "£375", growth: "£999" }, buyer: { starter: "£290", growth: "£750" } })[payGroup] || {})[neededPlan] || "";
+  const [upgrading, setUpgrading] = useState(false);
+  const upgradeNow = async () => {
+    if (!billingEnabled) { setUpgradeTo(neededPlan); setLockedFrom(active); go("pricing"); return; }
+    setUpgrading(true);
+    const ok = await startCheckout(payGroup + ":" + neededPlan, true);
+    if (!ok) { setUpgrading(false); setUpgradeTo(neededPlan); setLockedFrom(active); go("pricing"); }
+  };
+  useEffect(() => { if (premiumLocked) trackStep("locked_viewed"); }, [premiumLocked, active]);
   const [feedPosts, setFeedPosts] = useState(seedActive() ? FEED_SEED : []);
   const [userCat, setUserCat] = useState(null);
   useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_feed"); if (r?.value) setFeedPosts(unseedFeed(JSON.parse(r.value))); } catch (e) {} try { const c = await window.storage?.get("qura_catalogue"); if (c?.value) setUserCat(JSON.parse(c.value)); } catch (e) {} })(); }, [active]);
@@ -4564,7 +4712,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "liveProjects": return <LiveProjects onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "execs": return <ExecNetwork onToast={(m) => { setToast(m); setTimeout(() => setToast(null), 2800); }} />;
       case "pricing": return <Pricing role={role} market={market} isOwner={isOwner} plan={plan} onChoose={(pk, annual) => { onPlan && onPlan(pk, annual); const unlocked = lockedFrom && (PLAN_ACCESS[pk] || []).includes(lockedFrom); const lockedLabel = (nav.find((n) => n.k === lockedFrom) || {}).l || "That feature"; const back = unlocked ? lockedFrom : null; setUpgradeTo(null); setLockedFrom(null); setToast(unlocked ? (lockedLabel + " unlocked") : (pk === "trial" ? "Free trial started" : "You are now on the " + (PLAN_LABEL[pk] || pk) + " plan")); setTimeout(() => setToast(null), 2800); if (back) go(back); }} highlight={upgradeTo} />;
-      case "settings": return <SettingsScreen plan={plan} trialMsg={trialMsg} go={go} profileName={profileName} onName={onProfileName} />;
+      case "settings": return <SettingsScreen plan={plan} trialMsg={trialMsg} go={go} profileName={profileName} onName={onProfileName} isOwner={isOwner} />;
       case "admin": return <AdminScreen ownerEmail={ownerEmail} />;
       case "clients": return <ClientsTargets />;
       case "casestudies": return <CaseStudies />;
@@ -4683,9 +4831,9 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
             </div>
           </div>
         </div>
-        <div className="scrolly appcanvas" style={{ flex: 1, overflowY: "auto", padding: "34px 38px", background: "linear-gradient(180deg,var(--bg2),var(--bg) 300px)" }}><div className="fade" style={{ maxWidth: "none", margin: "0 auto" }} key={active}>{trial && (<div className="card" style={{ padding: "14px 18px", marginBottom: 18, background: trialTone === "ended" ? "var(--red-bg)" : trialTone === "urgent" ? "rgba(245,158,11,.14)" : "linear-gradient(120deg,var(--cyan-soft),#fff 70%)", border: "1px solid " + (trialTone === "ended" ? "var(--red)" : trialTone === "urgent" ? "#F59E0B" : "var(--cyan)") }}><div className="row" style={{ justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}><div className="row" style={{ gap: 10 }}><Sparkles size={17} color={trialTone === "ended" ? "#C0362C" : trialTone === "urgent" ? "#B45309" : "#06776F"} /><div><div className="row" style={{ gap: 8, fontWeight: 700, fontSize: 14 }}><span>{trialTone === "ended" ? "Your free trial has ended" : trialTone === "urgent" ? "Last day of your free trial" : ("Free trial · " + trialLeft + " days left")}</span>{trial.extended && <span className="chip chip-grey" style={{ fontSize: 9.5, fontWeight: 700 }}>Extended</span>}</div><div className="muted" style={{ fontSize: 12.5 }}>{trialTone === "ended" ? "Sign up to continue using Qura." : trialTone === "urgent" ? "Sign up today to keep your data and access." : "Sign up any time to keep your data and unlock every market."}</div></div></div><div className="row" style={{ gap: 12 }}>{trial && !trial.extended && <button onClick={() => { onExtend && onExtend(); setToast("Free trial extended by 3 days."); setTimeout(() => setToast(null), 2800); }} style={{ color: "var(--teal)", fontWeight: 600, background: "none", cursor: "pointer", fontSize: 12.5 }}>Extend +3 days</button>}<button className="btn btn-primary" onClick={onSignup}>Sign up</button></div></div>{trialTone !== "ended" && <div style={{ height: 5, borderRadius: 5, background: "rgba(10,23,51,.08)", marginTop: 12, overflow: "hidden" }} title={Math.round(trialPct) + "% of your trial used"}><div style={{ height: "100%", width: trialPct + "%", background: trialTone === "urgent" ? "#F59E0B" : "linear-gradient(90deg,var(--teal),var(--cyan))", borderRadius: 5, transition: ".3s" }} /></div>}</div>)}{premiumLocked && (<div className="card" style={{ padding: "14px 18px", marginBottom: 18, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, background: "linear-gradient(120deg,rgba(45,107,255,.08),#fff 70%)", border: "1px solid var(--blue)" }}><div className="row" style={{ gap: 10 }}><Sparkles size={17} color="#2D6BFF" /><div><div style={{ fontWeight: 700, fontSize: 14 }}>{activeLabel} is a {PLAN_LABEL[neededPlan]} feature</div><div className="muted" style={{ fontSize: 12.5 }}>Upgrade to {PLAN_LABEL[neededPlan]} to unlock {unlockList || "the full experience"}.</div></div></div><div className="row" style={{ gap: 14, flexShrink: 0 }}><button onClick={() => { setUpgradeTo(neededPlan); setLockedFrom(active); go("pricing"); }} style={{ color: "var(--blue)", fontWeight: 600, background: "none", cursor: "pointer", fontSize: 12.5 }}>Compare plans</button><button className="btn" style={{ background: "var(--blue)", color: "#fff" }} onClick={() => { setUpgradeTo(neededPlan); setLockedFrom(active); go("pricing"); }}>Upgrade to {PLAN_LABEL[neededPlan]}</button></div></div>)}{screen()}</div></div>
+        <div className="scrolly appcanvas" style={{ flex: 1, overflowY: "auto", padding: "34px 38px", background: "linear-gradient(180deg,var(--bg2),var(--bg) 300px)" }}><div className="fade" style={{ maxWidth: "none", margin: "0 auto" }} key={active}>{trial && (<div className="card" style={{ padding: "14px 18px", marginBottom: 18, background: trialTone === "ended" ? "var(--red-bg)" : trialTone === "urgent" ? "rgba(245,158,11,.14)" : "linear-gradient(120deg,var(--cyan-soft),#fff 70%)", border: "1px solid " + (trialTone === "ended" ? "var(--red)" : trialTone === "urgent" ? "#F59E0B" : "var(--cyan)") }}><div className="row" style={{ justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}><div className="row" style={{ gap: 10 }}><Sparkles size={17} color={trialTone === "ended" ? "#C0362C" : trialTone === "urgent" ? "#B45309" : "#06776F"} /><div><div className="row" style={{ gap: 8, fontWeight: 700, fontSize: 14 }}><span>{trialTone === "ended" ? "Your free trial has ended" : trialTone === "urgent" ? "Last day of your free trial" : ("Free trial · " + trialLeft + " days left")}</span>{trial.extended && <span className="chip chip-grey" style={{ fontSize: 9.5, fontWeight: 700 }}>Extended</span>}</div><div className="muted" style={{ fontSize: 12.5 }}>{trialTone === "ended" ? "Choose a plan to keep using Qura." : trialTone === "urgent" ? "Choose a plan today to keep your data and access." : "Choose a plan any time. Everything you set up stays."}</div></div></div><div className="row" style={{ gap: 12 }}>{trial && !trial.extended && <button onClick={() => { onExtend && onExtend(); setToast("Free trial extended by 3 days."); setTimeout(() => setToast(null), 2800); }} style={{ color: "var(--teal)", fontWeight: 600, background: "none", cursor: "pointer", fontSize: 12.5 }}>Extend +3 days</button>}<button className="btn btn-primary" onClick={() => go("pricing")}>Choose a plan</button></div></div>{trialTone !== "ended" && <div style={{ height: 5, borderRadius: 5, background: "rgba(10,23,51,.08)", marginTop: 12, overflow: "hidden" }} title={Math.round(trialPct) + "% of your trial used"}><div style={{ height: "100%", width: trialPct + "%", background: trialTone === "urgent" ? "#F59E0B" : "linear-gradient(90deg,var(--teal),var(--cyan))", borderRadius: 5, transition: ".3s" }} /></div>}</div>)}{premiumLocked && (<div className="card" style={{ padding: "14px 18px", marginBottom: 18, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, background: "linear-gradient(120deg,rgba(45,107,255,.08),#fff 70%)", border: "1px solid var(--blue)" }}><div className="row" style={{ gap: 10 }}><Lock size={17} color="#2D6BFF" /><div><div style={{ fontWeight: 700, fontSize: 14 }}>{activeLabel} is part of {PLAN_LABEL[neededPlan]}</div><div className="muted" style={{ fontSize: 12.5 }}>This is a preview. {PLAN_LABEL[neededPlan]} unlocks {unlockList || "the full experience"}{upgradePrice ? ", from " + upgradePrice + " a month billed annually" : ""}. Cancel any time.</div></div></div><div className="row" style={{ gap: 10, flexShrink: 0 }}><button className="btn btn-light" onClick={() => { setUpgradeTo(neededPlan); setLockedFrom(active); go("pricing"); }}>Compare plans</button><button className="btn" style={{ background: "var(--blue)", color: "#fff" }} disabled={upgrading} onClick={upgradeNow}>{upgrading ? "Opening checkout..." : "Upgrade now"}</button></div></div>)}{premiumLocked ? <div aria-hidden="true" style={{ position: "relative", maxHeight: 560, overflow: "hidden", borderRadius: 14 }}><div style={{ filter: "blur(5px)", pointerEvents: "none", userSelect: "none" }}>{screen()}</div><div style={{ position: "absolute", inset: 0, background: "linear-gradient(rgba(255,255,255,0) 40%, var(--bg) 96%)" }} /></div> : screen()}</div></div>
       </div>
-      {readOnly && active !== "pricing" && (<div className="fade" style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(7,14,32,.55)", backdropFilter: "blur(6px)", display: "grid", placeItems: "center", padding: 24 }}><div className="card" style={{ maxWidth: 440, padding: 34, textAlign: "center" }}><div style={{ width: 58, height: 58, borderRadius: 999, background: "var(--red-bg)", display: "grid", placeItems: "center", margin: "0 auto 18px" }}><Sparkles size={28} color="#C0362C" /></div><h2 className="disp" style={{ fontSize: 23, fontWeight: 700 }}>Your free trial has ended</h2><p className="muted" style={{ fontSize: 14.5, marginTop: 8, lineHeight: 1.55 }}>Qura is in read-only preview. Choose a plan to keep posting, booking and winning work.</p><button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 20, padding: 13 }} onClick={() => go("pricing")}>Choose a plan <ArrowRight size={16} /></button>{trial && !trial.extended && <button className="btn btn-light" style={{ width: "100%", justifyContent: "center", marginTop: 10 }} onClick={() => onExtend && onExtend()}>Extend my trial 3 days</button>}<button onClick={onSignup} style={{ color: "var(--muted)", fontWeight: 600, background: "none", cursor: "pointer", fontSize: 13, marginTop: 14 }}>See sign-up options</button></div></div>)}
+      {readOnly && active !== "pricing" && (<div className="fade" style={{ position: "fixed", inset: 0, zIndex: 90, background: "rgba(7,14,32,.55)", backdropFilter: "blur(6px)", display: "grid", placeItems: "center", padding: 24 }}><div className="card" style={{ maxWidth: 440, padding: 34, textAlign: "center" }}><div style={{ width: 58, height: 58, borderRadius: 999, background: "var(--red-bg)", display: "grid", placeItems: "center", margin: "0 auto 18px" }}><Sparkles size={28} color="#C0362C" /></div><h2 className="disp" style={{ fontSize: 23, fontWeight: 700 }}>Your free trial has ended</h2><p className="muted" style={{ fontSize: 14.5, marginTop: 8, lineHeight: 1.55 }}>Qura is in read-only preview. Choose a plan to keep posting, booking and winning work.</p><button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 20, padding: 13 }} onClick={() => go("pricing")}>Choose a plan <ArrowRight size={16} /></button>{trial && !trial.extended && <button className="btn btn-light" style={{ width: "100%", justifyContent: "center", marginTop: 10 }} onClick={() => onExtend && onExtend()}>Extend my trial 3 days</button>}<a href="mailto:support@qurahealth.org" style={{ display: "block", color: "var(--muted)", fontWeight: 600, fontSize: 13, marginTop: 14 }}>Questions? Talk to us</a></div></div>)}
       {toast && <div className="fade" style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", zIndex: 60, background: "var(--navy)", color: "#fff", padding: "13px 20px", borderRadius: 12, fontSize: 14, fontWeight: 600, display: "flex", gap: 9, alignItems: "center", boxShadow: "0 12px 30px rgba(10,23,51,.3)" }}><Check size={17} color="#5FE6DC" /> {toast}</div>}
       {tour && <Walkthrough onClose={closeTour} />}
       <style>{`@media(max-width:960px){.login-wrap{grid-template-columns:1fr!important}}`}</style>
@@ -4779,7 +4927,7 @@ function RoleChoiceScreen({ onPick, onHome }) {
 }
 
 
-function BillingResult({ result, onSignIn, onClose }) {
+function BillingResult({ result, onSignIn, onClose, onOpen, signedIn, ready, slow }) {
   const ok = result === "success";
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(6,14,30,.62)", display: "grid", placeItems: "center", padding: 20, backdropFilter: "blur(3px)" }}>
@@ -4795,8 +4943,16 @@ function BillingResult({ result, onSignIn, onClose }) {
           <>
             <h2 className="disp" style={{ fontSize: 27, fontWeight: 800, margin: "0 0 8px" }}>Welcome to the {APP_NAME} community</h2>
             <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.65, maxWidth: 400, margin: "0 auto 6px" }}>Your payment went through and your subscription is active. A receipt is on its way to your inbox.</p>
-            <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.65, maxWidth: 400, margin: "0 auto 24px" }}>Sign back in to unlock everything on your plan.</p>
-            <button className="btn btn-primary lift" style={{ padding: "13px 26px", fontSize: 15 }} onClick={onSignIn}>Sign in to {APP_NAME} <ArrowRight size={16} /></button>
+            {signedIn ? (ready ? (<>
+              <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.65, maxWidth: 400, margin: "0 auto 24px" }}>Your plan is switched on.</p>
+              <button className="btn btn-primary lift" style={{ padding: "13px 26px", fontSize: 15 }} onClick={onOpen}>Open {APP_NAME} <ArrowRight size={16} /></button>
+            </>) : (<>
+              <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.65, maxWidth: 400, margin: "0 auto 24px" }}>{slow ? "This is taking longer than usual. Your payment is safe. Open Qura and your plan will appear within a few minutes, or email support@qurahealth.org." : "Switching on your plan. This usually takes a few seconds."}</p>
+              <button className="btn btn-primary lift" style={{ padding: "13px 26px", fontSize: 15 }} onClick={onOpen}>Open {APP_NAME} <ArrowRight size={16} /></button>
+            </>)) : (<>
+              <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.65, maxWidth: 400, margin: "0 auto 24px" }}>Sign in with the email you paid with to unlock everything on your plan.</p>
+              <button className="btn btn-primary lift" style={{ padding: "13px 26px", fontSize: 15 }} onClick={onSignIn}>Sign in to {APP_NAME} <ArrowRight size={16} /></button>
+            </>)}
             <div style={{ marginTop: 14 }}><button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--muted)" }}>Back to the website</button></div>
           </>
         ) : (
@@ -5276,6 +5432,11 @@ export default function App() {
         try { const r = await window.storage?.get("qura_pending_role"); stored = r && r.value ? JSON.parse(r.value) : null; } catch (e) {}
         if (existing) { setRole(existing); setStage("app"); }
         else if (pendingRole || stored) { await saveRole(pendingRole || stored); setStage("app"); }
+        else if (session.user && session.user.user_metadata && session.user.user_metadata.signup_role) {
+          // Confirmed the email on another device, so the choice made on the way
+          // in is not in this browser. It was saved with the account at sign-up.
+          await saveRole(session.user.user_metadata.signup_role); setStage("app");
+        }
         else { setStage("roleChoice"); }
         setPendingRole(null);
         try { await window.storage?.delete("qura_pending_role"); } catch (e) {}
@@ -5284,9 +5445,61 @@ export default function App() {
   }, [session, stage]);
 
   const logTrial = async (name) => { try { const r = await window.storage?.get("qura_trial_events"); const arr = r && r.value ? JSON.parse(r.value) : []; arr.push({ name, at: Date.now() }); window.storage?.set("qura_trial_events", JSON.stringify(arr.slice(-50))); } catch (e) {} };
-  const startTrial = () => { const t = { start: Date.now() }; setTrial(t); try { window.storage?.set("qura_trial", JSON.stringify(t)); } catch (e) {} logTrial("trial_started"); };
-  const extendTrial = () => { setTrial((t) => { if (!t || t.extended) return t; const nt = { ...t, extra: (t.extra || 0) + 3, extended: true }; try { window.storage?.set("qura_trial", JSON.stringify(nt)); } catch (e) {} return nt; }); logTrial("trial_extended"); };
-  const choosePlan = (pl, annual = true) => { if (billingEnabled && (pl === "starter" || pl === "growth")) { startCheckout(pl, annual); return; } setPlan(pl); try { window.storage?.set("qura_plan", JSON.stringify(pl)); } catch (e) {} logTrial("plan_" + pl); if (pl === "trial") startTrial(); };
+  // The trial is started and timed on the server (api/trial.js). The browser
+  // can no longer write it, so it cannot be restarted or stretched.
+  const startTrial = async () => { try { const j = await quraApi("/api/trial", { action: "start" }); if (j.trial) { setTrial(j.trial); setPlan((p) => p || "trial"); } } catch (e) {} logTrial("trial_started"); };
+  const extendTrial = async () => { try { const j = await quraApi("/api/trial", { action: "extend" }); if (j.trial) { setTrial(j.trial); setPlan((p) => p || "trial"); } } catch (e) {} logTrial("trial_extended"); };
+  // Only three things happen here now: a trial starts, a checkout opens, or
+  // nothing. The plan itself is only ever set by a payment or by a founder.
+  // Before, "Contact sales" set Enterprise free and a clinician's "Join free"
+  // opened a checkout for the supplier Starter plan.
+  const payGroupOf = (r) => (r === "agency" ? "agency" : r === "clinician" ? "clinician" : "buyer");
+  const choosePlan = (pl, annual = true) => {
+    if (pl === "trial") { startTrial(); return; }
+    if (pl === "free" || pl === "enterprise") return;
+    if (billingEnabled && (pl === "starter" || pl === "growth")) { startCheckout(payGroupOf(role) + ":" + pl, annual); return; }
+    logTrial("plan_" + pl);
+  };
+
+  // Business accounts get their trial the moment they arrive, rather than only
+  // if they find and press a button. Most never did.
+  const uid = session && session.user && session.user.id;
+  useEffect(() => {
+    if (stage !== "app" || !uid || founder || !role || role === "clinician" || role === "operator") return;
+    let dead = false;
+    (async () => {
+      try {
+        const pl = await window.storage?.get("qura_plan");
+        let pv = null; try { pv = pl && pl.value ? JSON.parse(pl.value) : null; } catch (e) { pv = pl && pl.value; }
+        if (pv && !/trial|pilot/.test(String(pv))) return;
+        const st = await quraApi("/api/trial");
+        if (dead) return;
+        if (st.trial) { setTrial(st.trial); return; }
+        const j = await quraApi("/api/trial", { action: "start" });
+        if (!dead && j.trial) { setTrial(j.trial); setPlan((p) => p || "trial"); }
+      } catch (e) {}
+    })();
+    return () => { dead = true; };
+  }, [stage, uid, role, founder]);
+
+  // After Stripe sends someone back, wait for the payment to be applied rather
+  // than showing locks until they happen to sign in again.
+  const [planReady, setPlanReady] = useState(false);
+  const [planSlow, setPlanSlow] = useState(false);
+  useEffect(() => {
+    if (billingResult !== "success" || !uid) return;
+    let n = 0;
+    const t = setInterval(async () => {
+      n++;
+      try {
+        const pl = await window.storage?.get("qura_plan");
+        let pv = null; try { pv = pl && pl.value ? JSON.parse(pl.value) : null; } catch (e) { pv = pl && pl.value; }
+        if (pv && !/trial|pilot/.test(String(pv))) { setPlan(pv); setPlanReady(true); clearInterval(t); }
+      } catch (e) {}
+      if (n >= 30) { setPlanSlow(true); clearInterval(t); }
+    }, 2000);
+    return () => clearInterval(t);
+  }, [billingResult, uid]);
 
   const enterApp = () => { if (role) setStage("app"); else setStage("roleChoice"); };
   const getStarted = () => { if (supabaseEnabled && session) enterApp(); else setStage("roleChoice"); };
@@ -5295,6 +5508,7 @@ export default function App() {
     // Persist the choice immediately. Confirming an email opens a new page, so
     // anything held only in memory is lost and the person gets asked twice.
     try { await window.storage?.set("qura_pending_role", JSON.stringify(r)); } catch (e) {}
+    trackStep("role_picked");
     if (supabaseEnabled && !session) { setPendingRole(r); setAuthMode("up"); setStage("auth"); }
     else { await saveRole(r); setStage("app"); }
   };
@@ -5308,7 +5522,7 @@ export default function App() {
     <div className="cura">
       <style>{STYLES}</style>
       <CookieConsent />
-      {billingResult ? <BillingResult result={billingResult} onSignIn={() => { setBillingResult(null); goSignIn(); }} onClose={() => setBillingResult(null)} /> : null}
+      {billingResult ? <BillingResult result={billingResult} signedIn={!!uid} ready={planReady} slow={planSlow} onOpen={() => { setBillingResult(null); enterApp(); }} onSignIn={() => { setBillingResult(null); goSignIn(); }} onClose={() => setBillingResult(null)} /> : null}
       {stage === "landing" && <Landing onEnter={goSignIn} onDemo={() => setStage("demo")} earlyFocus={earlyFocus} />}
       {stage === "demo" && <DemoBooking onHome={home} onSignIn={goSignIn} />}
       {stage === "roleChoice" && <RoleChoiceScreen onPick={pickRole} onHome={home} />}
