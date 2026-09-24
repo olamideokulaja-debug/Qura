@@ -2,6 +2,8 @@ import { createClient } from "@supabase/supabase-js";
 import { categorise, orgTypeOf, initialsOf } from "./_categorise.js";
 import { getQueue, approve, deny } from "./_waitlist.js";
 import { kvListByKey } from "./_auth.js";
+import { funnel, EVENTS } from "./_metrics.js";
+import { foundingState } from "./founding.js";
 
 export default async function handler(req, res) {
   const sbUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -141,6 +143,19 @@ export default async function handler(req, res) {
         return res.status(200).json({ ok: true, owner, verifiedAt: profile.verifiedAt || null });
       }
 
+      // ---- plan, set by a founder (Enterprise deals, comps, corrections) ----
+      // The only way besides a Stripe payment that a plan changes. The browser
+      // can no longer write qura_plan itself.
+      if (action === "plan-set") {
+        const { userId, plan } = req.body || {};
+        const ALLOWED = ["agency:starter", "agency:growth", "agency:enterprise", "buyer:starter", "buyer:growth", "buyer:enterprise", "clinician:growth", "free"];
+        if (!userId || !ALLOWED.includes(plan)) return res.status(400).json({ error: "userId and a valid plan are required." });
+        if (plan === "free") await admin.from("kv").delete().eq("owner", userId).eq("key", "qura_plan");
+        else await kvWrite(userId, "qura_plan", plan);
+        await kvWrite(userId, "qura_plan_set_by", { by: email, plan, at: new Date().toISOString() });
+        return res.status(200).json({ ok: true, plan });
+      }
+
       // ---- original role override ----
       const { userId, role } = req.body || {};
       if (!userId || !role) return res.status(400).json({ error: "userId and role are required." });
@@ -195,6 +210,10 @@ export default async function handler(req, res) {
       list.sort((a, b) => rank(a) - rank(b) || String(b.registeredAt || "").localeCompare(String(a.registeredAt || "")));
       return res.status(200).json({ clinicians: list });
     }
+    if (req.query && req.query.view === "funnel") {
+      const days = Math.min(366, Math.max(1, Number(req.query.days) || 30));
+      return res.status(200).json({ ...(await funnel(days)), order: EVENTS, founding: await foundingState() });
+    }
     if (req.query && req.query.view === "removals") {
       const log = (await kvRead("shared", "contact_removals")) || [];
       return res.status(200).json({ removals: Array.isArray(log) ? log : [] });
@@ -208,11 +227,16 @@ export default async function handler(req, res) {
     // first showed "No role yet" for people who had chosen one on their phone.
     const roles = {};
     const accounts = {};
+    const plans = {};
+    const trials = {};
     if (ids.length) {
-      const { data: kv } = await admin.from("kv").select("owner,key,value").in("key", ["qura_role", "account"]).in("owner", ids);
+      const { data: kv } = await admin.from("kv").select("owner,key,value").in("key", ["qura_role", "account", "qura_plan", "qura_trial"]).in("owner", ids);
       (kv || []).forEach((r) => {
         let v; try { v = JSON.parse(r.value); } catch { v = r.value; }
-        if (r.key === "qura_role") roles[r.owner] = v; else accounts[r.owner] = v || {};
+        if (r.key === "qura_role") roles[r.owner] = v;
+        else if (r.key === "account") accounts[r.owner] = v || {};
+        else if (r.key === "qura_plan") plans[r.owner] = v;
+        else trials[r.owner] = v;
       });
     }
     const APP_ROLE = { clinician: "clinician", supplier: "agency", agency: "agency", healthcare_provider: "hospital", hospital: "hospital", gp: "gp", care: "care", operator: "operator" };
@@ -227,6 +251,9 @@ export default async function handler(req, res) {
         name: m.full_name || [m.first_name, m.last_name].filter(Boolean).join(" ") || [acc.firstName, acc.lastName].filter(Boolean).join(" ") || "",
         company: m.company || org || "",
         confirmed: Boolean(u.email_confirmed_at),
+        phone: m.phone || "",
+        plan: plans[u.id] || null,
+        trialStart: (trials[u.id] && trials[u.id].start) || null,
       };
     }) });
   } catch (e) {

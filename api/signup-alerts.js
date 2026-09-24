@@ -1,4 +1,5 @@
 import { adminClient, kvRead, kvWrite, sendMailEach, owners } from "./_waitlist.js";
+import { bump } from "./_metrics.js";
 
 // GET /api/signup-alerts
 //
@@ -85,6 +86,8 @@ export default async function handler(req, res) {
       name: name || "",
       role: ROLE_NAMES[roleKey] || roleKey || "",
       company: m.company || org || "",
+      phone: m.phone || "",
+      business: !!roleKey && roleKey !== "clinician",
       joined: u.created_at,
       personalEmail: FREE_MAIL.test(u.email || ""),
     };
@@ -100,8 +103,12 @@ export default async function handler(req, res) {
     line("Email", p.email + (p.personalEmail ? " (personal address)" : ""), "") +
     line("Role", p.role, "Not chosen yet") +
     line("Company", p.company, "Not given") +
+    (p.phone ? line("Phone", p.phone, "") : "") +
     line("Joined", ukTime(p.joined) + " UK time", "") +
-    "</table></div>").join("");
+    "</table>" +
+    (p.business ? '<div style="margin-top:8px;padding:8px 10px;background:#E8FAF8;border-radius:8px;font-size:13px"><b>Business account.</b> A welcome call within 24 hours is the single best way to turn this into a paying customer. ' +
+      (p.phone ? "Their number is above." : "Their email is above.") + "</div>" : "") +
+    "</div>").join("");
 
   const subject = people.length === 1
     ? "New Qura account: " + (people[0].name || people[0].email) + (people[0].company ? " (" + people[0].company + ")" : "")
@@ -115,11 +122,12 @@ export default async function handler(req, res) {
     'To change a role, open <a href="' + SITE + '" style="color:#0E8C7E">Qura</a>, sign in and go to Admin.</p></div>';
 
   const to = [...founders];
-  const r = to.length ? await sendMailEach(to, subject, html) : { ok: false, failed: [] };
+  const r = to.length ? await sendMailEach(to, subject, html, people.length === 1 ? people[0].email : undefined) : { ok: false, failed: [] };
 
   // Only record them as reported if at least one founder received it, so a
   // mail outage does not swallow sign-ups for good.
   if (r.ok) {
+    await bump("signup", people.length);
     const keep = [...reported, ...ids].slice(-5000);
     await kvWrite(admin, STATE_OWNER, STATE_KEY, { since, reported: keep, lastSentAt: new Date().toISOString() });
   }
