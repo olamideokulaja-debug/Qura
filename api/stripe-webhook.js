@@ -13,6 +13,23 @@ function rawBody(req) {
 }
 
 import { alertFounders } from "./_alert.js";
+import { sendMailEach, owners } from "./_waitlist.js";
+
+// Money in or out is something the founders should hear about the moment it
+// happens, not when they next open Stripe. Never throws.
+const money = (amount, currency) =>
+  amount == null ? "" : (String(currency || "gbp").toUpperCase() === "GBP" ? "£" : String(currency).toUpperCase() + " ") + (amount / 100).toFixed(2);
+async function tellFounders(subject, lines) {
+  try {
+    const to = owners();
+    if (!to.length) return;
+    const esc = (v) => String(v == null ? "" : v).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+    const html = '<div style="font-family:Inter,Arial,sans-serif;color:#0A1730;line-height:1.6">' +
+      lines.filter(Boolean).map((l) => "<p style=\"margin:0 0 8px\">" + esc(l) + "</p>").join("") +
+      '<p style="font-size:13px;color:#5A6783;margin-top:16px">Full details are in your Stripe dashboard.</p></div>';
+    await sendMailEach(to, subject, html);
+  } catch (e) {}
+}
 
 export default async function handler(req, res) {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -44,13 +61,60 @@ export default async function handler(req, res) {
   try {
     if (event.type === "checkout.session.completed") {
       const s = event.data.object;
-      await setPlan(s.client_reference_id || s.metadata?.userId, s.metadata?.plan);
+      const who = (s.customer_details && s.customer_details.email) || s.customer_email || "unknown email";
+      const paid = money(s.amount_total, s.currency);
+      if (s.metadata && s.metadata.introId) {
+        // An introduction fee. This used to fall through to setPlan with no
+        // plan, which could wipe the buyer's plan, and nothing recorded that
+        // the introduction had been paid for.
+        const sb = sbUrl && sbService ? createClient(sbUrl, sbService) : null;
+        if (sb) {
+          const { data } = await sb.from("kv").select("value").eq("owner", "shared").eq("key", "intro_queue").maybeSingle();
+          let queue = [];
+          try { queue = JSON.parse((data && data.value) || "[]"); } catch (e) { queue = []; }
+          const item = (Array.isArray(queue) ? queue : []).find((q) => q.id === s.metadata.introId);
+          if (item) {
+            item.status = "Paid, awaiting register check";
+            item.paidAt = new Date().toISOString();
+            item.paid = paid;
+            item.stripeSession = s.id;
+            await sb.from("kv").upsert({ owner: "shared", key: "intro_queue", value: JSON.stringify(queue) }, { onConflict: "owner,key" });
+          }
+        }
+        await tellFounders("Payment received: introduction fee " + paid, [
+          who + " paid " + paid + " for an introduction.",
+          "Introduction " + s.metadata.introId + " is now marked paid. Check the clinician's registration in Admin before the introduction is made.",
+        ]);
+      } else {
+        const plan = (s.metadata && s.metadata.plan) || null;
+        if (plan) await setPlan(s.client_reference_id || s.metadata.userId, plan);
+        await tellFounders("New subscription: " + (plan || "plan not recorded") + (paid ? " (" + paid + ")" : ""), [
+          who + " has started a paid subscription.",
+          "Plan: " + (plan || "not recorded on the payment. Set it by hand in Admin."),
+          paid ? "First payment: " + paid + (s.mode === "subscription" ? ", then recurring." : ".") : "",
+        ]);
+      }
     } else if (event.type === "customer.subscription.updated") {
       const sub = event.data.object;
       if (sub.status === "active" || sub.status === "trialing") await setPlan(sub.metadata?.userId, sub.metadata?.plan);
+      const prev = (event.data.previous_attributes || {});
+      if (sub.cancel_at_period_end && prev.cancel_at_period_end === false) {
+        await tellFounders("Subscription set to cancel: " + (sub.metadata?.plan || "plan"), [
+          "A customer has cancelled their " + (sub.metadata?.plan || "") + " subscription." +
+            (sub.current_period_end ? " It stays active until " + new Date(sub.current_period_end * 1000).toLocaleDateString("en-GB") + "." : " It stays active until the end of the period already paid for."),
+        ]);
+      }
     } else if (event.type === "customer.subscription.deleted") {
       const sub = event.data.object;
       await setPlan(sub.metadata?.userId, null); // subscription ended -> free tier
+      await tellFounders("Subscription ended: " + (sub.metadata?.plan || "plan"), [
+        "A " + (sub.metadata?.plan || "") + " subscription has ended and the account is back on the free plan.",
+      ]);
+    } else if (event.type === "invoice.payment_failed") {
+      const inv = event.data.object;
+      await tellFounders("Payment failed: " + money(inv.amount_due, inv.currency), [
+        "A subscription payment of " + money(inv.amount_due, inv.currency) + " from " + (inv.customer_email || "a customer") + " failed. Stripe will retry automatically.",
+      ]);
     }
   } catch (e) {
     // Still return 200 so Stripe does not retry forever, but do not let it pass
