@@ -99,7 +99,8 @@ export default async function handler(req, res) {
       await kvSet("shared", threadKey(introId), thread);
       await alertFounders("message-report",
         "A message thread was reported",
-        "Introduction " + introId + " reported by the " + me + ". Review it in the admin introduction queue.");
+        "Introduction " + introId + " reported by the " + me + ". Review it in the admin introduction queue.",
+        "A user has reported a conversation in Qura. Please review it.");
       return res.status(200).json({ ok: true, reported: true });
     }
 

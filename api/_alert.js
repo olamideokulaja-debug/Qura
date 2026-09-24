@@ -40,7 +40,7 @@ async function shouldSend(key) {
  * thing that breaks a request.
  * kind: short stable name used for the hourly limit, e.g. "stripe-webhook".
  */
-export async function alertFounders(kind, subject, details) {
+export async function alertFounders(kind, subject, details, lead) {
   try {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) return;
@@ -48,7 +48,7 @@ export async function alertFounders(kind, subject, details) {
 
     const from = process.env.MAIL_FROM || "Qura <noreply@qurahealth.org>";
     const body =
-      "A failure was detected in the Qura API.\n\n" +
+      (lead || "A failure was detected in the Qura API.") + "\n\n" +
       "What: " + subject + "\n" +
       "When: " + new Date().toISOString() + "\n\n" +
       "Details:\n" +
