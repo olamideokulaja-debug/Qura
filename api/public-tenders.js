@@ -5,12 +5,14 @@ import { kvGet } from "./_auth.js";
 // The live tenders shown on the public homepage, before anyone signs in.
 //
 // The homepage shows a teaser, not the notice. A visitor sees the category,
-// the opening words of the title, the place, the source and how long is left.
-// The rest of the title and the buying organisation are sent only as lengths,
-// so the page can draw a blurred stand-in of the right size: blurring real
-// text in the browser would still leave it readable in the page data. The
-// full title, buyer, contacts, links, values and descriptions stay behind
-// sign-in, which is what a supplier creates an account for.
+// the opening words of the title, the place and how long is left. The rest of
+// the title and the buying organisation are sent only as lengths, so the page
+// can draw a blurred stand-in of the right size: blurring real text in the
+// browser would still leave it readable in the page data. The portal a notice
+// came from is not sent either, because a visitor who knows it can go straight
+// there. The full title, buyer, source, contacts, links, values and
+// descriptions stay behind sign-in, which is what a supplier creates an
+// account for.
 //
 // It reads the same stored feed the signed-in demand screen reads, refreshed
 // daily by api/refresh-tenders.js, so the homepage count and the in-app count
@@ -78,19 +80,15 @@ export default async function handler(req, res) {
   const today = new Date().toISOString().slice(0, 10);
   const open = all.filter((i) => !(/^\d{4}-\d{2}-\d{2}$/.test(String(i.closes || "")) && String(i.closes) < today));
 
-  const shape = (i) => ({
-    id: String(i.id || ""),
+  // The id is an opaque index, so it cannot be used to look a notice up.
+  const shape = (i, n) => ({
+    id: "t" + n,
     ...teaser(i.title),
     category: String(i.category || "").slice(0, 60),
     buyerLen: Math.max(10, Math.min(60, String(i.buyer || "").length)),
-    // Kept only until the new homepage is live; the old one still reads them.
-    title: String(i.title || "Untitled notice").slice(0, 140),
-    buyer: String(i.buyer || "").slice(0, 120),
     where: place(i.region),
     closes: String(i.closes || ""),
-    source: String(i.source || ""),
     lens: UK_SOURCES.has(i.source) ? "uk" : "intl",
-    publishedAt: i.publishedAt || null,
   });
 
   const uk = open.filter((i) => UK_SOURCES.has(i.source));
@@ -104,9 +102,9 @@ export default async function handler(req, res) {
     counts: { uk: uk.length, intl: intl.length },
     refreshedAt: (stored && stored.refreshedAt) || null,
     items: {
-      global: open.slice(0, SHOW).map(shape),
-      uk: uk.slice(0, SHOW).map(shape),
-      intl: intl.slice(0, SHOW).map(shape),
+      global: open.slice(0, SHOW).map((i, n) => shape(i, "g" + n)),
+      uk: uk.slice(0, SHOW).map((i, n) => shape(i, "u" + n)),
+      intl: intl.slice(0, SHOW).map((i, n) => shape(i, "i" + n)),
     },
   });
 }
