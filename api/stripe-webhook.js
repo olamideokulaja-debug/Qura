@@ -13,7 +13,22 @@ function rawBody(req) {
 }
 
 import { alertFounders } from "./_alert.js";
-import { sendMailEach, owners } from "./_waitlist.js";
+import { sendMailEach, owners, adminClient } from "./_waitlist.js";
+import { bump } from "./_metrics.js";
+import { kvGet, kvSet } from "./_auth.js";
+
+// When a customer paid without being signed in, the payment carries no account
+// id and the plan was never applied. Fall back to the account with the same
+// email address.
+async function userIdForEmail(email) {
+  try {
+    const admin = adminClient();
+    if (!admin || !email) return null;
+    const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const u = ((data && data.users) || []).find((x) => String(x.email || "").toLowerCase() === String(email).toLowerCase());
+    return u ? u.id : null;
+  } catch (e) { return null; }
+}
 
 // Money in or out is something the founders should hear about the moment it
 // happens, not when they next open Stripe. Never throws.
@@ -85,11 +100,28 @@ export default async function handler(req, res) {
           who + " paid " + paid + " for an introduction.",
           "Introduction " + s.metadata.introId + " is now marked paid. Check the clinician's registration in Admin before the introduction is made.",
         ]);
+        await bump("paid");
       } else {
         const plan = (s.metadata && s.metadata.plan) || null;
-        if (plan) await setPlan(s.client_reference_id || s.metadata.userId, plan);
-        await tellFounders("New subscription: " + (plan || "plan not recorded") + (paid ? " (" + paid + ")" : ""), [
-          who + " has started a paid subscription.",
+        const uid = s.client_reference_id || (s.metadata && s.metadata.userId) || (await userIdForEmail(who));
+        if (plan && uid) await setPlan(uid, plan);
+        await bump("paid");
+        if (s.metadata && s.metadata.founding === "1") {
+          const taken = (await kvGet("metrics", "founding_taken")) || [];
+          const list = Array.isArray(taken) ? taken : [];
+          if (!list.some((t) => t.session === s.id)) {
+            list.push({ session: s.id, uid: uid || null, at: new Date().toISOString() });
+            await kvSet("metrics", "founding_taken", list);
+          }
+        }
+        if (plan && !uid) {
+          await alertFounders("stripe-no-account", "Payment with no matching Qura account", {
+            email: who, plan, session: s.id,
+            action: "Ask them which email they use for Qura, then set the plan in Admin.",
+          });
+        }
+        await tellFounders("New subscription: " + (plan || "plan not recorded") + (paid ? " (" + paid + ")" : "") + (s.metadata && s.metadata.founding === "1" ? ", founding customer" : ""), [
+          who + " has started a paid subscription." + (s.metadata && s.metadata.founding === "1" ? " They took a founding-customer place." : ""),
           "Plan: " + (plan || "not recorded on the payment. Set it by hand in Admin."),
           paid ? "First payment: " + paid + (s.mode === "subscription" ? ", then recurring." : ".") : "",
         ]);

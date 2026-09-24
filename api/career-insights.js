@@ -1,5 +1,5 @@
 import { getUser, kvGet } from "./_auth.js";
-import { ENTITLEMENTS, upgradeBlock } from "./_entitlements.js";
+import { ENTITLEMENTS, upgradeBlock, planOf } from "./_entitlements.js";
 
 // GET /api/career-insights?profession=..&country=..
 // Career+ clinician benefit: salary & tariff insights plus career planning prompts.
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
   const user = await getUser(req);
   if (!user) return res.status(401).json({ error: "Sign in required" });
 
-  const plan = await kvGet(user.id, "qura_plan");
+  const plan = await planOf(user.id);
   if (!ENTITLEMENTS.careerPlus(plan)) return upgradeBlock(res, "salary & tariff insights", "Career+");
 
   const { profession } = req.query || {};

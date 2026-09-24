@@ -35,8 +35,8 @@ export default async function handler(req, res) {
   if (await limited(req, res, user, { bucket: "dm-export", limit: 6, windowSec: 3600 })) return;
 
   const plan = await planOf(user.id);
-  if (!ENTITLEMENTS.intelligence(plan)) {
-    return res.status(402).json({ error: "Exporting the directory needs a plan that includes decision-maker access." });
+  if (!ENTITLEMENTS.contactsExport(plan)) {
+    return res.status(402).json({ error: "Exporting the directory is part of Growth. Upgrade to Growth to export." });
   }
 
   // Two a day, counted per account.
