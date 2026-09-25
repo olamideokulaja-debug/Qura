@@ -132,6 +132,17 @@ export default async function handler(req, res) {
     if (current.verifiedBy) clean.verifiedBy = current.verifiedBy;
     if (current.registeredAt) clean.registeredAt = current.registeredAt;
 
+    // A verification covers the details that were checked. If any of them
+    // changes, the profile goes back to the founders' queue (25 September
+    // security review: a clinician could change profession or registration
+    // number and stay "verified").
+    const CHECKED = ["category", "profession", "regBody", "regNumber", "country"];
+    const same = (a, b) => String(a == null ? "" : a).trim().toLowerCase() === String(b == null ? "" : b).trim().toLowerCase();
+    if (current.verifiedAt && CHECKED.some((f) => !same(clean[f], current[f]))) {
+      delete clean.verifiedAt; delete clean.verifiedBy;
+      clean.unverifiedAt = new Date().toISOString(); clean.unverifiedBy = "details changed";
+    }
+
     // registeredAt is set once, on the explicit "Complete registration" press,
     // and only if the required fields really are there. Every other POST is a
     // draft save from someone still typing.

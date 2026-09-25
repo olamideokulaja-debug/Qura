@@ -186,6 +186,15 @@ export default async function handler(req, res) {
   }
 
   // ---- a provider rates a supplier ---------------------------------------
+  // Only a healthcare provider account rates suppliers. Before 25 September
+  // any account could, including clinicians and the suppliers themselves.
+  {
+    const acc = (await kvGet(user.id, "account")) || {};
+    const lens = acc.lens || ({ hospital: "healthcare_provider", gp: "healthcare_provider", care: "healthcare_provider" })[acc.role] || "";
+    if (lens !== "healthcare_provider") {
+      return res.status(403).json({ error: "Ratings come from healthcare providers who have worked with this supplier." });
+    }
+  }
   const stars = Number(body.stars);
   if (!isFinite(stars) || stars < 1 || stars > 5) {
     return res.status(400).json({ error: "Please give a rating between 1 and 5." });

@@ -53,7 +53,7 @@ async function readVault(uid) {
 // added to a document does not become visible to hospitals by accident.
 function shareableView(docs) {
   return docs
-    .filter((d) => d.shared && !expired(d))
+    .filter((d) => d.shared && !expired(d) && !d.rejectedAt)
     .filter((d) => !(d.type === "occupational-health" && d.file))
     .map((d) => ({
       id: d.id, type: d.type, label: d.label,
@@ -111,11 +111,17 @@ export default async function handler(req, res) {
     // is the clinician's consent to be considered, not consent for anyone with
     // an account to browse it.
     if (owner !== user.id && !isOwner(user)) {
-      const intros = (await kvGet(user.id, "supplier_introductions")) || [];
-      const linked = (Array.isArray(intros) ? intros : [])
-        .some((i) => i && (i.clinicianId === owner || i.owner === owner));
+      // Checked against the introduction queue, which only the server writes,
+      // and only once a founder has verified the introduction. The supplier's
+      // own list was used before, and any account could add to it
+      // (25 September security review).
+      const queue = (await kvGet("shared", "intro_queue")) || [];
+      const linked = (Array.isArray(queue) ? queue : []).some((i) => i &&
+        i.supplier === user.id &&
+        (i.clinicianId === "cl_" + owner || i.clinicianId === owner) &&
+        ["verified", "completed"].includes(String(i.status || "").toLowerCase()));
       if (!linked) {
-        return res.status(403).json({ error: "You do not have an introduction to this clinician." });
+        return res.status(403).json({ error: "Documents open once your introduction to this clinician has been verified." });
       }
     }
     const docs = await readVault(owner);
@@ -235,13 +241,18 @@ export default async function handler(req, res) {
   if (!type) return res.status(400).json({ error: "type is required." });
 
   const existing = docs.find((d) => d.id === body.id);
+  // The type is fixed when a document is created: the DBS rule below must be
+  // checked against what the document is, not what this request says it is.
+  const docType = existing ? existing.type : type;
   const doc = existing || {
     id: "doc_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     type, addedAt: new Date().toISOString(),
   };
   doc.label = clean(body.label, 140);
   doc.expiresOn = isDate(body.expiresOn) ? body.expiresOn : "";
-  doc.shared = body.shared !== false;
+  // A document a founder rejected stays unshared until it has been replaced
+  // and checked again.
+  doc.shared = body.shared !== false && !doc.rejectedAt;
   doc.updatedAt = new Date().toISOString();
 
   // ---------------------------------------------------------- metadata
@@ -250,6 +261,9 @@ export default async function handler(req, res) {
     for (const [k, v] of Object.entries(body.meta)) {
       meta[clean(k, 40)] = typeof v === "boolean" ? v : clean(v, 120);
     }
+    // Changed details have not been checked: back to the founders' queue.
+    // (A rejection stands until a new file is uploaded.)
+    if (JSON.stringify(meta) !== JSON.stringify(doc.meta || {})) doc.verifiedAt = null;
     doc.meta = meta;
   }
 
@@ -258,7 +272,7 @@ export default async function handler(req, res) {
     // The rule that matters most in this file. A DBS certificate must never be
     // stored, so a file against a metadata type is refused rather than quietly
     // ignored — the clinician needs to know it did not save.
-    if (type === "dbs") {
+    if (docType === "dbs" || type === "dbs") {
       return res.status(400).json({
         error: "We do not store DBS certificates. Record the certificate number instead — organisations verify it on the DBS update service.",
       });
@@ -295,10 +309,13 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Could not store that file. Please try again." });
     }
     doc.file = { path, name, type: mime, size: bytes.length, at: new Date().toISOString() };
-    // A new document has not been checked yet.
+    // A new or replaced file has not been checked yet, whatever happened to
+    // the one before it, so it goes back into the founders' queue.
     doc.verifiedAt = null;
+    doc.rejectedAt = null;
   }
 
+  doc.shared = body.shared !== false && !doc.rejectedAt;
   if (!existing) docs.push(doc);
   await kvSet(user.id, KEY, docs);
   return res.status(200).json({ ok: true, document: doc, documents: docs });

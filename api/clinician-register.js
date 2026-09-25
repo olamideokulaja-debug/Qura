@@ -130,6 +130,17 @@ export default async function handler(req, res) {
   if (current.verifiedBy) merged.verifiedBy = current.verifiedBy;
   if (current.registeredAt) merged.registeredAt = current.registeredAt;
 
+  // A verification covers the details that were checked. If any of them
+  // changes, the profile goes back to the founders' queue (25 September
+  // security review: a clinician could change profession or registration
+  // number and stay "verified").
+  const CHECKED = ["category", "profession", "regBody", "regNumber", "country"];
+  const same = (a, b) => String(a == null ? "" : a).trim().toLowerCase() === String(b == null ? "" : b).trim().toLowerCase();
+  if (current.verifiedAt && CHECKED.some((f) => !same(merged[f], current[f]))) {
+    delete merged.verifiedAt; delete merged.verifiedBy;
+    merged.unverifiedAt = new Date().toISOString(); merged.unverifiedBy = "details changed";
+  }
+
   // A draft save is every keystroke. Completing registration is the explicit
   // press, and only counts when the required fields are actually there.
   //
