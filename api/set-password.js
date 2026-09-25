@@ -13,14 +13,17 @@
 
 import { adminClient, kvRead, kvWrite } from "./_waitlist.js";
 
+// Every value placed in these pages is escaped: the address in a link came
+// from a public form (25 September security review).
+const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const page = (title, body, tone) =>
   '<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1">' +
-  '<title>' + title + ' · Qura</title>' +
+  '<title>' + esc(title) + ' · Qura</title>' +
   '<div style="font-family:Inter,-apple-system,Arial,sans-serif;background:#050D1C;color:#EEF3FF;' +
   'min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px">' +
   '<div style="max-width:460px;text-align:center">' +
-  '<div style="font-size:26px;font-weight:700;color:' + tone + '">' + title + "</div>" +
-  '<div style="margin-top:12px;font-size:15px;line-height:1.6;color:#9FB0D0">' + body + "</div>" +
+  '<div style="font-size:26px;font-weight:700;color:' + tone + '">' + esc(title) + "</div>" +
+  '<div style="margin-top:12px;font-size:15px;line-height:1.6;color:#9FB0D0">' + esc(body) + "</div>" +
   '<div style="margin-top:26px;font-size:13px;color:#5A6783">' +
   '<a href="https://www.qurahealth.org" style="color:#00C2B8;text-decoration:none">qurahealth.org</a></div>' +
   "</div></div>";

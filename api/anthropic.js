@@ -21,7 +21,23 @@ export default async function handler(req, res) {
     return;
   }
   try {
-    const body = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+    // The request is rebuilt here rather than passed through: the model is
+    // fixed, output and input are capped, and tools are never allowed, so an
+    // account cannot run up the Anthropic bill (25 September security review).
+    let b = req.body;
+    if (typeof b === "string") { try { b = JSON.parse(b); } catch (e) { b = {}; } }
+    b = b || {};
+    const clip = (v, n) => String(v == null ? "" : v).slice(0, n);
+    const content = (c) => Array.isArray(c)
+      ? c.filter((x) => x && x.type === "text").map((x) => ({ type: "text", text: clip(x.text, 12000) }))
+      : clip(c, 12000);
+    const messages = (Array.isArray(b.messages) ? b.messages : []).slice(-12)
+      .filter((m) => m && (m.role === "user" || m.role === "assistant"))
+      .map((m) => ({ role: m.role, content: content(m.content) }));
+    if (!messages.length) return res.status(400).json({ error: "messages required" });
+    const safe = { model: "claude-sonnet-4-6", max_tokens: Math.min(1200, Math.max(1, Number(b.max_tokens) || 800)), messages };
+    if (typeof b.system === "string") safe.system = clip(b.system, 6000);
+    const body = JSON.stringify(safe);
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
