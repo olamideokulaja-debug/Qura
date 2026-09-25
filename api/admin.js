@@ -22,7 +22,8 @@ export default async function handler(req, res) {
   if (whoErr || !caller) return res.status(401).json({ error: "Invalid session." });
 
   const email = (caller.email || "").toLowerCase();
-  const isOwner = owners.length === 0 || owners.includes(email);
+  // Fails closed: with no founder list configured, nobody is a founder.
+  const isOwner = owners.length > 0 && owners.includes(email);
   if (!isOwner) return res.status(403).json({ error: "Not authorised. Set VITE_OWNER_EMAILS to your email to grant admin access." });
 
   const kvRead = async (owner, key) => {
