@@ -49,7 +49,7 @@ function authMessage(msg) {
     return "Too many attempts in a short time. Please wait a few minutes and try again.";
   }
   if (m.includes("password should be")) {
-    return "That password is too short. Please use at least 6 characters.";
+    return "That password is too short. Please use at least 10 characters.";
   }
   return msg;
 }
@@ -96,6 +96,8 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
     if (!email || !pw) { setMsg("Enter your email and password."); return; }
     if (mode === "up" && (!first.trim() || !last.trim())) { setMsg("Please enter your first name and surname so we know how to address you."); return; }
     if (business && company.trim().length < 2) { setMsg("Please enter the name of your company or organisation."); return; }
+    // New passwords must be at least 10 characters (set in Supabase Auth too).
+    if (mode === "up" && pw.length < 10) { setMsg("Please choose a password of at least 10 characters."); return; }
     setBusy(true); setMsg("");
     try {
       if (mode === "up") {
