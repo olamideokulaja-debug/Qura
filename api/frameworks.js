@@ -172,6 +172,7 @@ export default async function handler(req, res) {
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
     if (!ok.includes(type)) return res.status(400).json({ error: "Please upload a PDF, Word document or image." });
 
+    if (!/^fw_[a-z0-9]{4,24}$/.test(String(e.id || ""))) return res.status(400).json({ error: "That entry cannot take a file. Save it again first." });
     const path = link.slug + "/" + e.id + "-" + Date.now() + "-" + name.replace(/[^A-Za-z0-9._-]/g, "_");
     const up = await fetch(base() + "/storage/v1/object/" + BUCKET + "/" + path, {
       method: "POST",
@@ -206,7 +207,10 @@ export default async function handler(req, res) {
   }
 
   const rec = {
-    id: en.id || ("fw_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7)),
+    // Ids become part of a storage path, so only ids of our own shape are
+    // accepted (25 September security review: a crafted id could reach
+    // another bucket).
+    id: /^fw_[a-z0-9]{4,24}$/.test(String(en.id || "")) ? en.id : ("fw_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7)),
     frameworkId,
     otherName: clean(en.otherName, 160),
     reference: clean(en.reference, 120),          // e.g. RM6397
