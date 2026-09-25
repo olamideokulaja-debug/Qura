@@ -56,7 +56,8 @@ export default async function handler(req, res) {
   // anyone trigger a deletion sweep.
   const secret = process.env.CRON_SECRET;
   const auth = String(req.headers.authorization || "");
-  if (secret && auth !== "Bearer " + secret) {
+  // Fails closed if CRON_SECRET is ever missing.
+  if (!secret || auth !== "Bearer " + secret) {
     return res.status(401).json({ error: "Not authorised." });
   }
 
@@ -132,7 +133,29 @@ export default async function handler(req, res) {
     console.error("[retention] token sweep failed: " + (e && e.message));
   }
 
-  const summary = { vaultsSeen, docsRemoved, filesRemoved, accountsPurged, tokensRemoved, at: new Date().toISOString() };
+  // Files whose account no longer exists: CVs and documents left behind by
+  // deletions before 25 September, when CVs were stored outside the person's
+  // own folder and so were missed. Found by the orphaned_storage_paths
+  // database function (service role only) and removed through the Storage API.
+  let orphansRemoved = 0;
+  try {
+    const r = await fetch(base() + "/rest/v1/rpc/orphaned_storage_paths", {
+      method: "POST", headers: { apikey: svc(), authorization: "Bearer " + svc(), "content-type": "application/json" }, body: "{}",
+    });
+    if (r.ok) {
+      for (const o of (await r.json()) || []) {
+        if (!o || !o.bucket || !o.path) continue;
+        const d = await fetch(base() + "/storage/v1/object/" + o.bucket + "/" + o.path.split("/").map(encodeURIComponent).join("/"), {
+          method: "DELETE", headers: { authorization: "Bearer " + svc() },
+        });
+        if (d.ok) orphansRemoved++;
+      }
+    }
+  } catch (e) {
+    console.error("[retention] orphan sweep failed: " + (e && e.message));
+  }
+
+  const summary = { vaultsSeen, docsRemoved, filesRemoved, accountsPurged, tokensRemoved, orphansRemoved, at: new Date().toISOString() };
   // Kept so there is evidence the schedule is running. An auditor asking
   // "how do you know retention is applied" needs an answer better than trust.
   try {

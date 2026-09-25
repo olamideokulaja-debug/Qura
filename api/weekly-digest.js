@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { limited } from "./_ratelimit.js";
+import { cronAllowed } from "./_cron.js";
 import { alertFounders } from "./_alert.js";
 
 export const config = { maxDuration: 60 };
@@ -27,12 +28,13 @@ function noticeRow(n) {
     '<div style="font-weight:600;font-size:14px;color:#12263F">' + esc(n.title) + "</div>" +
     '<div style="font-size:12.5px;color:#69768F;margin-top:2px">' + esc(n.buyer) + " · " + esc(n.region) +
     " · closes " + esc(n.closes) + " · " + esc(n.source) + "</div>" +
-    (n.url ? '<div style="font-size:12.5px;margin-top:2px"><a href="' + esc(n.url) + '" style="color:#0E8C7E">Open the notice</a></div>' : "") +
+    (n.url && /^https:\/\//i.test(String(n.url)) ? '<div style="font-size:12.5px;margin-top:2px"><a href="' + esc(n.url).replace(/"/g, "&quot;") + '" style="color:#0E8C7E">Open the notice</a></div>' : "") +
     "</td></tr>"
   );
 }
 
 export default async function handler(req, res) {
+  if (!(await cronAllowed(req))) return res.status(401).json({ error: "Not authorised." });
   if (await limited(req, res, null, { bucket: "cron-digest", limit: 3, windowSec: 86400 })) return;
 
   const sbUrl = process.env.SUPABASE_URL;
