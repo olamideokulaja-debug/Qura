@@ -48,8 +48,11 @@ function authMessage(msg) {
   if (m.includes("rate limit") || m.includes("too many")) {
     return "Too many attempts in a short time. Please wait a few minutes and try again.";
   }
-  if (m.includes("password should be")) {
-    return "That password is too short. Please use at least 10 characters.";
+  if (m.includes("known to be weak") || m.includes("pwned") || m.includes("leaked")) {
+    return "That password has appeared in a data breach on another website, so it is not safe to use. Please choose a different one.";
+  }
+  if (m.includes("password should")) {
+    return "Please choose a password of at least 10 characters, with a capital letter, a lower-case letter and a number.";
   }
   return msg;
 }
@@ -96,8 +99,8 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
     if (!email || !pw) { setMsg("Enter your email and password."); return; }
     if (mode === "up" && (!first.trim() || !last.trim())) { setMsg("Please enter your first name and surname so we know how to address you."); return; }
     if (business && company.trim().length < 2) { setMsg("Please enter the name of your company or organisation."); return; }
-    // New passwords must be at least 10 characters (set in Supabase Auth too).
-    if (mode === "up" && pw.length < 10) { setMsg("Please choose a password of at least 10 characters."); return; }
+    // The same rule as Supabase Auth: 10 characters, upper and lower case, a number.
+    if (mode === "up" && (pw.length < 10 || !/[a-z]/.test(pw) || !/[A-Z]/.test(pw) || !/[0-9]/.test(pw))) { setMsg("Please choose a password of at least 10 characters, with a capital letter, a lower-case letter and a number."); return; }
     setBusy(true); setMsg("");
     try {
       if (mode === "up") {
@@ -210,7 +213,7 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
         )}
         <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>Work email</label>
         <div className="login-field"><Mail size={16} className="faint" /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@qurahealth.org" /></div>
-        <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "16px 0 0" }}>Password</label>
+        <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "16px 0 0" }}>Password{up ? <span className="faint" style={{ fontWeight: 500 }}> (10+ characters, with a capital, a lower-case letter and a number)</span> : null}</label>
         <div className="login-field"><ShieldCheck size={16} className="faint" /><input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="••••••••" onKeyDown={(e) => e.key === "Enter" && submit()} /></div>
         {/* This was wired to the coming-soon handler, so anyone locked out was
             told to wait rather than being helped. reset-password.html already
