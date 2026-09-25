@@ -75,7 +75,7 @@ export function trialActive(trial) {
 // api/trial.js, founder Admin). Database rules stop the browser writing them,
 // so a plan here is one somebody paid for or a founder granted.
 export async function planOf(userId) {
-  const lift = (p) => (FOUNDER_IDS.has(userId) && (SUPPLIER_RANK[tierOf(p)] ?? 0) < 2 ? "supplier:growth" : p);
+  const lift = (p) => (FOUNDER_IDS.has(userId) && rankOf(p) < 2 ? "supplier:growth" : p);
   try {
     let plan = await kvGet(userId, "qura_plan");
     const key = plan ? String(plan).split(":").pop().toLowerCase() : "";
