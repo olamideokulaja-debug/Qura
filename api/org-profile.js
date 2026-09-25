@@ -50,6 +50,11 @@ export default async function handler(req, res) {
     if (user.id !== clinician && user.id !== intro.supplier) {
       return res.status(403).json({ error: "This page belongs to the introduction's two parties." });
     }
+    // The supplier's contact details are released only once a founder has
+    // verified the introduction, the same rule as messaging.
+    if (user.id === clinician && !["verified", "completed"].includes(String(intro.status || "").toLowerCase())) {
+      return res.status(409).json({ error: "This page opens once the introduction has been verified." });
+    }
     const p = (await kvGet(intro.supplier, KEY)) || {};
     return res.status(200).json({
       profile: { name: p.name || "", about: p.about || "", website: p.website || "", regions: p.regions || "", specialties: p.specialties || "" },

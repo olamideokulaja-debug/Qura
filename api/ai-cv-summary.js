@@ -27,7 +27,7 @@ export default async function handler(req, res) {
       "highlight bullets for their marketplace profile. Use ONLY what they state. Never invent registrations, " +
       "employers, dates, or qualifications. Keep each bullet short and professional. Output plain bullets, one per line, starting with '- '.";
 
-    const r = await askAI(system, "Their description:\n\n" + String(text).slice(0, 3000) + "\n\nWrite the highlights.", 350);
+    const r = await askAI(system, "Their description:\n\n" + String(text).slice(0, 3000) + "\n\nWrite the highlights.", 350, { noCache: true });
     if (!r.ok) return res.status(200).json({ ok: false, error: r.error });
 
     await kvSet(user.id, KEY, { summary: r.text, at: new Date().toISOString() });

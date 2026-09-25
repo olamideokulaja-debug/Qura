@@ -104,7 +104,9 @@ export default async function handler(req, res) {
       } else {
         const plan = (s.metadata && s.metadata.plan) || null;
         const uid = s.client_reference_id || (s.metadata && s.metadata.userId) || (await userIdForEmail(who));
-        if (plan && uid) await setPlan(uid, plan);
+        // One-off purchases (a session or workshop) are not plans, and must
+        // never overwrite a subscriber's plan.
+        if (plan && uid && s.mode === "subscription") await setPlan(uid, plan);
         await bump("paid");
         if (s.metadata && s.metadata.founding === "1") {
           const taken = (await kvGet("metrics", "founding_taken")) || [];
