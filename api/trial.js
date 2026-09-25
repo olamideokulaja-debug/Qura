@@ -34,7 +34,9 @@ export default async function handler(req, res) {
     // Clinicians are free already; the trial is for the paying side.
     const role = await kvGet(user.id, "qura_role");
     const account = (await kvGet(user.id, "account")) || {};
-    if (role === "clinician" || account.role === "clinician") {
+    // account is written only by the server; qura_role can be written from
+    // the browser, so it can refuse a trial but never grant one.
+    if (role === "clinician" || account.role === "clinician" || account.lens === "clinician") {
       return res.status(400).json({ error: "Clinician accounts are free and do not need a trial." });
     }
     const plan = await kvGet(user.id, "qura_plan");

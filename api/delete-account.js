@@ -40,6 +40,17 @@ export default async function handler(req, res) {
     } catch (e) {}
   }
 
+  // 1b. Files they uploaded outside their own folder (web CV uploads go to
+  // cvs/uploads/...), found by owner. Missed before 25 September.
+  try {
+    const { data: extra } = await admin.rpc("storage_paths_for_owner", { p_owner: id, p_bucket: "cvs" });
+    const paths = (extra || []).map((r) => (typeof r === "string" ? r : r && (r.storage_paths_for_owner || r.name))).filter(Boolean);
+    if (paths.length) {
+      const { error } = await admin.storage.from("cvs").remove(paths);
+      if (error) problems.push("cvs (by owner): " + error.message);
+    }
+  } catch (e) {}
+
   // 2. Everything they own in the kv table.
   const { error: kvErr } = await admin.from("kv").delete().eq("owner", id);
   if (kvErr) problems.push("kv: " + kvErr.message);

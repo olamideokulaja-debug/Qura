@@ -4,10 +4,8 @@ import { kvGet, kvSet } from "./_auth.js";
 // Rate limiting for the API routes, using the kv table that already exists in
 // Supabase. No new table and no new service to sign up for.
 //
-// Honest limitation: read-then-write is not atomic, so two requests landing in
-// the same instant can both pass. That is fine for what this is here to do,
-// which is stop one person hammering an endpoint hundreds of times, not enforce
-// an exact quota to the request.
+// Counting is atomic in the database (see checkRate). The older kv method is
+// kept only as a fallback.
 //
 // IP ADDRESSES ARE NOT STORED. They used to be, as keys like
 // "cron-tenders:ip:102.88.108.229", which sat in the database indefinitely. An
@@ -44,6 +42,30 @@ function identify(req, user) {
  * bucket: a short name for the endpoint, e.g. "ai".
  */
 export async function checkRate(req, user, { bucket, limit, windowSec }) {
+  // Atomic count in the database (rate_limits table, rl_hit function), added
+  // in the 25 September security review: the read-then-write below let a
+  // burst of parallel requests all pass. The kv version stays as a fallback
+  // in case the function is ever unavailable.
+  try {
+    const url = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+    const svc = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (url && svc) {
+      const r = await fetch(url + "/rest/v1/rpc/rl_hit", {
+        method: "POST",
+        headers: { apikey: svc, Authorization: "Bearer " + svc, "Content-Type": "application/json" },
+        body: JSON.stringify({ p_key: bucket + ":" + identify(req, user), p_window_sec: windowSec }),
+      });
+      if (r.ok) {
+        const rows = await r.json();
+        const row = Array.isArray(rows) ? rows[0] : rows;
+        if (row && typeof row.hits === "number") {
+          if (row.hits <= limit) return { ok: true };
+          const started = Date.parse(row.started) || Date.now();
+          return { ok: false, retryAfter: Math.max(1, Math.ceil((started + windowSec * 1000 - Date.now()) / 1000)) };
+        }
+      }
+    }
+  } catch (e) {}
   try {
     const key = bucket + ":" + identify(req, user);
     const now = Date.now();
