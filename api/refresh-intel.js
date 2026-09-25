@@ -78,11 +78,12 @@ export default async function handler(req, res) {
   // Scheduled job. Cron fires once a day, so a tight limit costs nothing and
   // stops anyone else triggering an expensive AI run by hitting the address.
   if (await limited(req, res, null, { bucket: "cron-intel", limit: 3, windowSec: 86400 })) return;
+  // Fails closed if CRON_SECRET is ever missing (25 September security review).
   const secret = process.env.CRON_SECRET;
-  if (secret) {
+  {
     const auth = (req.headers.authorization || "").replace(/^Bearer\s+/i, "");
     const provided = auth || (req.query && req.query.key) || "";
-    if (provided !== secret) return res.status(401).json({ error: "Unauthorised" });
+    if (!secret || provided !== secret) return res.status(401).json({ error: "Unauthorised" });
   }
 
   const sbUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;

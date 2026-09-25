@@ -1,6 +1,7 @@
 import { isSeededId, refuseSeeded } from "./_seed.js";
 import Stripe from "stripe";
 import { getUser, kvGet, kvSet } from "./_auth.js";
+import { planOf, ENTITLEMENTS } from "./_entitlements.js";
 
 // POST /api/introduction-checkout { clinicianId, handle, profession, country }
 // Creates a Stripe Checkout session for the introduction fee and records a pending
@@ -32,8 +33,11 @@ export default async function handler(req, res) {
   if (isSeededId(clinicianId)) return refuseSeeded(res);
 
   // Subscribers on any paid plan (monthly or yearly) get introductions included, no fee.
-  const plan = await kvGet(user.id, "qura_plan");
-  const hasPaidPlan = !!plan && plan !== "free" && plan !== null;
+  // Read through planOf, which expires trials, and only a paid supplier plan
+  // includes introductions (25 September security review: an expired trial or
+  // a clinician plan used to count).
+  const plan = await planOf(user.id);
+  const hasPaidPlan = ENTITLEMENTS.introductionsIncluded(plan);
 
   if (hasPaidPlan) {
     const entry = {

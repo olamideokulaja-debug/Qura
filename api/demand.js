@@ -1,5 +1,6 @@
 import { seedActive } from "./_seed.js";
 import { getUser, kvGet, kvSet } from "./_auth.js";
+import { limited } from "./_ratelimit.js";
 import { planOf, ENTITLEMENTS } from "./_entitlements.js";
 
 // GET  /api/demand           -> live demand (roles/tenders) suppliers can pursue
@@ -39,7 +40,9 @@ export default async function handler(req, res) {
     // Order: supplier-posted demand, then real public notices, then the
     // illustrative set, which only fills the gap before launch.
     const filler = seedActive() ? SEED.map((d) => ({ ...d, seeded: true })) : [];
-    let items = [...(Array.isArray(posted) ? posted : []), ...live, ...filler];
+    // postedBy (an account id) is kept on the record but never sent out.
+    const postedPublic = (Array.isArray(posted) ? posted : []).map(({ postedBy, ...rest }) => rest);
+    let items = [...postedPublic, ...live, ...filler];
     // Plan gate: only Growth/Intelligence and above see International markets.
     const plan = await planOf(user.id);
     const canInternational = isOwner(user) || ENTITLEMENTS.internationalMarkets(plan);
@@ -51,7 +54,24 @@ export default async function handler(req, res) {
   }
 
   if (req.method === "POST") {
-    const b = req.body || {};
+    // Only organisations post roles: a supplier or healthcare provider account,
+    // or a founder. The account record is written by the server, never by the
+    // browser (25 September security review: any account, including a
+    // clinician, could post a role under any organisation's name).
+    const acc = (await kvGet(user.id, "account")) || {};
+    const lens = acc.lens || ({ agency: "supplier", supplier: "supplier", hospital: "healthcare_provider", gp: "healthcare_provider", care: "healthcare_provider" })[acc.role] || "";
+    if (!isOwner(user) && lens !== "supplier" && lens !== "healthcare_provider") {
+      return res.status(403).json({ error: "Only organisation accounts can post roles." });
+    }
+    if (await limited(req, res, user, { bucket: "demand-post", limit: 20, windowSec: 86400 })) return;
+    const raw = req.body || {};
+    const clip = (v, n) => String(v == null ? "" : v).replace(/[<>]/g, "").trim().slice(0, n);
+    const b = {
+      title: clip(raw.title, 120), buyer: clip(raw.buyer, 120), region: clip(raw.region, 80),
+      market: ["NHS", "Private", "International", "Public"].includes(raw.market) ? raw.market : "NHS",
+      profession: clip(raw.profession, 80), rate: clip(raw.rate, 60), need: clip(raw.need, 80),
+      start: clip(raw.start, 40), closes: clip(raw.closes, 40), note: clip(raw.note, 1000),
+    };
     if (!b.title || !b.profession) return res.status(400).json({ error: "title and profession required" });
     const posted = (await kvGet("shared", "demand_posted")) || [];
     const arr = Array.isArray(posted) ? posted : [];
@@ -63,7 +83,8 @@ export default async function handler(req, res) {
       note: b.note || "", postedBy: user.id, at: new Date().toISOString(),
     };
     await kvSet("shared", "demand_posted", [entry, ...arr]);
-    return res.status(200).json({ created: entry, items: [entry, ...arr] });
+    const { postedBy, ...createdPublic } = entry;
+    return res.status(200).json({ created: createdPublic });
   }
 
   return res.status(405).json({ error: "Method not allowed" });

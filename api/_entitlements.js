@@ -17,24 +17,31 @@ export function tierOf(plan) {
 // Map the two supplier labellings onto one internal ladder: 1=starter/team, 2=growth/intelligence, 3=enterprise/network
 const SUPPLIER_RANK = { free: 0, starter: 1, team: 1, growth: 2, intelligence: 2, enterprise: 3, network: 3 };
 
+// A clinician plan (Career+, stored as "clinician:growth") never counts as a
+// supplier plan. Before 25 September a £15 Career+ subscription unlocked
+// supplier Growth features, including the directory export.
+const rankOf = (plan) => (/^clinician:/i.test(String(plan || "")) ? 0 : (SUPPLIER_RANK[tierOf(plan)] ?? 0));
+const onTrial = (plan) => /(^|:)(trial|pilot)$/i.test(String(plan || ""));
+
 // What each plan can do.
 export const ENTITLEMENTS = {
   // suppliers
-  supplierRank: (plan) => SUPPLIER_RANK[tierOf(plan)] ?? 0,
+  supplierRank: (plan) => rankOf(plan),
   // seats by tier
   seats: (plan) => ({ free: 1, starter: 3, team: 5, growth: 10, intelligence: 15, enterprise: 9999, network: 9999 }[tierOf(plan)] ?? 1),
   // international markets: Growth/Intelligence and above (Starter/Team is UK only)
-  internationalMarkets: (plan) => (SUPPLIER_RANK[tierOf(plan)] ?? 0) >= 2,
+  internationalMarkets: (plan) => rankOf(plan) >= 2,
   // AI assistant: Growth and above (explicitly a Growth feature)
-  aiAssistant: (plan) => (SUPPLIER_RANK[tierOf(plan)] ?? 0) >= 2,
+  aiAssistant: (plan) => rankOf(plan) >= 2,
   // ICB & council intelligence and decision-maker contact details: Starter/Team
   // and above (24 September 2026: Starter used to unlock nothing premium, which
   // made the paid plan worse than the free trial).
-  intelligence: (plan) => (SUPPLIER_RANK[tierOf(plan)] ?? 0) >= 1,
-  // Exporting the directory in bulk: Growth/Intelligence and above.
-  contactsExport: (plan) => (SUPPLIER_RANK[tierOf(plan)] ?? 0) >= 2,
+  intelligence: (plan) => rankOf(plan) >= 1,
+  // Exporting the directory in bulk: paid Growth/Intelligence and above. Not
+  // during a free trial, which anyone can start with a new email address.
+  contactsExport: (plan) => !onTrial(plan) && rankOf(plan) >= 2,
   // introductions included (any paid supplier plan)
-  introductionsIncluded: (plan) => (SUPPLIER_RANK[tierOf(plan)] ?? 0) >= 1,
+  introductionsIncluded: (plan) => rankOf(plan) >= 1,
   // clinician: Career+ gives priority visibility etc. (clinician core stays free)
   careerPlus: (plan) => tierOf(plan) === "career" || tierOf(plan) === "growth",
 };
