@@ -30,6 +30,7 @@ import { AGENCIES } from "./data/marketplace.js";
 import { supabase } from "./supabase.js";
 // Refer & Reward pilot, kept in its own file.
 import AdminReferrals from "./AdminReferrals.jsx";
+import AdminOrgChecks from "./AdminOrgChecks.jsx";
 
 export default function AdminOps() {
   const [tab, setTab] = useState("intros");
@@ -240,13 +241,15 @@ export default function AdminOps() {
   return (
     <div style={{ marginBottom: 28 }}>
       <div className="row" style={{ gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-        {[["intros", "Introduction queue"], ["clinicians", "Clinicians"], ["orgs", "Organisation claims" + (orgClaims && orgClaims.length ? " (" + orgClaims.length + ")" : "")], ["frameworks", "Frameworks" + (fwEntries && fwEntries.length ? " (" + fwEntries.length + ")" : "")], ["vault", "Documents" + (vaultDocs && vaultDocs.length ? " (" + vaultDocs.length + ")" : "")], ["suppliers", "Supplier ratings" + (claims && claims.length ? " (" + claims.length + ")" : "")], ["referrals", "Referrals"], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
+        {[["intros", "Introduction queue"], ["neworgs", "New organisations"], ["clinicians", "Clinicians"], ["orgs", "Organisation claims" + (orgClaims && orgClaims.length ? " (" + orgClaims.length + ")" : "")], ["frameworks", "Frameworks" + (fwEntries && fwEntries.length ? " (" + fwEntries.length + ")" : "")], ["vault", "Documents" + (vaultDocs && vaultDocs.length ? " (" + vaultDocs.length + ")" : "")], ["suppliers", "Supplier ratings" + (claims && claims.length ? " (" + claims.length + ")" : "")], ["referrals", "Referrals"], ["waitlist", "Early access"], ["add", "Add a contact"], ["removals", "Directory removals"]].map(([k, l]) => (
           <button key={k} className={"btn " + (tab === k ? "btn-primary" : "btn-light")} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
 
       {tab === "referrals" ? (
         <AdminReferrals />
+      ) : tab === "neworgs" ? (
+        <AdminOrgChecks />
       ) : tab === "intros" ? (
         <div className="card" style={{ padding: 18 }}>
           <SectionHead title="Introductions" action={<span className="faint" style={{ fontSize: 12 }}>{queue ? queue.length + " total" : "Loading"}</span>} />
