@@ -82,7 +82,7 @@ export default async function handler(req, res) {
 
   const ids = users.map((u) => u.id);
   const { data: rows } = await admin.from("kv").select("owner,key,value").in("owner", ids)
-    .in("key", ["qura_role", "account", "qura_trial", "qura_plan", "tender_alerts"]);
+    .in("key", ["qura_role", "account", "qura_trial", "qura_plan", "tender_alerts", "org_check"]);
   const kv = {};
   (rows || []).forEach((r) => { let v = r.value; try { v = JSON.parse(r.value); } catch (e) {} (kv[r.owner] = kv[r.owner] || {})[r.key] = v; });
 
@@ -107,6 +107,8 @@ export default async function handler(req, res) {
 
     if (!mine.welcome && now - Date.parse(u.email_confirmed_at) >= WELCOME_AFTER_MS) {
       const trial = k.qura_trial && typeof k.qura_trial.start === "number";
+      // An organisation the founders could not confirm gets no welcome.
+      if (!trial && k.org_check && k.org_check.status === "rejected") continue;
       const html =
         '<div style="font-family:Inter,Arial,sans-serif;color:#0A1730;line-height:1.6;max-width:600px">' +
         "<p>" + hello + "</p>" +
@@ -114,7 +116,7 @@ export default async function handler(req, res) {
         (picked.matched ? "<b>" + picked.total + " open tenders match your alerts</b>." : "<b>" + picked.total + " open UK healthcare tenders</b>, with the ones closing soonest first.") + "</p>" +
         tenderList(picked.top) +
         "<p>" + (trial ? "Your 7-day free trial is running, with everything in Growth switched on: every market, decision-maker contacts, AI summaries and proposals." :
-          "Your 7-day free trial starts the moment you sign in on the web, with everything in Growth switched on. No card is needed.") + "</p>" +
+          "Your 7-day free trial, with everything in Growth switched on, starts as soon as we have confirmed your organisation, usually within 1 working day. We check every organisation so that the clinicians and contacts on Qura only ever deal with real healthcare businesses. We will email you when it is on, and no card is needed. If you reply with your organisation's website, it goes faster.") + "</p>" +
         '<p style="margin:22px 0">' + button(SITE, "Open Qura") + "</p>" +
         "<p>We would like to hear what you are trying to win this quarter, so we can set Qura up around it. Reply to this email with a good time and number, and one of the founders will call you.</p>" +
         "<p>Olamide Okulaja and Ola Folawiyo<br>Co-founders, Qura</p>" + footer + "</div>";
