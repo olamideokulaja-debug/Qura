@@ -2,6 +2,7 @@ import { seedActive } from "./_seed.js";
 import { getUser, kvGet, kvSet } from "./_auth.js";
 import { limited } from "./_ratelimit.js";
 import { planOf, ENTITLEMENTS } from "./_entitlements.js";
+import { orgVerified } from "./_orgcheck.js";
 
 // GET  /api/demand           -> live demand (roles/tenders) suppliers can pursue
 // POST /api/demand {..}      -> a supplier posts a new demand item
@@ -62,6 +63,11 @@ export default async function handler(req, res) {
     const lens = acc.lens || ({ agency: "supplier", supplier: "supplier", hospital: "healthcare_provider", gp: "healthcare_provider", care: "healthcare_provider" })[acc.role] || "";
     if (!isOwner(user) && lens !== "supplier" && lens !== "healthcare_provider") {
       return res.status(403).json({ error: "Only organisation accounts can post roles." });
+    }
+    // And only once a founder has confirmed the organisation is real
+    // (27 September 2026), so nobody can post a role in a hospital's name.
+    if (!isOwner(user) && !(await orgVerified(user))) {
+      return res.status(403).json({ error: "We check every organisation before it can post roles, usually within 1 working day. We will email you when it is done." });
     }
     if (await limited(req, res, user, { bucket: "demand-post", limit: 20, windowSec: 86400 })) return;
     const raw = req.body || {};

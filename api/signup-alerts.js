@@ -1,6 +1,7 @@
 import { adminClient, kvRead, kvWrite, sendMailEach, owners } from "./_waitlist.js";
 import { bump } from "./_metrics.js";
 import { claim, evaluate, allRows, CLAIM_WINDOW_DAYS } from "./_referral.js";
+import { checkBlockHtml, ensurePending } from "./_orgcheck.js";
 
 // GET /api/signup-alerts
 //
@@ -136,9 +137,14 @@ export default async function handler(req, res) {
     (p.invitedBy ? line("Invited by", p.invitedBy, "") : "") +
     line("Joined", ukTime(p.joined) + " UK time", "") +
     "</table>" +
-    (p.business ? '<div style="margin-top:8px;padding:8px 10px;background:#E8FAF8;border-radius:8px;font-size:13px"><b>Business account.</b> A welcome call within 24 hours is the single best way to turn this into a paying customer. ' +
+    (p.business ? checkBlockHtml(p) +
+      '<div style="margin-top:8px;padding:8px 10px;background:#E8FAF8;border-radius:8px;font-size:13px"><b>Business account.</b> Once confirmed, a welcome call within 24 hours is the single best way to turn this into a paying customer. ' +
       (p.phone ? "Their number is above." : "Their email is above.") + "</div>" : "") +
     "</div>").join("");
+
+  // Business accounts start with a pending organisation check, so the
+  // buttons in this email and Admin, New organisations have something to act on.
+  for (const p of people) { if (p.business) { try { await ensurePending(p.id); } catch (e) {} } }
 
   const subject = people.length === 1
     ? "New Qura account: " + (people[0].name || people[0].email) + (people[0].company ? " (" + people[0].company + ")" : "")
@@ -147,7 +153,7 @@ export default async function handler(req, res) {
     '<div style="font-family:Inter,Arial,sans-serif;color:#0A1730;line-height:1.55;max-width:560px">' +
     "<p>" + (people.length === 1 ? "Someone has" : people.length + " people have") +
     " created a Qura account and confirmed their email address.</p>" + cards +
-    '<p style="font-size:13px;color:#5A6783">No approval is needed: accounts open straight away. ' +
+    '<p style="font-size:13px;color:#5A6783">Accounts open straight away. A business account stays on the free plan, with contacts masked and no role posting, until one of you confirms the organisation; confirming starts its 7-day trial and emails them. ' +
     "A clinician is not shown to hospitals or suppliers until one of you marks them verified. " +
     'To change a role, open <a href="' + SITE + '" style="color:#0E8C7E">Qura</a>, sign in and go to Admin.</p></div>';
 
