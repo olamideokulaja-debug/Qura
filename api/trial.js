@@ -1,6 +1,7 @@
 import { getUser, kvGet, kvSet } from "./_auth.js";
 import { TRIAL_DAYS, trialActive, tierOf } from "./_entitlements.js";
 import { bump } from "./_metrics.js";
+import { orgVerified, orgCheckOf, ensurePending, emailFoundersOnce, startTrialFor } from "./_orgcheck.js";
 
 // GET  /api/trial                    -> { trial, active, daysLeft }
 // POST /api/trial { action: "start" }  -> starts the 7-day trial, once per account
@@ -24,7 +25,10 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: "Sign in required" });
 
   const trial = await kvGet(user.id, "qura_trial");
-  if (req.method === "GET") return res.status(200).json(state(trial));
+  if (req.method === "GET") {
+    const chk = await orgCheckOf(user.id);
+    return res.status(200).json({ ...state(trial), orgStatus: chk ? chk.status : null });
+  }
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
   const { action } = req.body || {};
@@ -39,16 +43,32 @@ export default async function handler(req, res) {
     if (role === "clinician" || account.role === "clinician" || account.lens === "clinician") {
       return res.status(400).json({ error: "Clinician accounts are free and do not need a trial." });
     }
-    const plan = await kvGet(user.id, "qura_plan");
-    const next = { start: Date.now(), extra: 0, extended: false };
-    await kvSet(user.id, "qura_trial", next);
-    if (!PAID.includes(tierOf(plan))) await kvSet(user.id, "qura_plan", JSON.stringify("trial"));
-    await bump("trial_started");
-    return res.status(200).json(state(next));
+    // The organisation is checked by a founder first (27 September 2026). Until
+    // then the account stays on the free plan and nothing starts; the founder's
+    // confirmation starts the trial and emails the person.
+    if (!(await orgVerified(user))) {
+      const rec = await ensurePending(user.id);
+      // Accounts from before the checks began were never in a sign-up alert,
+      // so the founders are told about them directly, once.
+      if (Date.now() - Date.parse(user.created_at || 0) > 86400000) {
+        const m = user.user_metadata || {};
+        try {
+          await emailFoundersOnce(user.id, { email: user.email, name: m.full_name || [m.first_name, m.last_name].filter(Boolean).join(" "), company: m.company || "", phone: m.phone || "" });
+        } catch (e) {}
+      }
+      return res.status(200).json({ ...state(null), pendingCheck: rec.status === "pending", orgStatus: rec.status,
+        message: rec.status === "rejected"
+          ? "We could not confirm your organisation. Reply to our email or write to support@qurahealth.org and we will look again."
+          : "We check every organisation before the free trial starts, usually within 1 working day. We will email you when it is on." });
+    }
+    const out = await startTrialFor(user.id);
+    return res.status(200).json(state(out.trial));
   }
 
   if (action === "extend") {
     if (!trial || typeof trial.start !== "number") return res.status(400).json({ error: "There is no trial to extend." });
+    const chk = await orgCheckOf(user.id);
+    if (chk && chk.status === "rejected") return res.status(403).json({ ...state(trial), error: "We could not confirm your organisation, so the trial cannot be extended. Write to support@qurahealth.org and we will look again." });
     if (trial.extended) return res.status(409).json({ ...state(trial), error: "Your trial has already been extended once." });
     const next = { ...trial, extra: (Number(trial.extra) || 0) + 3, extended: true };
     // An extension after the end restarts the clock from today, so the 3 days
