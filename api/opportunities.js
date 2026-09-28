@@ -1,5 +1,6 @@
 import { seedActive } from "./_seed.js";
 import { getUser, kvGet } from "./_auth.js";
+import { isOpen, closesLabel } from "./_roles.js";
 
 // GET /api/opportunities?country=&profession=&market=
 //
@@ -70,16 +71,16 @@ function fitFor(profile, o) {
 function asRole(d) {
   return {
     id: d.id,
-    role: d.profession || d.title || "Healthcare role",
+    role: d.title || d.profession || "Healthcare role",
     employer: d.buyer || "Healthcare organisation",
-    country: /international/i.test(String(d.market || "")) ? "International" : "United Kingdom",
+    country: d.country || (/international/i.test(String(d.market || "")) ? "International" : "United Kingdom"),
     region: d.region || "",
     market: d.market || "NHS",
     profession: d.profession || "",
     rate: d.rate || "Rate on application",
     need: d.need || "",
     start: d.start || "",
-    closes: d.closes || "",
+    closes: closesLabel(d),
     note: d.note || d.title || "",
     postedAt: d.at || null,
     seeded: false,
@@ -95,6 +96,7 @@ export default async function handler(req, res) {
   // actually put up, so they lead whatever else is on the page.
   const posted = (await kvGet("shared", "demand_posted")) || [];
   const real = (Array.isArray(posted) ? posted : [])
+    .filter(isOpen)
     .map(asRole)
     .sort((a, b) => String(b.postedAt || "").localeCompare(String(a.postedAt || "")));
 
