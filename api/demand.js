@@ -3,9 +3,14 @@ import { getUser, kvGet, kvSet } from "./_auth.js";
 import { limited } from "./_ratelimit.js";
 import { planOf, ENTITLEMENTS } from "./_entitlements.js";
 import { orgVerified } from "./_orgcheck.js";
+import { COUNTRIES, isOpen, closesLabel, alertMatches } from "./_roles.js";
+
+export const config = { maxDuration: 60 };
 
 // GET  /api/demand           -> live demand (roles/tenders) suppliers can pursue
-// POST /api/demand {..}      -> a supplier posts a new demand item
+// GET  /api/demand?mine=1    -> the roles this organisation has posted, open and closed
+// POST /api/demand {..}      -> an organisation posts a role; matching clinicians are alerted
+// POST /api/demand { action: "close", id } -> the poster (or a founder) closes a role
 // Curated seed demand + any supplier-posted items (stored under "shared"/demand_posted).
 const SEED = [
   { id: "dm_1", title: "MRI Radiographers x3", buyer: "Community Diagnostic Centre", region: "London", market: "NHS", profession: "Radiographer", rate: "Band 7 equiv", need: "3 contractors", start: "ASAP", closes: "6 days", note: "Insourcing programme across three imaging sites." },
@@ -42,7 +47,14 @@ export default async function handler(req, res) {
     // illustrative set, which only fills the gap before launch.
     const filler = seedActive() ? SEED.map((d) => ({ ...d, seeded: true })) : [];
     // postedBy (an account id) is kept on the record but never sent out.
-    const postedPublic = (Array.isArray(posted) ? posted : []).map(({ postedBy, ...rest }) => rest);
+    if (req.query && req.query.mine) {
+      const mine = (Array.isArray(posted) ? posted : []).filter((d) => d.postedBy === user.id || (isOwner(user) && req.query.all))
+        .map(({ postedBy, ...rest }) => ({ ...rest, closes: closesLabel(rest), open: isOpen(rest) }));
+      return res.status(200).json({ items: mine });
+    }
+    // Closed or expired roles are kept for the poster's own list but not shown.
+    const postedPublic = (Array.isArray(posted) ? posted : []).filter(isOpen)
+      .map(({ postedBy, notified, ...rest }) => ({ ...rest, closes: closesLabel(rest) }));
     let items = [...postedPublic, ...live, ...filler];
     // Plan gate: only Growth/Intelligence and above see International markets.
     const plan = await planOf(user.id);
@@ -52,6 +64,18 @@ export default async function handler(req, res) {
     if (profession && profession !== "All") items = items.filter((d) => d.profession === profession);
     res.setHeader("Cache-Control", "private, max-age=30");
     return res.status(200).json({ items, total: items.length, internationalLocked: !canInternational });
+  }
+
+  if (req.method === "POST" && (req.body || {}).action === "close") {
+    const id = String((req.body || {}).id || "");
+    const posted = (await kvGet("shared", "demand_posted")) || [];
+    const arr = Array.isArray(posted) ? posted : [];
+    const item = arr.find((d) => d.id === id);
+    if (!item) return res.status(404).json({ error: "Role not found." });
+    if (item.postedBy !== user.id && !isOwner(user)) return res.status(403).json({ error: "Only the organisation that posted this role can close it." });
+    item.closed = true; item.closedAt = new Date().toISOString();
+    await kvSet("shared", "demand_posted", arr);
+    return res.status(200).json({ ok: true });
   }
 
   if (req.method === "POST") {
@@ -77,7 +101,11 @@ export default async function handler(req, res) {
       market: ["NHS", "Private", "International", "Public"].includes(raw.market) ? raw.market : "NHS",
       profession: clip(raw.profession, 80), rate: clip(raw.rate, 60), need: clip(raw.need, 80),
       start: clip(raw.start, 40), closes: clip(raw.closes, 40), note: clip(raw.note, 1000),
+      country: COUNTRIES.includes(raw.country) ? raw.country : "",
     };
+    // A real closing date: 1 to 90 days, 30 if not given.
+    const days = Math.max(1, Math.min(90, Math.round(Number(raw.closesInDays) || Number(String(raw.closes || "").replace(/[^0-9]/g, "")) || 30)));
+    if (!b.country) b.country = b.market === "International" ? "" : "United Kingdom";
     if (!b.title || !b.profession) return res.status(400).json({ error: "title and profession required" });
     const posted = (await kvGet("shared", "demand_posted")) || [];
     const arr = Array.isArray(posted) ? posted : [];
@@ -85,12 +113,21 @@ export default async function handler(req, res) {
       id: "dm_" + Date.now(),
       title: b.title, buyer: b.buyer || "Your organisation", region: b.region || "",
       market: b.market || "NHS", profession: b.profession, rate: b.rate || "",
-      need: b.need || "", start: b.start || "", closes: b.closes || "30 days",
+      need: b.need || "", start: b.start || "", closes: days + " days",
+      closesAt: new Date(Date.now() + days * 86400000).toISOString(), country: b.country,
       note: b.note || "", postedBy: user.id, at: new Date().toISOString(),
     };
     await kvSet("shared", "demand_posted", [entry, ...arr]);
+    // Tell matching clinicians. The counts are kept on the record so the
+    // poster can see how many people heard about it.
+    const alerted = await alertMatches(entry);
+    try {
+      const again = (await kvGet("shared", "demand_posted")) || [];
+      const mine = (Array.isArray(again) ? again : []).find((d) => d.id === entry.id);
+      if (mine) { mine.notified = alerted; await kvSet("shared", "demand_posted", again); }
+    } catch (e) {}
     const { postedBy, ...createdPublic } = entry;
-    return res.status(200).json({ created: createdPublic });
+    return res.status(200).json({ created: { ...createdPublic, closes: closesLabel(entry) }, alerted });
   }
 
   return res.status(405).json({ error: "Method not allowed" });
