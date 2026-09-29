@@ -111,7 +111,9 @@ export default async function handler(req, res) {
     const arr = Array.isArray(posted) ? posted : [];
     const entry = {
       id: "dm_" + Date.now(),
-      title: b.title, buyer: b.buyer || "Your organisation", region: b.region || "",
+      // Blank organisation name: use the name on the account, never a
+      // placeholder a clinician would read as the employer.
+      title: b.title, buyer: b.buyer || clip(acc.org, 120) || "A healthcare organisation", region: b.region || "",
       market: b.market || "NHS", profession: b.profession, rate: b.rate || "",
       need: b.need || "", start: b.start || "", closes: days + " days",
       closesAt: new Date(Date.now() + days * 86400000).toISOString(), country: b.country,
