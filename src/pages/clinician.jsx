@@ -45,7 +45,7 @@ function ClinicianFilm({ onEnter }) {
   return (
     <div style={{ maxWidth: 760, margin: "0 auto 34px" }}>
       <div style={{ textAlign: "center", color: "#AEBED6", fontSize: 13.5, marginBottom: 12 }}>
-        70 seconds on why clinicians join before we open. Launching 22 September 2026.
+        70 seconds on why clinicians join Qura.
       </div>
       <video
         controls
@@ -63,7 +63,7 @@ function ClinicianFilm({ onEnter }) {
         <button onClick={onEnter} className="btn lift" style={{ background: "var(--cyan)", color: "var(--navy)", fontWeight: 800, padding: "12px 24px" }}>
           Create your free account
         </button>
-        <div style={{ color: "#AEBED6", fontSize: 12.5, marginTop: 9 }}>Free to join. Verified before we open.</div>
+        <div style={{ color: "#AEBED6", fontSize: 12.5, marginTop: 9 }}>Free to join. Verified by the Qura team.</div>
       </div>
     </div>
   );
@@ -187,7 +187,7 @@ export function ClinicianSection({ onEnter }) {
             <div style={{ fontSize: 12, color: "#8697B0", marginTop: 10, marginBottom: 22 }}>Guidance only, not immigration advice. Requirements are confirmed during verification.</div>
             <div style={{ fontSize: 13.5, color: "#AEBED6", marginBottom: 14, fontWeight: 600 }}>Follow every application from submitted to employer response. Get the app.</div>
             <StoreBadges />
-            <div style={{ fontSize: 12, color: "#8697B0", marginTop: 12 }}>Free on Android. iOS to follow.</div>
+            <div style={{ fontSize: 12, color: "#8697B0", marginTop: 12 }}>Free on iPhone and Android.</div>
           </div>
         </div>
       </div>
