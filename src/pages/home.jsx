@@ -233,7 +233,9 @@ export function HomeTrust() {
     <div className="sec home" style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
       <div className="wrap row" style={{ padding: "26px 24px", gap: 24, justifyContent: "center", flexWrap: "wrap" }}>
         <span className="faint" style={{ fontSize: 13, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }}>As seen in</span>
-        <span className="disp" style={{ fontSize: 22, fontWeight: 800, color: "var(--navy)" }}>RAD Magazine</span>
+        {/* RAD Magazine's own logo file, unaltered, used with their permission
+            (29 September 2026). Source: radmagazine.com. */}
+        <img src="/rad-magazine-logo.svg" alt="RAD Magazine" width="166" height="26" style={{ display: "block", height: 26, width: "auto" }} />
         <span className="muted" style={{ fontSize: 14.5, fontStyle: "italic" }}>Everyone is looking for someone, 22 September 2026</span>
         <a href={RAD_ARTICLE_URL} target="_blank" rel="noopener noreferrer" onClick={() => track("home_rad_article")}
           style={{ color: "#06776F", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>Read the article <ArrowRight size={14} style={{ verticalAlign: "-2px" }} /></a>
