@@ -332,6 +332,9 @@ import { PrivacyContent, RefundContent, CookieContent, CookieConsent } from "./p
 import { APPSTORE_URL, PLAYSTORE_URL, APP_LAUNCH, StoreBadge, StoreBadges } from "./components/store.jsx";
 import { LAUNCH_DATE, CountdownBanner } from "./components/countdown.jsx";
 import { PlatformContent, WhySwitch, MarketMap } from "./pages/sections.jsx";
+// The clinician-first homepage (28 September 2026), kept in its own file.
+import { HomeHero, HomeValue, HomeVerify, HomeEcosystem, HomeApp, HomeTrust, HomeFinalCta } from "./pages/home.jsx";
+import PostRole from "./PostRole.jsx";
 import { LAUNCH_AT, seedActive } from "./launch.js";
 import Academy from "./Academy.jsx";
 // Split out of this file: it had grown past 550 KB, which made every change
@@ -360,7 +363,7 @@ import AuthPanel from "./AuthPanel.jsx";
 import ClinicianRegistration from "./ClinicianRegistration.jsx";
 import { CLIN_TAGLINES, CLIN_UNIVERSAL, CLIN_TABS, CLIN_COUNTRIES, ClinicianSection } from "./pages/clinician.jsx";
 import { APP_NAME } from "./constants.js";
-import { initAnalytics, trackPage, setMarketingMode } from "./lib/analytics.js";
+import { initAnalytics, trackPage, setMarketingMode, track } from "./lib/analytics.js";
 import { QuraLogo, Wordmark, Avatar, useCountUp, Stat, Kpi, SectionHead, PageHead, Toggle, Stars, Reveal, PulseLine, DemoTag, IllustrativeBanner } from "./components/ui.jsx";
 import { SPECIALTIES, REAL_OPPS, CLIENTS, INTL_OPPS, OPPS as OPPS_SEED, CLINICIANS as CLINICIANS_SEED, AGENCIES as AGENCIES_SEED, MEETINGS, INTEL as INTEL_SEED, STAGES, PIPE_DATA, REGION_DATA, SPEC_DATA, GMV_TREND, REGIONS, FUNNEL, TOP_AGENCIES, TOP_OPPS, FEED_POOL, ALERTS } from "./data/marketplace.js";
 // Built-in example records, gated at the launch instant. The server-side seed
@@ -939,6 +942,7 @@ const Opportunities = ({ go, onPropose, onPipeline, market = "all", onToast }) =
   const list = ALL_OPPS.filter((o) => (f === "All" || o.market === f || (f === "International" && ["Middle East", "Africa"].includes(o.market))) && o.org.toLowerCase().includes(q.toLowerCase()));
   return (
     <div>
+      <PostRole />
       <PageHead title="Opportunities" sub={live.length ? `${live.length} live procurement notices, refreshed daily, plus ${OPPS.length} illustrative examples` : `${OPPS.length} opportunities across your markets`} right={CURRENCY[market].rate !== 1 ? <span className="chip" style={{ background: "var(--cyan-soft)", color: "#06776F" }}>Converted at {CURRENCY[market].sym}{CURRENCY[market].rate}/£</span> : null} />
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
         <div className="row" style={{ gap: 10, marginBottom: 12, flexWrap: "wrap" }}><div className="row" style={{ flex: 1, minWidth: 220, gap: 8, border: "1px solid var(--line)", borderRadius: 999, padding: "0 14px", background: "var(--bg2)" }}><Search size={16} className="faint" /><input className="in" style={{ border: "none", boxShadow: "none", padding: "10px 0" }} placeholder="Search organisations" value={q} onChange={(e) => setQ(e.target.value)} /></div></div>
@@ -3536,7 +3540,7 @@ function HowItWorks({ section = "walk", go }) {
       label: "Clinicians", icon: Stethoscope,
       steps: [
         { t: "Get verified once", d: "Complete your profile with registration, experience and CV. Incomplete profiles cannot join, which is what makes the network trusted.", snap: "Get verified", body: (<>{row(<ShieldCheck size={15} color="#7FA9FF" />, "Registration verified", "GMC / NMC / HCPC", "Checked")}{row(<FileText size={15} color="#7FA9FF" />, "CV uploaded", "Stored securely", "Done")}{row(<BadgeCheck size={15} color="#7FA9FF" />, "Profile complete", "You are now verified on Qura", "Verified")}<div className="snap-note">One vetted profile, trusted everywhere.</div></>) },
-        { t: "Be seen everywhere", d: "Hospital decision-makers and workforce suppliers around the world check Qura daily. Your profile is in front of them.", snap: "Your visibility", body: (<>{row(<Globe size={15} color="#7FA9FF" />, "Profile views this week", "Hospitals in 4 countries", "+38%")}{row(<Target size={15} color="#7FA9FF" />, "Matched roles", "12 new matches for you", "Live")}<div className="snap-note">Get verified once. Be seen everywhere.</div></>) },
+        { t: "Be seen everywhere", d: "Once your registration is checked, hospitals and workforce suppliers on Qura can find you, and matching roles reach you first.", snap: "Your visibility", body: (<>{row(<Globe size={15} color="#7FA9FF" />, "Visible to organisations", "Once your registration is checked", "On")}{row(<Target size={15} color="#7FA9FF" />, "Matching roles", "An alert the moment one is posted", "On")}<div className="snap-note">Get verified once. Be seen everywhere.</div></>) },
         { t: "Engage live projects", d: "See a project that matches your experience? Express interest directly, rather than waiting to be found.", snap: "Live projects", body: (<>{row(<Radar size={15} color="#7FA9FF" />, "Insourcing project, imaging", "Interest sent", "Applied")}{row(<CalendarClock size={15} color="#7FA9FF" />, "Interview booked", "Thu 14:00 · video", "Confirmed")}<div className="snap-note">Discover opportunities around the world.</div></>) },
       ],
     },
@@ -3733,7 +3737,7 @@ function routeFromPath(path) {
   return hit ? { view: hit[1], howSec: hit[2] || null } : null;
 }
 
-function Landing({ onEnter, onDemo, earlyFocus }) {
+function Landing({ onEnter, onDemo, earlyFocus, onJoin, onOpen, signedIn }) {
   // The hero globe is sized off the viewport rather than fixed, so it fills the
   // first screen on a laptop and a large monitor alike. Capped at 980 because
   // beyond that the arcs spread out and it stops reading as one object, and
@@ -3940,7 +3944,7 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
           })}</div>
           <div className="row" style={{ gap: 12 }}>
             <div style={{ position: "relative" }}>
-              <button className="btn btn-light hsm" style={{ background: "var(--bg)" }} onClick={() => setDemoMenu((v) => !v)}>Book a demo</button>
+              <button className="navlink hsm" style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14.5, fontWeight: 500, color: "var(--muted)", whiteSpace: "nowrap" }} onClick={() => setDemoMenu((v) => !v)}>Book a demo</button>
               {demoMenu ? (
                 <>
                   <div onClick={() => setDemoMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
@@ -3963,14 +3967,21 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
                 </>
               ) : null}
             </div>
-            <button className="btn btn-primary" onClick={onEnter}>Get started / Sign in</button>
+            {signedIn ? (
+              <button className="btn btn-primary" onClick={() => { track("nav_open_account"); onOpen(); }}>Open your account</button>
+            ) : (
+              <>
+                <button className="btn btn-light" style={{ background: "var(--bg)", whiteSpace: "nowrap" }} data-navcta="1" onClick={() => { track("nav_log_in"); onEnter(); }}>Log in</button>
+                <button className="btn btn-primary" style={{ whiteSpace: "nowrap" }} data-navcta="1" onClick={() => { track("home_clinician_cta", { placement: "nav", signedIn: false }); onJoin(); }}>Create free profile</button>
+              </>
+            )}
           </div>
         </div>
       </div>
 
       <div className="lb" data-view={view}>
       <div className="sec home" style={{ background: "radial-gradient(115% 85% at 50% -8%, #E6F4F2 0%, #F3F9FD 44%, #fff 100%)", borderBottom: "1px solid var(--line)", position: "relative", overflow: "hidden" }}>
-        <style>{`@keyframes quraTick{from{transform:translateY(70px)}to{transform:translateY(0)}}@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.globe-hero{position:absolute;top:330px;left:50%;transform:translate(-50%,-50%);opacity:.78;pointer-events:none;z-index:0;display:grid;place-items:center}@media(max-width:700px){.globe-hero{top:260px;opacity:.52}}.pitch-bar{margin-left:auto;margin-right:auto}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
+        <style>{`@keyframes quraTick{from{transform:translateY(70px)}to{transform:translateY(0)}}@keyframes quraPulse{0%{transform:scale(.9);opacity:1}70%{transform:scale(2.4);opacity:0}100%{opacity:0}}.globe-hero{position:absolute;top:330px;left:50%;transform:translate(-50%,-50%);opacity:.6;pointer-events:none;z-index:0;display:grid;place-items:center}@media(max-width:700px){.globe-hero{top:260px;opacity:.38}}.pitch-bar{margin-left:auto;margin-right:auto}@media(max-width:700px){.pitch-bar{display:none!important}}@media(max-width:480px){[data-navcta]{padding:9px 12px!important;font-size:13.5px!important}}.hero-split{display:grid;grid-template-columns:1.7fr .95fr;gap:18px;align-items:stretch}.hero-split>div{min-width:0}@media(max-width:900px){.hero-split{grid-template-columns:1fr}}`}</style>
         {/* Top-right of the hero, behind the content and at low opacity. It is
             decorative: it signals reach at a glance without competing with the
             headline for attention. Hidden below 1100px, where the hero is
@@ -3980,37 +3991,22 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
         </div>
         <div className="wrap" style={{ padding: "48px 24px 36px", textAlign: "center", position: "relative", zIndex: 1 }}>
           <QuraPitchBar />
-          <div className="reveal"><span className="chip chip-cyan" style={{ padding: "7px 15px" }}><Sparkles size={14} /> Commercial intelligence and connectivity for healthcare · 24/7 live</span></div>
+          {/* Clinician first (28 September 2026): one primary action, with
+              providers and suppliers as secondary routes. See pages/home.jsx. */}
+          <HomeHero onJoin={onJoin} onOpen={onOpen} signedIn={signedIn} goTo={goTo} />
 
-          {/* The three lenses ARE the headline. A visitor has to know within a
-              few seconds whether they are in the right place, and naming all
-              three answers that faster than any description of the product. */}
-          <h1 className="disp heroh reveal" style={{ fontWeight: 700, margin: "22px auto 0", maxWidth: 900 }}>
-            Clinicians. Healthcare providers. Workforce suppliers.{" "}
-            <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>One connected healthcare ecosystem.</span>
-          </h1>
+        </div>
+      </div>
 
-          {/* Markets, stated on the first screen. Without this a visitor reads
-              NHS and assumes a UK-only platform, which is the single most
-              costly wrong assumption the page can create. Flags rather than a
-              spinning globe: they name the actual markets, they cost nothing to
-              render, and they do not move while someone is trying to read. */}
-          <div className="reveal row" style={{ gap: 7, justifyContent: "center", flexWrap: "wrap", marginTop: 22 }}>
-            {[["\u{1F1EC}\u{1F1E7}", "United Kingdom"], ["\u{1F1E6}\u{1F1FA}", "Australia"],
-              ["\u{1F1FA}\u{1F1F8}", "United States"], ["\u{1F1EA}\u{1F1FA}", "European Union"]].map(([fl, label]) => (
-              <span key={label} className="chip" style={{ padding: "6px 12px", fontSize: 12.5, background: "var(--card)", border: "1px solid var(--line)", color: "var(--muted)" }}>
-                <span style={{ marginRight: 6, fontSize: 14 }} aria-hidden="true">{fl}</span>{label}
-              </span>
-            ))}
-          </div>
-          <div className="reveal faint" style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: ".09em", marginTop: 18, textTransform: "uppercase" }}>Built for healthcare, across every setting</div>
-          <p className="reveal" style={{ fontSize: 17.5, lineHeight: 1.55, margin: "8px auto 0", maxWidth: 640, color: "var(--muted)" }}>One live platform spanning the NHS, private and international healthcare markets.</p>
-
-          {/* Context first, then the ask. The box stays above the fold either
-              way, and a visitor should know what they are joining before they
-              are asked for an address. */}
-          <QuraJoinBlock earlyFocus={earlyFocus} />
-
+      <HomeValue />
+      <HomeVerify onJoin={onJoin} onOpen={onOpen} signedIn={signedIn} />
+      <HomeEcosystem onJoin={onJoin} onOpen={onOpen} signedIn={signedIn} goTo={goTo} />
+      {/* For organisations: the film and the live tender feed, moved out of the
+          hero so the first screen has one clear action. */}
+      <div className="sec home" style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
+        <div className="wrap" style={{ padding: "10px 24px 56px", textAlign: "center" }}>
+          <div className="eyebrow" style={{ color: "#06776F" }}>For organisations</div>
+          <h2 className="disp" style={{ fontSize: 30, fontWeight: 700, margin: "8px 0 0" }}>See the market moving</h2>
           <div className="muted reveal" style={{ fontSize: 13.5, marginTop: 30, textAlign: "center" }}>
             92 seconds on what {APP_NAME} does and who it is for. Live since 22 September 2026.
           </div>
@@ -4055,6 +4051,8 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
           <div className="row faint reveal" style={{ gap: 8, justifyContent: "center", marginTop: 18, fontSize: 13.5 }}><ShieldCheck size={15} /> For private clinics, GP practices, care providers, NHS trusts, workforce suppliers and international health systems</div>
         </div>
       </div>
+      <HomeApp />
+      <HomeTrust />
 
       <div className="sec market" style={{ background: "var(--navy)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap" style={{ padding: "44px 24px 8px", textAlign: "center" }}>
@@ -4115,6 +4113,7 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
       <div className="wrap sec home" style={{ padding: "8px 24px 8px" }}>
         <FAQ compact />
       </div>
+      <HomeFinalCta onJoin={onJoin} onOpen={onOpen} signedIn={signedIn} />
       <div className="wrap sec fragile" style={{ padding: "8px 24px 8px" }}>
         <Reveal>
           <div className="card" style={{ padding: "40px 40px", background: "linear-gradient(160deg, var(--cyan-soft), #fff 75%)", border: "1px solid var(--line)" }}>
@@ -4213,11 +4212,6 @@ function Landing({ onEnter, onDemo, earlyFocus }) {
       <div className="wrap sec solutions" style={{ padding: "56px 24px" }}>
         <Reveal><div style={{ textAlign: "center", maxWidth: 600, margin: "0 auto 34px" }}><h2 className="disp" style={{ fontSize: 36, fontWeight: 700 }}>Why teams choose {APP_NAME}</h2><p className="muted" style={{ fontSize: 17, marginTop: 12 }}>Everything you would spend hours pulling from Google, LinkedIn and board papers, mapped for you on one live platform. The teams that adopt {APP_NAME} stop searching and start winning; the ones that do not risk falling behind.</p></div></Reveal>
         <div className="grid g2">{why.map((w, idx) => (<Reveal key={w.t} delay={idx * 70}><div className="card lift row" style={{ padding: 24, gap: 18, alignItems: "flex-start", height: "100%" }}><div style={{ width: 48, height: 48, borderRadius: 13, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><w.i size={22} color="#1E54E6" /></div><div><h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>{w.t}</h3><p className="muted" style={{ fontSize: 15, margin: 0, lineHeight: 1.6 }}>{w.b}</p></div></div></Reveal>))}</div>
-      </div>
-
-      <div className="wrap sec home" style={{ padding: "4px 24px 34px", textAlign: "center" }}>
-        <div className="faint" style={{ fontSize: 13, fontWeight: 600, letterSpacing: ".08em", marginBottom: 12 }}>BUILT FOR HEALTHCARE, ACROSS EVERY SETTING</div>
-        <div className="muted" style={{ fontSize: 15, maxWidth: 640, margin: "0 auto" }}>One live platform spanning the NHS, private and international healthcare markets.</div>
       </div>
 
       <HowItWorks section={howSec} go={setHowSec} />
@@ -5523,7 +5517,8 @@ export default function App() {
       <style>{STYLES}</style>
       <CookieConsent />
       {billingResult ? <BillingResult result={billingResult} signedIn={!!uid} ready={planReady} slow={planSlow} onOpen={() => { setBillingResult(null); enterApp(); }} onSignIn={() => { setBillingResult(null); goSignIn(); }} onClose={() => setBillingResult(null)} /> : null}
-      {stage === "landing" && <Landing onEnter={goSignIn} onDemo={() => setStage("demo")} earlyFocus={earlyFocus} />}
+      {stage === "landing" && <Landing onEnter={goSignIn} onDemo={() => setStage("demo")} earlyFocus={earlyFocus}
+        onJoin={() => pickRole("clinician")} onOpen={enterApp} signedIn={!!(supabaseEnabled && session)} />}
       {stage === "demo" && <DemoBooking onHome={home} onSignIn={goSignIn} />}
       {stage === "roleChoice" && <RoleChoiceScreen onPick={pickRole} onHome={home} />}
       {stage === "auth" && <AuthPanel mode={authMode} role={authMode === "up" ? pendingRole : null} roleLabel={authMode === "up" && pendingRole ? roleLabelOf(pendingRole) : null} onHome={home} onCreateAccount={() => setStage("roleChoice")} onBackToSignIn={() => { setPendingRole(null); setAuthMode("in"); }} />}
