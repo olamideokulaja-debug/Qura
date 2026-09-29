@@ -144,7 +144,6 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
     } catch (e) { setMsg(String(e)); }
     setBusy(false);
   };
-  const soon = () => setMsg("SSO and NHS Mail sign-in are coming soon. Please continue with your email and password.");
   const up = mode === "up";
   // A clinician creating a profile gets clinician wording on both halves of
   // the card (29 September 2026): the old panel spoke only to suppliers
@@ -277,8 +276,8 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
           </div>
         ) : null}
         <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 18, padding: 13 }} onClick={submit} disabled={busy}>{busy ? "Please wait..." : (clinicianUp ? "Create your free profile" : up ? "Create account" : "Sign in")} <ArrowRight size={16} /></button>
-        <div className="row" style={{ gap: 12, margin: "18px 0", color: "var(--faint)", fontSize: 12 }}><div style={{ flex: 1, height: 1, background: "var(--line)" }} /> or continue with <div style={{ flex: 1, height: 1, background: "var(--line)" }} /></div>
-        <div className="row" style={{ gap: 10 }}><button className="btn btn-light" style={{ flex: 1, justifyContent: "center", background: "var(--bg)" }} onClick={soon}><ShieldCheck size={15} /> SSO</button><button className="btn btn-light" style={{ flex: 1, justifyContent: "center", background: "var(--bg)" }} onClick={soon}><Mail size={15} /> NHS Mail</button></div>
+        {/* SSO and NHS Mail buttons removed 29 September 2026: they only ever
+            said "coming soon". Put them back when either sign-in really works. */}
         {!businessSelfServeOpen && !up ? (
           <div className="card" style={{ padding: "12px 16px", marginTop: 16, background: "var(--cyan-soft)", border: "none" }}>
             <div style={{ fontSize: 13, lineHeight: 1.6, color: "#06776F" }}>
