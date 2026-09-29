@@ -10,6 +10,10 @@
 // numbers, no "trusted by" before anyone is, no photographs presented as
 // members. The trust strip only appears once RAD_ARTICLE_URL is filled in.
 //
+// The photographs are illustrations made with Higgsfield (29 September 2026).
+// They show the kinds of people Qura serves; none carries a name, a quote or
+// a claim, so none can be read as a member or a testimonial.
+//
 // Kept in its own file so homepage copy and layout can change without moving
 // App.jsx, which is too large to update through the usual tooling.
 
@@ -17,12 +21,23 @@ import React from "react";
 import { ArrowRight, Search, ShieldCheck, Building2, TrendingUp, Users, Briefcase, Check, Lock, Bell, UserCheck } from "lucide-react";
 import { track } from "../lib/analytics.js";
 import { StoreBadges, PLAYSTORE_URL } from "../components/store.jsx";
+import imgSonographer from "../home-sonographer.webp";
+import imgNurse from "../home-nurse.webp";
+import imgManagers from "../home-managers.webp";
+import imgCoordinator from "../home-coordinator.webp";
+import imgRadiographer from "../home-radiographer.webp";
 
 // Paste the article address here to show the "As seen in" strip.
-export const RAD_ARTICLE_URL = "";
+export const RAD_ARTICLE_URL = "https://www.radmagazine.com/radical-opinions/everyone-is-looking-for-someone/";
 
 const MARKETS = [["\u{1F1EC}\u{1F1E7}", "United Kingdom"], ["\u{1F1E6}\u{1F1FA}", "Australia"],
   ["\u{1F1FA}\u{1F1F8}", "United States"], ["\u{1F1EA}\u{1F1FA}", "European Union"]];
+
+// One photograph, cropped to fill its box, loaded only when scrolled near.
+function Photo({ src, alt, ratio = "4 / 3", style }) {
+  return <img src={src} alt={alt} loading="lazy" decoding="async"
+    style={{ width: "100%", aspectRatio: ratio, objectFit: "cover", display: "block", borderRadius: 16, ...style }} />;
+}
 
 const gradient = { background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" };
 
@@ -134,17 +149,16 @@ export function HomeVerify({ onJoin, onOpen, signedIn }) {
               <span className="row" style={{ gap: 6 }}><ShieldCheck size={14} /> Checked by the Qura team</span>
             </div>
           </div>
-          <div className="card" style={{ padding: 22 }}>
-            {steps.map(([I, t, d], n) => (
-              <div key={t} className="row" style={{ gap: 14, alignItems: "flex-start", padding: "12px 0", borderTop: n ? "1px solid var(--line)" : "none" }}>
-                <div style={{ width: 40, height: 40, borderRadius: 11, background: "var(--cyan-soft)", display: "grid", placeItems: "center", flexShrink: 0 }}><I size={19} color="#06776F" /></div>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>{t}</div>
-                  <div className="muted" style={{ fontSize: 13.5, lineHeight: 1.55, marginTop: 2 }}>{d}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <Photo src={imgSonographer} alt="A sonographer carrying out an ultrasound scan" style={{ boxShadow: "0 18px 44px rgba(10,23,48,.14)" }} />
+        </div>
+        <div className="grid g4" style={{ gap: 14, marginTop: 30 }}>
+          {steps.map(([I, t, d]) => (
+            <div key={t} className="card" style={{ padding: 18 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 11, background: "var(--cyan-soft)", display: "grid", placeItems: "center" }}><I size={19} color="#06776F" /></div>
+              <div style={{ fontWeight: 700, fontSize: 15, marginTop: 12 }}>{t}</div>
+              <div className="muted" style={{ fontSize: 13.5, lineHeight: 1.55, marginTop: 4 }}>{d}</div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -154,11 +168,11 @@ export function HomeVerify({ onJoin, onOpen, signedIn }) {
 // ---- 04 The Qura ecosystem --------------------------------------------------
 export function HomeEcosystem({ onJoin, onOpen, signedIn, goTo }) {
   const cards = [
-    { i: Users, t: "Healthcare professionals", d: "Create your free profile, get verified and hear about matching roles.", cta: signedIn ? "Open your account" : "Create your free profile",
+    { i: Users, t: "Healthcare professionals", d: "Create your free profile, get verified and hear about matching roles.", img: imgNurse, alt: "A nurse reading a tablet in a hospital corridor", cta: signedIn ? "Open your account" : "Create your free profile",
       go: () => { track("home_clinician_cta", { placement: "ecosystem", signedIn: !!signedIn }); if (signedIn) onOpen(); else onJoin(); }, lead: true },
-    { i: Building2, t: "Healthcare providers", d: "Post roles and find verified clinicians across every setting.", cta: "For healthcare providers",
+    { i: Building2, t: "Healthcare providers", d: "Post roles and find verified clinicians across every setting.", img: imgManagers, alt: "Two healthcare managers planning together at a table", cta: "For healthcare providers",
       go: () => { track("home_link_providers", { placement: "ecosystem" }); goTo("solutions"); } },
-    { i: Briefcase, t: "Workforce suppliers", d: "Live demand, named decision-makers and a verified supplier profile.", cta: "For workforce suppliers",
+    { i: Briefcase, t: "Workforce suppliers", d: "Live demand, named decision-makers and a verified supplier profile.", img: imgCoordinator, alt: "A staffing coordinator on a call at her desk", cta: "For workforce suppliers",
       go: () => { track("home_link_suppliers", { placement: "ecosystem" }); goTo("suppliers-app"); } },
   ];
   return (
@@ -169,6 +183,7 @@ export function HomeEcosystem({ onJoin, onOpen, signedIn, goTo }) {
         <div className="grid g3" style={{ gap: 16 }}>
           {cards.map((c) => (
             <div key={c.t} className="card lift" style={{ padding: 22, display: "flex", flexDirection: "column", background: c.lead ? "var(--cyan-soft)" : "var(--card)", borderColor: c.lead ? "var(--cyan)" : "var(--line)" }}>
+              <Photo src={c.img} alt={c.alt} ratio="16 / 10" style={{ borderRadius: 12, marginBottom: 16 }} />
               <c.i size={26} color={c.lead ? "#06776F" : "var(--navy)"} strokeWidth={1.8} />
               <div style={{ fontWeight: 700, fontSize: 17, marginTop: 12 }}>{c.t}</div>
               <div className="muted" style={{ fontSize: 13.5, lineHeight: 1.55, marginTop: 6, flex: 1 }}>{c.d}</div>
@@ -193,17 +208,18 @@ export function HomeApp() {
           <div>
             <h2 className="disp" style={{ fontSize: 28, fontWeight: 700, color: "#fff", margin: 0 }}>Qura Healthcare Careers</h2>
             <p style={{ color: "#9FB0D0", fontSize: 15, lineHeight: 1.6, margin: "10px 0 18px", maxWidth: 440 }}>Take Qura with you. See roles, update your profile and stay connected on the go.</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 22 }}>
+              {points.map((p) => (
+                <div key={p} className="row" style={{ gap: 10, color: "#fff", fontSize: 15 }}>
+                  <span style={{ width: 22, height: 22, borderRadius: 999, background: "#00C2B8", display: "grid", placeItems: "center", flexShrink: 0 }}><Check size={14} color="#04231F" /></span>{p}
+                </div>
+              ))}
+            </div>
             <div style={{ color: "#9FB0D0" }} onClick={() => track("home_app_store", { store: PLAYSTORE_URL ? "google_play" : "none" })}>
               <StoreBadges compact />
             </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {points.map((p) => (
-              <div key={p} className="row" style={{ gap: 10, color: "#fff", fontSize: 15 }}>
-                <span style={{ width: 22, height: 22, borderRadius: 999, background: "#00C2B8", display: "grid", placeItems: "center", flexShrink: 0 }}><Check size={14} color="#04231F" /></span>{p}
-              </div>
-            ))}
-          </div>
+          <Photo src={imgRadiographer} alt="A radiographer checking her phone on a break" />
         </div>
       </div>
     </div>
@@ -217,7 +233,8 @@ export function HomeTrust() {
     <div className="sec home" style={{ background: "#fff", borderBottom: "1px solid var(--line)" }}>
       <div className="wrap row" style={{ padding: "26px 24px", gap: 24, justifyContent: "center", flexWrap: "wrap" }}>
         <span className="faint" style={{ fontSize: 13, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase" }}>As seen in</span>
-        <span className="disp" style={{ fontSize: 22, fontWeight: 800, color: "#E11D48" }}>RAD Magazine</span>
+        <span className="disp" style={{ fontSize: 22, fontWeight: 800, color: "var(--navy)" }}>RAD Magazine</span>
+        <span className="muted" style={{ fontSize: 14.5, fontStyle: "italic" }}>Everyone is looking for someone, 22 September 2026</span>
         <a href={RAD_ARTICLE_URL} target="_blank" rel="noopener noreferrer" onClick={() => track("home_rad_article")}
           style={{ color: "#06776F", fontWeight: 700, fontSize: 14, textDecoration: "none" }}>Read the article <ArrowRight size={14} style={{ verticalAlign: "-2px" }} /></a>
       </div>
