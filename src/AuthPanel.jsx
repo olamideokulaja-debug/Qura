@@ -146,6 +146,10 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
   };
   const soon = () => setMsg("SSO and NHS Mail sign-in are coming soon. Please continue with your email and password.");
   const up = mode === "up";
+  // A clinician creating a profile gets clinician wording on both halves of
+  // the card (29 September 2026): the old panel spoke only to suppliers
+  // ("Win the right work, faster") and asked everyone for a work email.
+  const clinicianUp = up && !business;
   // Self-serve sign-up opens at launch. Before then the only route in is an
   // approved early-access request, which is what the whole waitlist exists
   // for. This is the cosmetic half: the real enforcement is the "Allow new
@@ -165,11 +169,30 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
       <button onClick={onHome} className="hsm" style={{ position: "absolute", top: 32, right: 34, zIndex: 4, padding: "8px 14px", borderRadius: 999, background: "rgba(255,255,255,.12)", color: "#fff", border: "1px solid rgba(255,255,255,.28)", cursor: "pointer", fontSize: 13.5, fontWeight: 600 }}>{"←"} Back to home</button>
     <div className="row login-card reveal" style={{ position: "relative", zIndex: 2, width: "100%", maxWidth: 940, gap: 0, borderRadius: 24, overflow: "hidden", boxShadow: "0 40px 110px rgba(0,0,0,.5)", alignItems: "stretch", border: "1px solid rgba(255,255,255,.1)" }}>
       <div className="login-brand hsm" style={{ flex: "1 1 0", padding: "46px 44px", background: "linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02))", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between", minWidth: 0 }}>
-        <div>
-          <span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC", border: "1px solid rgba(0,194,184,.32)" }}><Sparkles size={13} /> Healthcare growth engine</span>
-          <h1 className="disp" style={{ fontSize: 33, fontWeight: 700, margin: "24px 0 14px", lineHeight: 1.12 }}>Win the right work, faster.</h1>
-          <p style={{ color: "#9FB0D0", fontSize: 15, lineHeight: 1.6, maxWidth: 380 }}>One intelligent platform linking workforce suppliers, hospitals and clinicians across NHS, private and international markets.</p>
-        </div>
+        {clinicianUp ? (
+          <div>
+            <span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC", border: "1px solid rgba(0,194,184,.32)" }}><ShieldCheck size={13} /> Free for healthcare professionals, always</span>
+            <h1 className="disp" style={{ fontSize: 33, fontWeight: 700, margin: "24px 0 14px", lineHeight: 1.12 }}>One profile.<br />Seen across healthcare.</h1>
+            <p style={{ color: "#9FB0D0", fontSize: 15, lineHeight: 1.6, maxWidth: 380 }}>Create your profile once. The Qura team checks your registration, matching roles reach you the moment they are posted, and healthcare organisations across the UK and internationally can find you.</p>
+          </div>
+        ) : (
+          <div>
+            <span className="chip" style={{ background: "rgba(0,194,184,.16)", color: "#5FE6DC", border: "1px solid rgba(0,194,184,.32)" }}><Sparkles size={13} /> {up ? "Healthcare growth engine" : "Welcome back"}</span>
+            {/* Sign in is shared by clinicians and organisations, so it speaks to both. */}
+            <h1 className="disp" style={{ fontSize: 33, fontWeight: 700, margin: "24px 0 14px", lineHeight: 1.12 }}>{up ? "Win the right work, faster." : <>One platform.<br />Every side of healthcare.</>}</h1>
+            <p style={{ color: "#9FB0D0", fontSize: 15, lineHeight: 1.6, maxWidth: 380 }}>{up ? "One intelligent platform linking workforce suppliers, hospitals and clinicians across NHS, private and international markets." : "Healthcare professionals, providers and workforce suppliers, connected across NHS, private and international markets."}</p>
+          </div>
+        )}
+        {clinicianUp ? (
+          <div>
+            <div style={{ height: 1, background: "rgba(255,255,255,.1)", margin: "0 0 20px" }} />
+            {["Free to join, and it stays free", "Your registration checked by the Qura team", "Documents shared only after an introduction the Qura team has verified"].map((t) => (
+              <div key={t} className="row" style={{ gap: 10, alignItems: "flex-start", color: "#DCE6F5", fontSize: 13.5, lineHeight: 1.5, marginTop: 10 }}>
+                <span style={{ width: 20, height: 20, borderRadius: 999, background: "#00C2B8", display: "grid", placeItems: "center", flexShrink: 0, marginTop: 1 }}><Check size={13} color="#04231F" /></span>{t}
+              </div>
+            ))}
+          </div>
+        ) : (
         <div>
           <div style={{ height: 1, background: "rgba(255,255,255,.1)", margin: "0 0 22px" }} />
           {/* These sit immediately above the password field, which is the
@@ -179,12 +202,13 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
               show anyone. All three can now be evidenced on request. */}
           <div className="row" style={{ gap: 28 }}>{[["13,000+", "Combined LinkedIn following"], ["4,040", "Named decision-makers"], ["5", "Markets"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
         </div>
+        )}
       </div>
       <div className="login-auth" style={{ flex: "1 1 0", background: "#fff", padding: "46px 42px", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
         <button className="show-sm" onClick={onHome} style={{ marginBottom: 20, alignSelf: "flex-start" }}><Wordmark /></button>
         <div className="ph-accent" />
-        <h2 className="disp" style={{ fontSize: 26, fontWeight: 700, margin: "0 0 6px" }}>{up ? "Create your account" : ("Sign in to " + APP_NAME)}</h2>
-        <p className="muted" style={{ marginTop: 0, fontSize: 14 }}>{up ? (roleLabel ? ("Creating your " + roleLabel + " account") : "Join Qura in a few seconds.") : "Welcome back. Let us find your next opportunity."}</p>
+        <h2 className="disp" style={{ fontSize: 26, fontWeight: 700, margin: "0 0 6px" }}>{clinicianUp ? "Create your free profile" : up ? "Create your account" : ("Sign in to " + APP_NAME)}</h2>
+        <p className="muted" style={{ marginTop: 0, fontSize: 14 }}>{clinicianUp ? "For healthcare professionals. It only takes a few minutes." : up ? (roleLabel ? ("Creating your " + roleLabel + " account") : "Join Qura in a few seconds.") : "Welcome back. Let us find your next opportunity."}</p>
         {up && (
           <div className="row" style={{ gap: 10 }}>
             <div style={{ flex: 1 }}>
@@ -211,8 +235,8 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
             <div className="login-field"><input value={refCode} maxLength={6} onChange={(e) => setRefCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6))} placeholder="e.g. PWV55M" style={{ letterSpacing: 2 }} /></div>
           </>
         )}
-        <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>Work email</label>
-        <div className="login-field"><Mail size={16} className="faint" /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@qurahealth.org" /></div>
+        <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "20px 0 0" }}>{business ? "Work email" : "Email"}</label>
+        <div className="login-field"><Mail size={16} className="faint" /><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={business ? "you@yourorganisation.com" : "you@example.com"} /></div>
         <label style={{ fontSize: 13, fontWeight: 600, display: "block", margin: "16px 0 0" }}>Password{up ? <span className="faint" style={{ fontWeight: 500 }}> (10+ characters, with a capital, a lower-case letter and a number)</span> : null}</label>
         <div className="login-field"><ShieldCheck size={16} className="faint" /><input type="password" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="••••••••" onKeyDown={(e) => e.key === "Enter" && submit()} /></div>
         {/* This was wired to the coming-soon handler, so anyone locked out was
@@ -252,7 +276,7 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
             }}>Resend the confirmation email</button>
           </div>
         ) : null}
-        <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 18, padding: 13 }} onClick={submit} disabled={busy}>{busy ? "Please wait..." : (up ? "Create account" : "Sign in")} <ArrowRight size={16} /></button>
+        <button className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 18, padding: 13 }} onClick={submit} disabled={busy}>{busy ? "Please wait..." : (clinicianUp ? "Create your free profile" : up ? "Create account" : "Sign in")} <ArrowRight size={16} /></button>
         <div className="row" style={{ gap: 12, margin: "18px 0", color: "var(--faint)", fontSize: 12 }}><div style={{ flex: 1, height: 1, background: "var(--line)" }} /> or continue with <div style={{ flex: 1, height: 1, background: "var(--line)" }} /></div>
         <div className="row" style={{ gap: 10 }}><button className="btn btn-light" style={{ flex: 1, justifyContent: "center", background: "var(--bg)" }} onClick={soon}><ShieldCheck size={15} /> SSO</button><button className="btn btn-light" style={{ flex: 1, justifyContent: "center", background: "var(--bg)" }} onClick={soon}><Mail size={15} /> NHS Mail</button></div>
         {!businessSelfServeOpen && !up ? (
