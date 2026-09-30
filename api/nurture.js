@@ -117,7 +117,7 @@ export default async function handler(req, res) {
         (picked.matched ? "<b>" + picked.total + " open tenders match your alerts</b>." : "<b>" + picked.total + " open UK healthcare tenders</b>, with the ones closing soonest first.") + "</p>" +
         tenderList(picked.top) +
         "<p>" + (trial ? "Your 7-day free trial is running, with everything in Growth switched on: every market, decision-maker contacts, AI summaries and proposals." :
-          (joinedInTime(u) ? "As a Founding Partner, you get 12 months of our top plan free, starting as soon as we have confirmed your organisation, usually within 1 working day. Introductions to clinicians are still charged at £49 each." :
+          (joinedInTime(u) ? "As a Founding Partner, you get 12 months of our top plan free, starting as soon as we have confirmed your organisation, usually within 1 working day. Introductions to clinicians are still charged at £99 each." :
           "Your 7-day free trial, with everything in Growth switched on, starts as soon as we have confirmed your organisation, usually within 1 working day.") + " We check every organisation so that the clinicians and contacts on Qura only ever deal with real healthcare businesses. We will email you when it is on, and no card is needed. If you reply with your organisation's website, it goes faster.") + "</p>" +
         '<p style="margin:22px 0">' + button(SITE, "Open Qura") + "</p>" +
         "<p>We would like to hear what you are trying to win this quarter, so we can set Qura up around it. Reply to this email with a good time and number, and one of the founders will call you.</p>" +
