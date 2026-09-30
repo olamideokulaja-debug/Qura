@@ -3,6 +3,7 @@
 // The webhook writes qura_plan; introduction-checkout and feature endpoints read it via planOf().
 
 import { kvGet } from "./_auth.js";
+import { expireIfDue } from "./_founding.js";
 
 // Normalise a stored plan value to a simple tier key.
 export function tierOf(plan) {
@@ -83,6 +84,9 @@ export async function planOf(userId) {
       const trial = await kvGet(userId, "qura_trial");
       plan = trialActive(trial) ? plan : null;
     }
+    // A Founding Partner year ends on its date unless it was replaced by a
+    // paid plan (api/_founding.js).
+    if (plan) plan = await expireIfDue(userId, plan);
     if (plan) return lift(plan);
     const comp = await kvGet(userId, "qura_comp");
     if (comp && comp.plan && comp.until && Date.parse(comp.until) > Date.now()) return lift(comp.plan);

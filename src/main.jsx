@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import "./storage.js";
 import App from "./App.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import FoundingBanner from "./FoundingBanner.jsx";
 
 // A confirmation link can still arrive at the root if an older email is opened
 // or a setting is changed. Landing here with a token puts the app in a
@@ -17,6 +18,7 @@ try {
 
 createRoot(document.getElementById("root")).render(
   <ErrorBoundary>
+    <FoundingBanner />
     <App />
   </ErrorBoundary>
 );

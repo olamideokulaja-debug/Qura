@@ -2,6 +2,7 @@ import { isSeededId, refuseSeeded } from "./_seed.js";
 import Stripe from "stripe";
 import { getUser, kvGet, kvSet } from "./_auth.js";
 import { planOf, ENTITLEMENTS } from "./_entitlements.js";
+import { foundingActive } from "./_founding.js";
 
 // POST /api/introduction-checkout { clinicianId, handle, profession, country }
 // Creates a Stripe Checkout session for the introduction fee and records a pending
@@ -37,7 +38,9 @@ export default async function handler(req, res) {
   // includes introductions (25 September security review: an expired trial or
   // a clinician plan used to count).
   const plan = await planOf(user.id);
-  const hasPaidPlan = ENTITLEMENTS.introductionsIncluded(plan);
+  // A Founding Partner has the top plan free for a year, but introductions
+  // are still charged (agreed 30 September 2026).
+  const hasPaidPlan = ENTITLEMENTS.introductionsIncluded(plan) && !(await foundingActive(user.id));
 
   if (hasPaidPlan) {
     const entry = {

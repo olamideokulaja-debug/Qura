@@ -69,6 +69,10 @@
     {
       "source": "/refer",
       "destination": "/join.html"
+    },
+    {
+      "source": "/founding-partner",
+      "destination": "/founding-partner.html"
     }
   ],
   "headers": [
