@@ -3894,10 +3894,10 @@ function Landing({ onEnter, onDemo, earlyFocus, onJoin, onOpen, signedIn }) {
     return v === "today" ? "Closes today" : "Closes in " + v;
   };
   // Every figure here must be one we can show someone. "1000+" understated the
-  // register, which holds 4,040 named contacts across 1,450 organisations, and
+  // register, which holds 3,836 named contacts across 1,306 organisations (30 September 2026), and
   // "50+ countries reached" described no measure we actually keep. Qura
   // operates in 5 markets and that is the number that can be evidenced.
-  const stats = [{ n: "32+", l: "Combined years in healthcare" }, { n: "13,000+", l: "Combined LinkedIn following" }, { n: "4,000+", l: "Named decision-makers" }, { n: "5", l: "Markets" }];
+  const stats = [{ n: "32+", l: "Combined years in healthcare" }, { n: "13,000+", l: "Combined LinkedIn following" }, { n: "3,800+", l: "Named decision-makers" }, { n: "5", l: "Markets" }];
   const edge = [
     { i: Brain, t: "A decade of real deals, encoded", b: "Qura's analytics are shaped by 10 years of contracts our experts have actually closed, so every score reflects how the market really behaves.", c: "#5B3FD6", bg: "var(--violet-soft)" },
     { i: Zap, t: "AI that works the way experts work", b: "The platform scans thousands of opportunities, scores fit and drafts proposals in seconds, following the playbook that built a multi-million-pound pipeline.", c: "#06776F", bg: "var(--cyan-soft)" },
@@ -4401,7 +4401,7 @@ function Login({ onNext, onHome, onSignup }) {
                   reached" described no measure we keep, against a register of
                   4,040; "50+ countries" was not a number we could show anyone.
                   All three are now things we can evidence on request. */}
-              {[["13,000+", "Combined LinkedIn following"], ["4,000+", "Named decision-makers"], ["5", "Markets"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
+              {[["13,000+", "Combined LinkedIn following"], ["3,800+", "Named decision-makers"], ["5", "Markets"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
         </div>
       </div>
       <div className="login-auth" style={{ flex: "1 1 0", background: "#fff", padding: "46px 42px", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
@@ -5273,6 +5273,13 @@ export default function App() {
         setPendingRole("clinician");
         setAuthMode("up");
         setStage("auth");
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+      // ?join=organisation (Founding Partner page, 30 September 2026) opens the
+      // role picker for organisations. Safe now that every organisation is
+      // checked by a founder before it can post or see contact details.
+      if (p.get("join") === "organisation") {
+        setStage("roleChoice");
         window.history.replaceState({}, "", window.location.pathname);
       }
 

@@ -197,9 +197,9 @@ export default function AuthPanel({ mode = "in", role, roleLabel, onHome, onCrea
           {/* These sit immediately above the password field, which is the
               worst place on the site to overstate anything. "100K+
               decision-makers reached" described no measure we keep, against a
-              register of 4,040, and "50+ countries" was not a number we could
+              register of 3,836 (counted 30 September 2026), and "50+ countries" was not a number we could
               show anyone. All three can now be evidenced on request. */}
-          <div className="row" style={{ gap: 28 }}>{[["13,000+", "Combined LinkedIn following"], ["4,040", "Named decision-makers"], ["5", "Markets"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
+          <div className="row" style={{ gap: 28 }}>{[["13,000+", "Combined LinkedIn following"], ["3,836", "Named decision-makers"], ["5", "Markets"]].map(([n, l]) => (<div key={l}><div className="disp num" style={{ fontSize: 22, fontWeight: 700 }}>{n}</div><div style={{ color: "#8295B6", fontSize: 12 }}>{l}</div></div>))}</div>
         </div>
         )}
       </div>
