@@ -164,7 +164,7 @@ export async function decide(userId, decision, by, note, allowChange = false) {
       const body = fp
         ? "<p>Thank you for your patience. We have confirmed your organisation, and your <b>Founding Partner year</b> has started: Qura " + esc(planName(fp.plan)) +
           ", our top plan, free until " + esc(ukDate(fp.until)) + ". Every market, decision-maker contacts, AI summaries and proposals, and posting roles for clinicians are switched on.</p>" +
-          "<p>Introductions to clinicians are still charged at £49 each. Nothing else is, and no card is needed. At the end of the year you choose a plan or move to the free plan.</p>"
+          "<p>Introductions to clinicians are still charged at £99 each. Nothing else is, and no card is needed. At the end of the year you choose a plan or move to the free plan.</p>"
         : "<p>Thank you for your patience. We have confirmed your organisation, and your 7-day Qura trial " +
           (t.started ? "has started today" : "is running") + ", with everything in Growth switched on: every market, decision-maker contacts, AI summaries and proposals, and posting roles for clinicians.</p>";
       const html = '<div style="font-family:Inter,Arial,sans-serif;color:#0A1730;line-height:1.6;max-width:600px">' +
