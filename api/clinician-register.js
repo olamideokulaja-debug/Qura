@@ -1,3 +1,4 @@
+import { grantFounding, joinedInTime } from "./_founding.js";
 import { getUser, kvGet, kvSet } from "./_auth.js";
 
 // GET  /api/clinician-register  -> this clinician's draft or completed record
@@ -157,6 +158,13 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: "Some items are still missing.", missing });
     }
     merged.registeredAt = new Date().toISOString();
+
+    // Founding Partner offer: clinicians who joined by 31 December 2026 get
+    // Career+ free for 12 months from the moment they complete registration.
+    if (joinedInTime(user)) {
+      try { await grantFounding(user.id, "clinician", "registration"); }
+      catch (e) { console.error("[clinician-register] founding grant failed: " + (e && e.message)); }
+    }
 
     // Add to the shared index the founder Clinicians tab reads.
     try {

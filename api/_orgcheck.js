@@ -21,6 +21,7 @@ import { kvGet, kvSet } from "./_auth.js";
 import { sign, verify as verifyToken, sendMail, sendMailEach, owners, SUPPORT } from "./_waitlist.js";
 import { TRIAL_DAYS } from "./_entitlements.js";
 import { bump } from "./_metrics.js";
+import { grantFounding, removeFounding, joinedInTime, planName, ukDate } from "./_founding.js";
 
 export const KEY = "org_check";
 const SITE = "https://www.qurahealth.org";
@@ -141,25 +142,41 @@ export async function decide(userId, decision, by, note, allowChange = false) {
     // started again.
     const plan = await kvGet(userId, "qura_plan");
     if (/(^|:)(trial|pilot)$/i.test(String(plan || ""))) { await kvSet(userId, "qura_plan", "null"); trialEnded = true; }
+    // A Founding Partner year given in error ends too.
+    try { await removeFounding(userId, by || "org-check"); } catch (e) {}
   }
+  let founding = null;
   if (rec.status === "verified") {
-    const t = await startTrialFor(userId);
-    trialStarted = t.started;
     const u = await authUser(userId);
+    // Founding Partner offer (30 September 2026): an organisation that joined
+    // by 31 December 2026 gets 12 months of its top plan free, starting now,
+    // in place of the 7-day trial. Later sign-ups get the trial as before.
+    let t = { started: false };
+    if (u && joinedInTime(u)) {
+      const role = await roleOf(userId);
+      founding = await grantFounding(userId, role, by || "org-check");
+    }
+    if (!founding || (!founding.granted && !founding.already)) t = await startTrialFor(userId);
+    trialStarted = t.started;
+    const fp = founding && (founding.granted || founding.already) && founding.record && founding.record.until ? founding.record : null;
     if (u && u.email) {
       const first = (u.user_metadata || {}).first_name || "";
+      const body = fp
+        ? "<p>Thank you for your patience. We have confirmed your organisation, and your <b>Founding Partner year</b> has started: Qura " + esc(planName(fp.plan)) +
+          ", our top plan, free until " + esc(ukDate(fp.until)) + ". Every market, decision-maker contacts, AI summaries and proposals, and posting roles for clinicians are switched on.</p>" +
+          "<p>Introductions to clinicians are still charged at £49 each. Nothing else is, and no card is needed. At the end of the year you choose a plan or move to the free plan.</p>"
+        : "<p>Thank you for your patience. We have confirmed your organisation, and your 7-day Qura trial " +
+          (t.started ? "has started today" : "is running") + ", with everything in Growth switched on: every market, decision-maker contacts, AI summaries and proposals, and posting roles for clinicians.</p>";
       const html = '<div style="font-family:Inter,Arial,sans-serif;color:#0A1730;line-height:1.6;max-width:600px">' +
-        "<p>" + (first ? "Hello " + esc(first) + "," : "Hello,") + "</p>" +
-        "<p>Thank you for your patience. We have confirmed your organisation, and your 7-day Qura trial " +
-        (t.started ? "has started today" : "is running") + ", with everything in Growth switched on: every market, decision-maker contacts, AI summaries and proposals, and posting roles for clinicians.</p>" +
+        "<p>" + (first ? "Hello " + esc(first) + "," : "Hello,") + "</p>" + body +
         '<p style="margin:22px 0"><a href="' + SITE + '" style="background:#00C2B8;color:#04231F;font-weight:700;padding:12px 24px;border-radius:999px;text-decoration:none;display:inline-block">Open Qura</a></p>' +
         "<p>If you would like a quick walk-through, reply to this email and one of the founders will call you.</p>" +
         "<p>Olamide Okulaja and Ola Folawiyo<br>Co-founders, Qura</p></div>";
-      const m = await sendMail([u.email], "Your Qura trial has started", html, owners()[0] || SUPPORT);
+      const m = await sendMail([u.email], fp ? "Welcome, Founding Partner: your free year has started" : "Your Qura trial has started", html, owners()[0] || SUPPORT);
       emailed = m.ok;
     }
   }
-  return { ok: true, record: rec, trialStarted, trialEnded, emailed };
+  return { ok: true, record: rec, trialStarted, trialEnded, emailed, founding: founding && founding.record ? founding.record : null };
 }
 
 export async function authUser(userId) {

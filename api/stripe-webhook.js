@@ -1,3 +1,4 @@
+import { markPaid } from "./_founding.js";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
@@ -106,7 +107,7 @@ export default async function handler(req, res) {
         const uid = s.client_reference_id || (s.metadata && s.metadata.userId) || (await userIdForEmail(who));
         // One-off purchases (a session or workshop) are not plans, and must
         // never overwrite a subscriber's plan.
-        if (plan && uid && s.mode === "subscription") await setPlan(uid, plan);
+        if (plan && uid && s.mode === "subscription") { await setPlan(uid, plan); try { await markPaid(uid); } catch (e) {} }
         await bump("paid");
         if (s.metadata && s.metadata.founding === "1") {
           const taken = (await kvGet("metrics", "founding_taken")) || [];
@@ -130,7 +131,7 @@ export default async function handler(req, res) {
       }
     } else if (event.type === "customer.subscription.updated") {
       const sub = event.data.object;
-      if (sub.status === "active" || sub.status === "trialing") await setPlan(sub.metadata?.userId, sub.metadata?.plan);
+      if (sub.status === "active" || sub.status === "trialing") { await setPlan(sub.metadata?.userId, sub.metadata?.plan); try { if (sub.metadata?.userId) await markPaid(sub.metadata.userId); } catch (e) {} }
       const prev = (event.data.previous_attributes || {});
       if (sub.cancel_at_period_end && prev.cancel_at_period_end === false) {
         await tellFounders("Subscription set to cancel: " + (sub.metadata?.plan || "plan"), [
