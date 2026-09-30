@@ -25,7 +25,7 @@ export const FP_KEY = "founding";
 // December, so this is also UTC.
 export const FP_DEADLINE = Date.parse("2027-01-01T00:00:00Z");
 export const FP_MONTHS = 12;
-export const FP_INTRO_FEE = 49;
+export const FP_INTRO_FEE = 99;
 
 const PROVIDERS = new Set(["hospital", "healthcare_provider", "gp", "care"]);
 const PAID_KEYS = ["starter", "growth", "enterprise", "team", "intelligence", "network", "career"];
