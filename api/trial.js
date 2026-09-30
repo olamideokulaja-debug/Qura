@@ -2,6 +2,7 @@ import { getUser, kvGet, kvSet } from "./_auth.js";
 import { TRIAL_DAYS, trialActive, tierOf } from "./_entitlements.js";
 import { bump } from "./_metrics.js";
 import { orgVerified, orgCheckOf, ensurePending, emailFoundersOnce, startTrialFor } from "./_orgcheck.js";
+import { joinedInTime } from "./_founding.js";
 
 // GET  /api/trial                    -> { trial, active, daysLeft }
 // POST /api/trial { action: "start" }  -> starts the 7-day trial, once per account
@@ -59,7 +60,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ ...state(null), pendingCheck: rec.status === "pending", orgStatus: rec.status,
         message: rec.status === "rejected"
           ? "We could not confirm your organisation. Reply to our email or write to support@qurahealth.org and we will look again."
-          : "We check every organisation before the free trial starts, usually within 1 working day. We will email you when it is on." });
+          : joinedInTime(user)
+            ? "You are in for the Founding Partner year: 12 months of our top plan, free. We check every organisation first, usually within 1 working day, and we will email you when it starts."
+            : "We check every organisation before the free trial starts, usually within 1 working day. We will email you when it is on." });
     }
     const out = await startTrialFor(user.id);
     return res.status(200).json(state(out.trial));
