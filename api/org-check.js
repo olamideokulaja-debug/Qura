@@ -62,13 +62,14 @@ export default async function handler(req, res) {
       const form = '<form method="post" action="' + esc(action) + '" style="margin-top:22px">' +
         '<button style="font:inherit;font-weight:700;font-size:15px;border:0;border-radius:999px;padding:12px 26px;cursor:pointer;background:' +
         (d === "verify" ? "#00C2B8;color:#04231F" : "#EEF1F7;color:#0A1730") + '">' +
-        (d === "verify" ? "Yes, confirm and start their trial" : "Yes, mark as not confirmed") + "</button></form>";
+        (d === "verify" ? "Yes, confirm this organisation" : "Yes, mark as not confirmed") + "</button></form>";
       return res.status(200).send(page(d === "verify" ? "Confirm this organisation?" : "Mark as not confirmed?", label, "#EEF3FF", form));
     }
     const out = await decide(userId, d, "email link");
     if (!out.ok) return res.status(500).send(page("That did not work", out.error || "Unknown error.", "#F59E0B"));
     if (d === "reject") return res.status(200).send(page("Not confirmed", label + " stays on the free plan. They have not been emailed; reply to them if you want to ask for more detail.", "#9FB0D0"));
-    return res.status(200).send(page("Confirmed", label + ": their 7-day trial " + (out.trialStarted ? "has started" : "was already running") +
+    const fpUntil = out.founding && out.founding.until ? new Date(out.founding.until).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : "";
+    return res.status(200).send(page("Confirmed", label + ": " + (fpUntil ? "their Founding Partner year has started, free until " + fpUntil : "their 7-day trial " + (out.trialStarted ? "has started" : "was already running")) +
       (out.emailed ? " and they have been emailed." : ". The email to them did not send, so let them know yourself."), "#00C2B8"));
   }
 
@@ -84,7 +85,7 @@ export default async function handler(req, res) {
     const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (error) return res.status(500).json({ error: error.message });
     const users = (data && data.users) || [];
-    const { data: rows } = await admin.from("kv").select("owner,key,value").in("key", [KEY, "account", "qura_role", "qura_trial", "qura_plan"]);
+    const { data: rows } = await admin.from("kv").select("owner,key,value").in("key", [KEY, "account", "qura_role", "qura_trial", "qura_plan", "founding"]);
     const kv = {};
     (rows || []).forEach((r) => { let v = r.value; try { v = JSON.parse(r.value); } catch (e) {} if (typeof v === "string") { try { v = JSON.parse(v); } catch (e) {} } (kv[r.owner] = kv[r.owner] || {})[r.key] = v; });
     const out = [];
@@ -105,6 +106,7 @@ export default async function handler(req, res) {
         decidedAt: rec ? rec.decidedAt || null : null, decidedBy: rec ? rec.decidedBy || "" : "", note: rec ? rec.note || "" : "",
         trial: Boolean(k.qura_trial && typeof k.qura_trial.start === "number"),
         plan: typeof k.qura_plan === "string" ? k.qura_plan : "",
+        founding: k.founding && typeof k.founding === "object" ? { status: k.founding.status || "", until: k.founding.until || null } : null,
       });
     }
     const order = { pending: 0, "not asked": 1, rejected: 2, verified: 3 };

@@ -1,5 +1,6 @@
 // Admin, New organisations: every business account and whether a founder has
-// confirmed the organisation is real. Confirming starts the 7-day trial and
+// confirmed the organisation is real. Confirming starts the Founding Partner
+// year (accounts created by 31 December 2026) or the 7-day trial, and
 // emails the person; "Not confirmed" keeps them on the free plan and ends any
 // trial already running. See api/_orgcheck.js.
 
@@ -40,14 +41,14 @@ export default function AdminOrgChecks() {
     let note = "";
     if (decision === "reject") {
       note = window.prompt("Why is " + (a.company || a.email) + " not confirmed? Kept on the record, not sent to them." +
-        (a.trial ? " Their running trial will end." : ""), "");
+        (a.trial ? " Their running trial will end." : "") + (a.founding && a.founding.status === "active" ? " Their Founding Partner year will end." : ""), "");
       if (note === null) return;
-    } else if (!window.confirm("Confirm " + (a.company || a.email) + " as a real organisation? Their 7-day trial starts now and they are emailed.")) return;
+    } else if (!window.confirm("Confirm " + (a.company || a.email) + " as a real organisation? Organisations that joined by 31 December 2026 start their free Founding Partner year now (later ones get the 7-day trial), and they are emailed.")) return;
     setBusy(a.id); setMsg("");
     try {
       const out = await call("/api/org-check", { userId: a.id, decision, note });
       setMsg(decision === "verify"
-        ? (a.company || a.email) + " confirmed. " + (out.trialStarted ? "Trial started" : "Trial was already running") + (out.emailed ? " and they have been emailed." : ".")
+        ? (a.company || a.email) + " confirmed. " + (out.founding && out.founding.until ? "Founding Partner year started, free until " + new Date(out.founding.until).toLocaleDateString("en-GB") : (out.trialStarted ? "Trial started" : "Trial was already running")) + (out.emailed ? " and they have been emailed." : ".")
         : (a.company || a.email) + " marked not confirmed." + (out.trialEnded ? " Their trial has ended." : ""));
       await load();
     } catch (e) { setErr(e.message); }
@@ -83,6 +84,7 @@ export default function AdminOrgChecks() {
                   <div style={{ fontWeight: 700, fontSize: 15.5 }}>{a.company || "Company not given"}</div>
                   <span style={{ fontSize: 11.5, fontWeight: 700, padding: "3px 9px", borderRadius: 999, background: tone.bg, color: tone.fg }}>{LABEL[a.status] || a.status}</span>
                   {a.trial ? <span className="muted" style={{ fontSize: 12 }}>trial started</span> : null}
+                  {a.founding && a.founding.status === "active" ? <span className="muted" style={{ fontSize: 12, color: "var(--teal)" }}>Founding Partner to {new Date(a.founding.until).toLocaleDateString("en-GB")}</span> : null}
                 </div>
                 <div style={{ fontSize: 13.5, marginTop: 4 }}>
                   {a.name ? a.name + " · " : ""}<b>{a.email}</b>{a.personalEmail ? " (personal address)" : ""}{a.phone ? " · " + a.phone : ""}
