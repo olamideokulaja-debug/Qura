@@ -24,6 +24,7 @@ async function call(path, body) {
   return j;
 }
 
+const cardName = (c) => String(c.brand || "card").replace(/^./, (x) => x.toUpperCase()) + " ending " + c.last4;
 const ukDate = (iso) => { try { return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }); } catch (e) { return ""; } };
 
 const STATUS = {
@@ -79,6 +80,11 @@ function AgencyView({ onToast }) {
   };
   const act = async (body, done) => { try { await call("/api/agency-pool", body); if (onToast && done) onToast(done); load(); } catch (e) { setErr(e.message); } };
 
+  const addCard = async () => {
+    setBusy(true); setErr("");
+    try { const j = await call("/api/agency-pool", { action: "card" }); window.location.href = j.url; } catch (e) { setErr(e.message); setBusy(false); }
+  };
+
   const input = { width: "100%", boxSizing: "border-box" };
   const rows = parseRows(bulk);
   return (
@@ -95,9 +101,37 @@ function AgencyView({ onToast }) {
         </div>
       ) : null}
 
+      {data && data.canInvite ? (
+        <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+          <div className="row" style={{ justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontWeight: 700 }}>Introduction fees</div>
+              <div className="muted" style={{ fontSize: 13.5, marginTop: 4, lineHeight: 1.55 }}>
+                {data.card
+                  ? "£" + data.fee + " per introduction request, charged automatically to your " + cardName(data.card) + (data.card.exp ? " (expires " + data.card.exp + ")" : "") + ". The request comes straight to you and Stripe emails a receipt."
+                  : "Add a card before adding clinicians. When a hospital asks to meet one of your clinicians, Qura's £" + data.fee + " fee is charged automatically and the request comes straight to you. Stripe holds the card, not Qura, and nothing is charged now."}
+              </div>
+              {data.cardFailed && data.card ? <div style={{ fontSize: 13, marginTop: 6, color: "#B4433A" }}>The last charge did not go through. Please update your card.</div> : null}
+            </div>
+            <button className={"btn " + (data.card ? "btn-light" : "btn-primary")} disabled={busy} onClick={addCard}>{data.card ? "Change card" : "Add a card"}</button>
+          </div>
+          {data.unpaid && data.unpaid.length ? (
+            <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 10 }}>
+              <div style={{ fontWeight: 600, fontSize: 13.5, marginBottom: 6 }}>Requests waiting for payment</div>
+              {data.unpaid.map((u) => (
+                <div key={u.id} className="row" style={{ justifyContent: "space-between", gap: 10, padding: "6px 0", fontSize: 13.5 }}>
+                  <span>{(u.clinician || "A clinician") + " · " + ukDate(u.at)}</span>
+                  <a className="btn btn-primary" style={{ fontSize: 12.5 }} href={u.payUrl} target="_blank" rel="noreferrer">{"Pay £" + data.fee + " and see the details"}</a>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {data && !data.canInvite ? (
         <div className="card" style={{ padding: 16, marginBottom: 16 }}>We check every organisation before it can add clinicians, usually within 1 working day. We will email you when it is done.</div>
-      ) : (
+      ) : data && data.needsCard ? null : (
         <div className="grid g2" style={{ gap: 16, marginBottom: 16 }}>
           <div className="card" style={{ padding: 18 }}>
             <div style={{ fontWeight: 700, marginBottom: 10 }}>Add a clinician</div>
@@ -164,7 +198,7 @@ function HospitalView({ onToast }) {
     try {
       const j = await call("/api/introductions", { clinicianId: c.id, handle: c.handle });
       setSent((s) => ({ ...s, [c.id]: true }));
-      if (onToast) onToast(j.routed ? "Request sent to " + (j.agencyName || "their agency") : "Introduction requested");
+      if (onToast) onToast(j.already ? "You have already asked. Their agency has your request." : j.routed ? "Request sent to " + (j.agencyName || "their agency") : "Introduction requested");
     } catch (e) { setErr(e.message); }
   };
   return (

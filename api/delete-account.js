@@ -1,6 +1,7 @@
 import { getUser } from "./_auth.js";
 import { adminClient } from "./_waitlist.js";
 import { getPool, repFor, repOwner } from "./_agency.js";
+import { deleteBilling } from "./_agencybill.js";
 
 // POST /api/delete-account
 //
@@ -68,6 +69,10 @@ export default async function handler(req, res) {
       if (error) problems.push("rep: " + error.message);
     }
   } catch (e) {}
+
+  // 1d. An agency's saved card: the Stripe customer is removed. Payments
+  // already taken stay in Stripe, as above.
+  try { await deleteBilling(id); } catch (e) {}
 
   // 2. Everything they own in the kv table.
   const { error: kvErr } = await admin.from("kv").delete().eq("owner", id);
