@@ -1,4 +1,5 @@
 import { getUser, kvGet, kvSet } from "./_auth.js";
+import { cleanComp, compOptions } from "./_comp.js";
 
 // GET  /api/profile        -> the signed-in clinician's profile
 // POST /api/profile {..}   -> save/merge the profile
@@ -16,7 +17,12 @@ const REQUIRED = ["category", "profession", "regBody", "regNumber", "country", "
 // Optional fields that make a profile stronger. They count towards the strength
 // score a clinician sees, so there is a visible reason to come back and finish,
 // but a missing one never blocks registration or verification.
-const OPTIONAL = ["cvUploaded", "availableFrom", "dayRate", "sector"];
+//
+// "compensation" is met by a salary expectation OR a day rate (1 October 2026,
+// Permanent First), so a clinician who only wants permanent work reaches 100%
+// without ever entering a day rate, and nobody who already gave a day rate
+// loses anything.
+const OPTIONAL = ["cvUploaded", "availableFrom", "compensation", "sector"];
 
 // Clinical research experience, stored as one nested object rather than 12 more
 // top-level fields. Only people targeting research roles ever fill it in, so
@@ -47,8 +53,9 @@ function cleanResearch(v) {
 }
 
 function completeness(p) {
+  const q = p ? { ...p, compensation: p.salaryBand || p.dayRate || "" } : p;
   const has = (k) => {
-    const v = p ? p[k] : undefined;
+    const v = q ? q[k] : undefined;
     return v !== undefined && v !== null && v !== "" && v !== false;
   };
   const done = REQUIRED.filter(has);
@@ -68,11 +75,14 @@ function completeness(p) {
     missing,
     // Strength is required fields plus whatever optional detail has been added,
     // so a registered clinician starts high and can reach 100% by adding a CV,
-    // availability and a rate.
+    // availability and a salary expectation or day rate.
     strength: Math.round(
       ((done.length / REQUIRED.length) * 0.75 + (extras.length / OPTIONAL.length) * 0.25) * 100
     ),
     optionalMissing: OPTIONAL.filter((k) => !has(k)),
+    // A gentle prompt, never a gate: shown to anyone who has not yet given a
+    // salary expectation, including clinicians who registered with a day rate.
+    askSalary: !(p && p.salaryBand),
   };
 }
 
@@ -82,7 +92,7 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     const raw = (await kvGet(user.id, KEY)) || {};
-    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate", "sector", "registeredAt", "verifiedAt", "verifiedBy", "careerTrack", "targetRoles", "sectors", "markets", "workPatterns", "research"];
+    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate", "salaryBand", "salaryMin", "salaryMax", "salaryCurrency", "salaryPeriod", "salaryNegotiable", "employmentPreferences", "sector", "registeredAt", "verifiedAt", "verifiedBy", "careerTrack", "targetRoles", "sectors", "markets", "workPatterns", "research"];
     const p = { email: user.email };
     for (const f of FIELDS) if (raw[f] !== undefined) p[f] = raw[f];
     // The app's Home screen shows "Qura Verified" whenever status.verified is
@@ -95,7 +105,7 @@ export default async function handler(req, res) {
     // last step. Build 7 reads complete and checked instead, and then both can
     // say the same thing.
     const st = completeness(p);
-    return res.status(200).json({ profile: p, status: { ...st, verified: st.checked } });
+    return res.status(200).json({ profile: p, status: { ...st, verified: st.checked }, options: compOptions() });
   }
 
   if (req.method === "POST") {
@@ -121,6 +131,9 @@ export default async function handler(req, res) {
       else if (/^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(Date.parse(v))) clean.availableFrom = v;
       else delete clean.availableFrom;
     }
+    // Salary expectation and employment preferences, kept apart from dayRate.
+    cleanComp(clean, incoming, current);
+
     // Research experience arrives as a nested object and is cleaned as one.
     const research = cleanResearch(incoming.research !== undefined ? incoming.research : current.research);
     if (research) clean.research = research;
@@ -156,7 +169,7 @@ export default async function handler(req, res) {
     clean.updatedAt = new Date().toISOString();
     const ok = await kvSet(user.id, KEY, clean);
     if (!ok && !user._preview) return res.status(500).json({ error: "Could not save profile" });
-    return res.status(200).json({ profile: clean, status: completeness(clean) });
+    return res.status(200).json({ profile: clean, status: completeness(clean), options: compOptions() });
   }
 
   return res.status(405).json({ error: "Method not allowed" });

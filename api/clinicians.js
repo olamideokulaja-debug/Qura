@@ -1,6 +1,8 @@
 import { seedActive } from "./_seed.js";
 import { getUser, kvGet, kvSet, kvListByKey } from "./_auth.js";
 import { ENTITLEMENTS } from "./_entitlements.js";
+import { orgVerified } from "./_orgcheck.js";
+import { bandLabel, salaryFit, PREF_KEYS } from "./_comp.js";
 
 // GET  /api/clinicians                 -> verified clinicians a supplier can shortlist
 // GET  /api/clinicians?shortlist=1     -> this supplier's shortlist
@@ -42,10 +44,30 @@ function toCard(owner, p) {
     experience: p.experienceYears,
     regBody: p.regBody,
     verified: true,
-    // Availability and rate, the two things a supplier actually shortlists on.
     availableFrom: p.availableFrom || null,
+    // Permanent First (1 October 2026): the kinds of work wanted, Permanent
+    // first, then the annual salary expectation as the main figure and the day
+    // rate underneath. Salary and day rate are separate fields.
+    employmentPreferences: Array.isArray(p.employmentPreferences) ? p.employmentPreferences : [],
+    salaryBand: p.salaryBand || null,
+    salaryLabel: p.salaryBand ? bandLabel(p.salaryBand) : null,
+    salaryMin: p.salaryBand ? (p.salaryMin == null ? null : p.salaryMin) : null,
+    salaryMax: p.salaryBand ? (p.salaryMax == null ? null : p.salaryMax) : null,
+    salaryCurrency: p.salaryBand ? "GBP" : null,
+    salaryPeriod: p.salaryBand ? "year" : null,
+    salaryNegotiable: Boolean(p.salaryNegotiable),
     dayRate: p.dayRate || null,
   };
+}
+
+// Pay is shown only to organisations a founder has checked (and to the
+// founders). Everyone else sees the card with pay withheld, and is told why.
+const PAY_FIELDS = ["salaryBand", "salaryLabel", "salaryMin", "salaryMax", "salaryCurrency", "salaryPeriod", "salaryNegotiable", "dayRate"];
+function withholdPay(card) {
+  const c = { ...card };
+  for (const k of PAY_FIELDS) c[k] = k === "salaryNegotiable" ? false : null;
+  c.payHidden = true;
+  return c;
 }
 
 // The Apple and Google review accounts hold a verified GP profile so reviewers
@@ -82,6 +104,8 @@ export default async function handler(req, res) {
   const ids = Array.isArray(shortlist) ? shortlist : [];
 
   let talent = await loadVerifiedTalent();
+  const canSeePay = await orgVerified(user);
+  if (!canSeePay) talent = talent.map(withholdPay);
   // Sample profiles only while there is nothing real and only before launch.
   const usingSample = talent.length === 0 && seedActive();
   if (usingSample) talent = SAMPLE.map((c) => ({ ...c, seeded: true }));
@@ -101,7 +125,21 @@ export default async function handler(req, res) {
     let items = talent;
     if (profession && profession !== "All") items = items.filter((c) => c.profession === profession);
     if (country && country !== "All") items = items.filter((c) => c.country === country);
-    return res.status(200).json({ items, shortlistIds: shown(ids), live: !usingSample });
+    // Optional filters. ?employment=permanent keeps clinicians open to that kind
+    // of work (anyone who has not said yet is kept too). ?salaryMin and
+    // ?salaryMax are a vacancy's annual range: clinicians whose band overlaps,
+    // or who are negotiable or have not said, are kept, so nobody is ruled out
+    // on salary they have not given.
+    const { employment, salaryMin, salaryMax } = req.query || {};
+    if (employment && PREF_KEYS.includes(String(employment))) {
+      items = items.filter((c) => { const e = c.employmentPreferences || []; return !e.length || e.includes(String(employment)); });
+    }
+    if (canSeePay && (salaryMin || salaryMax)) {
+      items = items
+        .map((c) => ({ ...c, salaryFit: salaryFit(c, salaryMin, salaryMax) }))
+        .filter((c) => c.salaryFit !== "outside");
+    }
+    return res.status(200).json({ items, shortlistIds: shown(ids), live: !usingSample, payVisible: canSeePay });
   }
 
   if (req.method === "POST") {
