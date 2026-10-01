@@ -1,6 +1,7 @@
 import { getUser, kvGet, kvSet } from "./_auth.js";
 import { cleanComp, compOptions } from "./_comp.js";
 import { noteAppBuild } from "./_appbuild.js";
+import { repFor, repOwner, isActive, getPool, savePool, REP_KEY } from "./_agency.js";
 
 // GET  /api/profile        -> the signed-in clinician's profile
 // POST /api/profile {..}   -> save/merge the profile
@@ -94,7 +95,7 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     await noteAppBuild(req, user);
     const raw = (await kvGet(user.id, KEY)) || {};
-    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate", "salaryBand", "salaryMin", "salaryMax", "salaryCurrency", "salaryPeriod", "salaryNegotiable", "employmentPreferences", "sector", "registeredAt", "verifiedAt", "verifiedBy", "careerTrack", "targetRoles", "sectors", "markets", "workPatterns", "research"];
+    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate", "salaryBand", "salaryMin", "salaryMax", "salaryCurrency", "salaryPeriod", "salaryNegotiable", "employmentPreferences", "sector", "residence", "registeredAt", "verifiedAt", "verifiedBy", "careerTrack", "targetRoles", "sectors", "markets", "workPatterns", "research"];
     const p = { email: user.email };
     for (const f of FIELDS) if (raw[f] !== undefined) p[f] = raw[f];
     // The app's Home screen shows "Qura Verified" whenever status.verified is
@@ -107,14 +108,37 @@ export default async function handler(req, res) {
     // last step. Build 7 reads complete and checked instead, and then both can
     // say the same thing.
     const st = completeness(p);
-    return res.status(200).json({ profile: p, status: { ...st, verified: st.checked }, options: compOptions() });
+    // The agency that represents them, if any (api/_agency.js).
+    let representedBy = null;
+    try {
+      const rep = await repFor(user.email);
+      if (isActive(rep)) representedBy = { agencyName: rep.agencyName, confirmedAt: rep.confirmedAt, until: rep.until };
+    } catch (e) {}
+    return res.status(200).json({ profile: p, status: { ...st, verified: st.checked }, options: compOptions(), representedBy });
+  }
+
+  if (req.method === "POST" && (req.body || {}).leaveAgency === true) {
+    // The clinician ends their agency's representation. Introductions already
+    // made stay with the agency; nothing new goes to them.
+    const rep = await repFor(user.email);
+    if (!isActive(rep)) return res.status(200).json({ ok: true, representedBy: null });
+    const now = new Date().toISOString();
+    await kvSet(repOwner(user.email), REP_KEY, { ...rep, status: "ended", endedAt: now, endedBy: "clinician" });
+    try {
+      const pool = await getPool(rep.agencyId);
+      const e = pool.entries.find((x) => x.id === rep.entryId);
+      if (e) { e.status = "ended"; e.endedAt = now; e.endedBy = "clinician"; await savePool(rep.agencyId, pool); }
+    } catch (e) {}
+    return res.status(200).json({ ok: true, representedBy: null });
   }
 
   if (req.method === "POST") {
     const incoming = req.body || {};
     const current = (await kvGet(user.id, KEY)) || {};
     // Only ever persist these known fields — prevents any runaway growth / nesting.
-    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate", "sector", "careerTrack", "targetRoles", "sectors", "markets", "workPatterns"];
+    // residence: where the clinician lives now, asked in the app's registration.
+    // It was dropped here, so reopening registration lost it (1 October 2026).
+    const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate", "sector", "residence", "careerTrack", "targetRoles", "sectors", "markets", "workPatterns"];
     const clean = {};
     for (const f of FIELDS) {
       const v = incoming[f] !== undefined ? incoming[f] : current[f];
