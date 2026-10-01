@@ -335,6 +335,7 @@ import { PlatformContent, WhySwitch, MarketMap } from "./pages/sections.jsx";
 // The clinician-first homepage (28 September 2026), kept in its own file.
 import { HomeHero, HomeValue, HomeVerify, HomeEcosystem, HomeApp, HomeTrust, HomeFinalCta } from "./pages/home.jsx";
 import PostRole from "./PostRole.jsx";
+import AgencyPool from "./AgencyPool.jsx";
 import { LAUNCH_AT, seedActive } from "./launch.js";
 import Academy from "./Academy.jsx";
 // Split out of this file: it had grown past 550 KB, which made every change
@@ -2074,7 +2075,7 @@ const Pricing = ({ plan, onChoose, highlight, role = "agency", market = "all", i
     clinician: [
       { key: "free", name: "Free", free: true, freeForever: true, blurb: "Always free to join, search and apply for work.", cta: "Your current plan", feats: ["Unlimited job search & alerts", "Apply and message directly", "Registered profile & documents"] },
       { key: "growth", name: "Career+", mo: 15, yr: 12, tag: "Most popular", blurb: "Premium career tools for ambitious clinicians.", cta: "Go Career+", feats: ["Salary & tariff insights", "Priority visibility to hospitals", "CPD & career planning tools"] },
-      { key: null, addon: true, name: "Relocation concierge", blurb: "Pay-as-you-go support to move country: visas, registration, accommodation and more.", cta: "Available as an add-on", feats: ["Visas & registration (GMC, AHPRA)", "Accommodation & travel", "Onboarding & family support"] },
+      { key: null, addon: true, name: "Relocation support", blurb: "Coming soon: help to move country, with registration guidance and introductions to regulated immigration advisers for visas.", cta: "Coming soon", feats: ["Registration guidance (GMC, NMC, HCPC, AHPRA)", "Introductions to regulated immigration advisers", "Accommodation & travel"] },
     ],
   };
   const tiers = SETS[group];
@@ -2250,64 +2251,33 @@ function SettingsScreen({ plan, trialMsg, go, profileName, onName, isOwner }) {
     </div>
   );
 }
+// Relocation (rewritten 1 October 2026). This page used to list named
+// partners, prices and a "Request concierge" button, none of which existed:
+// the partners were placeholders and the button only showed a message. Visa
+// help is also regulated: giving UK immigration advice without being qualified
+// is a criminal offence. It now says plainly what is planned, and a request
+// goes to the founders by email.
 function RelocationHub({ onToast, role, onNav }) {
-  const CORRIDORS = [{ k: "in-uk", l: "International to UK", live: true }, { k: "uk-anz", l: "UK to Australia & NZ", live: true }, { k: "uk-me", l: "UK to Middle East", live: false }];
-  const [corr, setCorr] = useState("in-uk");
-  const CM = {
-    "in-uk": { chip: "International to UK", visa: "Health & Care Worker visa, Certificate of Sponsorship and right-to-work checks.", reg: "GMC, NMC and HCPC registration, with OSCE or PLAB support.", regPartner: "Pass the OSCE" },
-    "uk-anz": { chip: "UK to Australia & NZ", visa: "Skilled and health-workforce visa sponsorship for Australia and New Zealand.", reg: "AHPRA (Australia) and NZ council registration, with bridging support.", regPartner: "AHPRA Ready" },
-    "uk-me": { chip: "UK to Middle East", visa: "Employment visa and licensing sponsorship across the Gulf.", reg: "DHA, DOH and MOH licensing (Dubai, Abu Dhabi and wider Gulf).", regPartner: "Gulf Licensing Co" },
-  };
-  const SERVICES = [
-    { k: "visa", n: "Visas & sponsorship", i: ShieldCheck, c: "#1E54E6", from: 1450, d: "Health & Care Worker visa, Certificate of Sponsorship and right-to-work checks.", partner: "Meridian Immigration" },
-    { k: "reg", n: "Registration & licensing", i: Award, c: "#0E8C7E", from: 650, d: "GMC, NMC and HCPC registration (AHPRA and equivalents for other markets).", partner: "Pass the OSCE" },
-    { k: "accom", n: "Accommodation", i: Home, c: "#5B3FD6", from: 900, d: "Short-let landing pads and help finding longer-term housing near the site.", partner: "SettleWell Housing" },
-    { k: "travel", n: "Flights & travel", i: Globe, c: "#00A79D", from: 480, d: "Flights, airport transfers and initial local travel set-up.", partner: "GlobeMove Travel" },
-    { k: "bank", n: "Banking & tax setup", i: CreditCard, c: "#1E54E6", from: 220, d: "UK bank account, National Insurance number and tax registration.", partner: "FirstAccount" },
-    { k: "lang", n: "Language (OET / IELTS)", i: MessageSquare, c: "#0E8C7E", from: 390, d: "OET and IELTS preparation and exam booking for clinical English.", partner: "Clarity Language" },
-    { k: "onboard", n: "Onboarding & pastoral care", i: Users, c: "#5B3FD6", from: 350, d: "A named coordinator, first-weeks check-ins and community connection.", partner: "Qura Concierge" },
-    { k: "family", n: "Family & schooling", i: Heart, c: "#C8102E", from: 540, d: "Partner employment support, school places and family settling-in.", partner: "HomeGround Family" },
+  const PLANNED = [
+    [ShieldCheck, "Visas", "Introductions to regulated immigration advisers. Qura does not give immigration advice itself."],
+    [Award, "Registration", "Guidance on GMC, NMC, HCPC and AHPRA registration, and the evidence each one asks for."],
+    [Home, "Accommodation", "Help finding somewhere to stay near the site for the first weeks."],
+    [Globe, "Travel", "Flights and getting to the site."],
+    [Users, "Onboarding", "Check-ins during the first weeks in post."],
   ];
-  const [pack, setPack] = useState([]);
-  const [who, setWho] = useState("");
-  const toggle = (k) => setPack((p) => p.includes(k) ? p.filter((x) => x !== k) : [...p, k]);
-  const chosen = SERVICES.filter((x) => pack.includes(x.k));
-  const subtotal = chosen.reduce((a, x) => a + x.from, 0);
-  const fee = Math.round(subtotal * 0.1);
-  const total = subtotal + fee;
-  const fmt = (n) => "£" + n.toLocaleString();
-  const request = () => { if (onToast) onToast(pack.length ? ("Relocation pack requested" + (who ? " for " + who : "")) : "Add a service to your pack first"); };
+  const mail = "mailto:support@qurahealth.org?subject=" + encodeURIComponent("Relocation support: register interest");
   return (
     <div>
-      <PageHead title="Relocation & mobility" sub="Move talent between countries with a Qura-managed concierge on a vetted partner network. Pay-as-you-go, with no long contracts." right={<span className="chip chip-cyan"><Globe size={13} />
-      {onNav ? <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--cyan-soft)", border: "none" }}><div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 10, alignItems: "center" }}><div className="row" style={{ gap: 10 }}><Home size={18} color="#06776F" /><span style={{ fontSize: 13.5 }}>Sorted your move? Accommodation is the next big step. Find verified housing partners in your destination.</span></div><button onClick={() => onNav("accommodation")} className="btn btn-primary" style={{ padding: "9px 16px" }}>Go to accommodation</button></div></div> : null} {CM[corr].chip}</span>} />
-      <div className="row" style={{ gap: 8, marginBottom: 16, flexWrap: "wrap" }}>{CORRIDORS.map((c) => (<button key={c.k} onClick={() => c.live && setCorr(c.k)} disabled={!c.live} style={{ cursor: c.live ? "pointer" : "not-allowed", padding: "8px 14px", borderRadius: 999, fontSize: 13, fontWeight: 600, background: corr === c.k ? "var(--navy)" : "#fff", color: corr === c.k ? "#fff" : c.live ? "var(--navy)" : "var(--muted)", border: "1px solid var(--line)", opacity: c.live ? 1 : .65 }}>{c.l}{!c.live && <span style={{ fontSize: 10, marginLeft: 6 }}>soon</span>}</button>))}</div>
-      <div className="card" style={{ padding: 16, marginBottom: 18, background: "var(--cyan-soft)", border: "none" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><Sparkles size={18} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 13.5, lineHeight: 1.55 }}>Build a relocation pack for a candidate below. Qura coordinates every step through vetted partners, so agencies, providers and clinicians get one managed move. You pay only for the services you choose, plus a small marketplace fee.</div></div></div>
-      <div className="grid g2" style={{ gap: 20, alignItems: "start" }}>
-        <div className="grid g2">{SERVICES.map((x) => { const on = pack.includes(x.k); return (
-          <div key={x.k} className="card" style={{ padding: 18, border: on ? "2px solid var(--cyan)" : "1px solid var(--line)" }}>
-            <div className="row" style={{ justifyContent: "space-between" }}><div style={{ width: 42, height: 42, borderRadius: 11, background: "#EEF3FF", display: "grid", placeItems: "center" }}><x.i size={20} color={x.c} /></div><span className="faint" style={{ fontSize: 12 }}>from {fmt(x.from)}</span></div>
-            <div style={{ fontWeight: 600, fontSize: 15, margin: "12px 0 4px" }}>{x.n}</div>
-            <p className="muted" style={{ fontSize: 12.5, margin: 0, lineHeight: 1.5, minHeight: 52 }}>{x.k === "visa" ? CM[corr].visa : x.k === "reg" ? CM[corr].reg : x.d}</p>
-            <div className="faint" style={{ fontSize: 11.5, margin: "10px 0 12px" }}>Partner: {x.k === "reg" ? CM[corr].regPartner : x.partner}</div>
-            <button onClick={() => toggle(x.k)} className={"btn " + (on ? "btn-primary" : "btn-light")} style={{ width: "100%", justifyContent: "center", fontSize: 13 }}>{on ? "Added to pack" : "Add to pack"}</button>
-          </div>
-        ); })}</div>
-        <div className="card" style={{ padding: 22, position: "sticky", top: 16 }}>
-          <div className="disp" style={{ fontWeight: 700, fontSize: 17, marginBottom: 4 }}>Relocation pack</div>
-          <p className="muted" style={{ fontSize: 12.5, marginTop: 0 }}>For a single candidate moving into the UK.</p>
-          <label style={{ fontSize: 12.5, fontWeight: 600 }}>Candidate name</label>
-          <input value={who} onChange={(e) => setWho(e.target.value)} placeholder="e.g. Dr. A. Nguyen" style={{ width: "100%", marginTop: 6, marginBottom: 14, padding: "10px 12px", border: "1px solid var(--line)", borderRadius: 10, fontSize: 13.5, boxSizing: "border-box" }} />
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>{chosen.length ? chosen.map((x) => (<div key={x.k} className="row" style={{ justifyContent: "space-between", fontSize: 13 }}><span className="row" style={{ gap: 8 }}><x.i size={14} color={x.c} />{x.n}</span><span className="num">{fmt(x.from)}</span></div>)) : <div className="faint" style={{ fontSize: 13 }}>No services added yet. Choose from the list to build a pack.</div>}</div>
-          {chosen.length > 0 && <div style={{ borderTop: "1px solid var(--line)", paddingTop: 12 }}>
-            <div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span className="muted">Subtotal</span><span className="num">{fmt(subtotal)}</span></div>
-            <div className="row" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 5 }}><span className="muted">Marketplace fee (10%)</span><span className="num">{fmt(fee)}</span></div>
-            <div className="row" style={{ justifyContent: "space-between", fontSize: 15, fontWeight: 700, marginTop: 6 }}><span>Estimated total</span><span className="num">{fmt(total)}</span></div>
-          </div>}
-          <button onClick={request} className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 16 }}><Send size={15} /> Request concierge</button>
-          <div className="faint" style={{ fontSize: 11, marginTop: 10, lineHeight: 1.5 }}>Indicative prices in GBP, confirmed on quote. A Qura coordinator manages the move end to end.</div>
+      <PageHead title="Relocation support" sub="Coming soon. Tell us what you need and we will be in touch as each service opens." />
+      <div className="card" style={{ padding: 16, marginBottom: 18, background: "var(--cyan-soft)", border: "none" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><Sparkles size={18} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 13.5, lineHeight: 1.55 }}>None of these services is live yet, and nothing here is charged. We are choosing partners now, starting with regulated immigration advisers.</div></div></div>
+      <div className="grid g2" style={{ gap: 16 }}>{PLANNED.map(([I, n, d]) => (
+        <div key={n} className="card" style={{ padding: 18 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 11, background: "#EEF3FF", display: "grid", placeItems: "center" }}><I size={20} color="#1E54E6" /></div>
+          <div style={{ fontWeight: 600, fontSize: 15, margin: "12px 0 4px" }}>{n}</div>
+          <p className="muted" style={{ fontSize: 13, margin: 0, lineHeight: 1.5 }}>{d}</p>
         </div>
-      </div>
+      ))}</div>
+      <a className="btn btn-primary" href={mail} style={{ marginTop: 18, display: "inline-flex" }}><Send size={15} /> Register interest</a>
     </div>
   );
 }
@@ -2779,32 +2749,10 @@ function AgencyBot({ plan = "starter" }) {
 
 
 
+// The talent pool, real since 1 October 2026 (src/AgencyPool.jsx). This page
+// used to show built-in sample candidates and save nothing to the server.
 function TalentPipeline({ role = "agency", onToast }) {
-  const supplierView = role === "agency" || role === "operator";
-  const TALENT = CLINICIANS.map((c, i) => ({ id: "t" + i, spec: c.spec, yrs: c.yrs, flag: c.flag, country: c.country, sector: c.sector, avail: c.avail, band: c.rate, direct: c.direct }));
-  const [ads, setAds] = useState(TALENT.map((t) => t.id));
-  useEffect(() => { (async () => { try { const r = await window.storage?.get("qura_pipeline_ads"); if (r?.value) { const v = JSON.parse(r.value); if (Array.isArray(v)) setAds(v); } } catch (e) {} })(); }, []);
-  const persist = (v) => { setAds(v); try { window.storage?.set("qura_pipeline_ads", JSON.stringify(v)); } catch (e) {} };
-  const toggle = (id) => persist(ads.includes(id) ? ads.filter((x) => x !== id) : [...ads, id]);
-  const advertised = TALENT.filter((t) => ads.includes(t.id));
-  const shown = supplierView ? TALENT : advertised;
-  const request = (t) => { if (onToast) onToast("Introduction requested for the " + t.spec + " candidate"); };
-  return (
-    <div>
-      <PageHead title={supplierView ? "Talent pipeline" : "Available talent"} sub={supplierView ? "Advertise your available candidates to hospitals. Profiles are anonymised until a hospital engages and you approve the introduction." : "Anonymised candidates that workforce suppliers have available now. Request an introduction to engage."} right={<span className="chip chip-cyan"><Users size={12} /> {advertised.length} {supplierView ? "advertised" : "available"}</span>} />
-      {supplierView ? <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--cyan-soft)", border: "none" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><Sparkles size={18} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 12.5, lineHeight: 1.55 }}>Advertise your available pipeline so hospitals engage when they see a match. Toggle candidates on or off. Names stay hidden until you approve an introduction.</div></div></div> : null}
-      <div className="grid-3">{shown.map((t) => { const on = ads.includes(t.id); return (
-        <div key={t.id} className="card lift" style={{ padding: 18 }}>
-          <div className="row" style={{ justifyContent: "space-between" }}><div style={{ width: 42, height: 42, borderRadius: 11, background: "#EEF3FF", display: "grid", placeItems: "center" }}><Stethoscope size={19} color="#1E54E6" /></div><span className="chip chip-grey" style={{ fontSize: 11.5 }}>{t.yrs} yrs</span></div>
-          <div style={{ fontWeight: 600, fontSize: 15, marginTop: 12 }}>{t.spec}</div>
-          <div className="row" style={{ gap: 6, marginTop: 8, flexWrap: "wrap" }}><span className="chip chip-grey" style={{ fontSize: 11.5 }}>{t.flag} {t.country}</span><span className={"chip " + (t.sector === "NHS" ? "chip-blue" : t.sector === "Private" ? "chip-violet" : "chip-low")} style={{ fontSize: 11.5 }}>{t.sector === "Both" ? "NHS & Private" : t.sector}</span></div>
-          {t.direct ? <div className="faint" style={{ fontSize: 11, marginTop: 6, color: "#9A5E00" }}>Direct application only (protected list)</div> : null}
-          <div className="row" style={{ justifyContent: "space-between", marginTop: 10 }}><span style={{ fontWeight: 600, fontSize: 13.5 }}>{t.band}</span><span className="chip chip-low">{t.avail}</span></div>
-          {supplierView ? <button onClick={() => toggle(t.id)} className={"btn " + (on ? "btn-primary" : "btn-light")} style={{ width: "100%", justifyContent: "center", marginTop: 12, padding: "9px" }}>{on ? <><Check size={14} /> Advertised</> : "Advertise to hospitals"}</button> : <button onClick={() => request(t)} className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginTop: 12, padding: "9px" }}><Send size={14} /> Request introduction</button>}
-        </div>
-      ); })}{!shown.length ? <div className="card" style={{ padding: 40, textAlign: "center", gridColumn: "1/-1" }}><div className="muted">Nothing advertised yet.</div></div> : null}</div>
-    </div>
-  );
+  return <AgencyPool role={role} onToast={onToast} />;
 }
 
 function LiveProjects({ onToast }) {
