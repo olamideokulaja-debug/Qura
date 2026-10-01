@@ -1,7 +1,8 @@
 import { seedActive } from "./_seed.js";
 import { getUser, kvGet, kvSet, kvListByKey } from "./_auth.js";
 import { ENTITLEMENTS } from "./_entitlements.js";
-import { orgVerified } from "./_orgcheck.js";
+import { orgVerified, roleOf, isFounderEmail } from "./_orgcheck.js";
+import { allReps, repOwner } from "./_agency.js";
 import { bandLabel, salaryFit, PREF_KEYS } from "./_comp.js";
 
 // GET  /api/clinicians                 -> verified clinicians a supplier can shortlist
@@ -78,10 +79,18 @@ const isReviewAccount = (p) => Boolean(p && p.email && REVIEW_EMAIL.test(String(
 
 async function loadVerifiedTalent() {
   const rows = await kvListByKey(PROFILE_KEY);
+  const reps = await allReps();
   const cards = [];
   for (const { owner, value } of rows) {
     if (value && isVerified(value) && !isReviewAccount(value)) {
       const card = toCard(owner, value);
+      // Represented by an agency (api/_agency.js). agencyId stays on the server.
+      const rep = value.email ? reps[repOwner(value.email)] : null;
+      if (rep) {
+        card.represented = true;
+        card.agencyName = rep.showName === false ? null : rep.agencyName;
+        Object.defineProperty(card, "_agencyId", { value: rep.agencyId, enumerable: false });
+      }
       try { const sum = await kvGet(owner, "cv_summary"); if (sum && sum.summary) card.summary = sum.summary; } catch (e) {}
       // Career+ clinicians get priority visibility: flagged and surfaced first.
       try {
@@ -104,6 +113,14 @@ export default async function handler(req, res) {
   const ids = Array.isArray(shortlist) ? shortlist : [];
 
   let talent = await loadVerifiedTalent();
+  // An agency's clinicians are private to that agency: other agencies never
+  // see them. Hospitals, providers and founders see every represented
+  // clinician, marked as such; the owning agency sees its own as "yours".
+  const founder = isFounderEmail(user.email);
+  const viewerRole = founder ? "founder" : await roleOf(user.id);
+  const isAgency = !founder && (viewerRole === "supplier" || viewerRole === "agency");
+  talent = talent.filter((c) => !c.represented || !isAgency || c._agencyId === user.id)
+    .map((c) => (c.represented && c._agencyId === user.id ? { ...c, yours: true } : c));
   const canSeePay = await orgVerified(user);
   if (!canSeePay) talent = talent.map(withholdPay);
   // Sample profiles only while there is nothing real and only before launch.
@@ -130,7 +147,11 @@ export default async function handler(req, res) {
     // ?salaryMax are a vacancy's annual range: clinicians whose band overlaps,
     // or who are negotiable or have not said, are kept, so nobody is ruled out
     // on salary they have not given.
-    const { employment, salaryMin, salaryMax } = req.query || {};
+    const { employment, salaryMin, salaryMax, direct, mine } = req.query || {};
+    // ?direct=1: only clinicians who joined Qura themselves. ?mine=1: an
+    // agency's own represented clinicians.
+    if (direct) items = items.filter((c) => !c.represented);
+    if (mine) items = items.filter((c) => c.yours);
     if (employment && PREF_KEYS.includes(String(employment))) {
       items = items.filter((c) => { const e = c.employmentPreferences || []; return !e.length || e.includes(String(employment)); });
     }
@@ -139,7 +160,7 @@ export default async function handler(req, res) {
         .map((c) => ({ ...c, salaryFit: salaryFit(c, salaryMin, salaryMax) }))
         .filter((c) => c.salaryFit !== "outside");
     }
-    return res.status(200).json({ items, shortlistIds: shown(ids), live: !usingSample, payVisible: canSeePay });
+    return res.status(200).json({ items, shortlistIds: shown(ids), live: !usingSample, payVisible: canSeePay, viewer: founder ? "founder" : isAgency ? "agency" : "provider" });
   }
 
   if (req.method === "POST") {

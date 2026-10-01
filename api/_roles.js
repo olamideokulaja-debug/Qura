@@ -12,6 +12,7 @@ import { kvListByKey } from "./_auth.js";
 import { shouldPush } from "./push-register.js";
 import { sendMail, owners, SUPPORT } from "./_waitlist.js";
 import { wantsType, rolePayLabel } from "./_comp.js";
+import { alertAgencies } from "./_agency.js";
 
 export const COUNTRIES = ["United Kingdom", "Ireland", "Australia", "New Zealand", "Canada", "United States",
   "UAE", "Saudi Arabia", "Qatar", "Nigeria", "Ghana", "Kenya", "South Africa", "Brazil", "European Union", "Other"];
@@ -110,11 +111,13 @@ async function sendExpo(messages) {
 // on; email the rest (capped per role, one email per role per person). Never
 // throws: a failed alert must not fail the post.
 export async function alertMatches(role) {
-  const out = { matched: 0, pushed: 0, emailed: 0 };
+  const out = { matched: 0, pushed: 0, emailed: 0, agencies: 0 };
   try {
     const profiles = await kvListByKey("clinician_profile");
     const hits = profiles.filter((p) => p.value && p.value.registeredAt && matches(p.value, role));
     out.matched = hits.length;
+    // Agencies hear about matches among the clinicians they represent.
+    out.agencies = (await alertAgencies(role, hits)).agencies;
     const regs = await kvListByKey("push_registration");
     const regOf = {};
     for (const r of regs) regOf[r.owner] = r.value;
