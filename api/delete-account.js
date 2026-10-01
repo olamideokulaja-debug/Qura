@@ -1,5 +1,6 @@
 import { getUser } from "./_auth.js";
 import { adminClient } from "./_waitlist.js";
+import { getPool, repFor, repOwner } from "./_agency.js";
 
 // POST /api/delete-account
 //
@@ -48,6 +49,23 @@ export default async function handler(req, res) {
     if (paths.length) {
       const { error } = await admin.storage.from("cvs").remove(paths);
       if (error) problems.push("cvs (by owner): " + error.message);
+    }
+  } catch (e) {}
+
+  // 1c. Agency representation (api/_agency.js), which is keyed by email rather
+  // than by account: the clinician's own record, and, for an agency, the
+  // records of every clinician it represented. Added 1 October 2026.
+  try {
+    const owners = [];
+    if (user.email) owners.push(repOwner(user.email));
+    const pool = await getPool(id);
+    for (const e of pool.entries) {
+      const rep = await repFor(e.email);
+      if (rep && rep.agencyId === id) owners.push(repOwner(e.email));
+    }
+    if (owners.length) {
+      const { error } = await admin.from("kv").delete().in("owner", [...new Set(owners)]).eq("key", "rep");
+      if (error) problems.push("rep: " + error.message);
     }
   } catch (e) {}
 
