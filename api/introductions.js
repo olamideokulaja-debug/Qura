@@ -23,9 +23,10 @@ export default async function handler(req, res) {
     // Represented clinicians: the request goes to their agency (api/_agency.js).
     const routed = await routeIntroduction(user, clinicianId, { handle });
     if (routed && routed.own) return res.status(400).json({ error: "This clinician is already one of yours." });
+    if (routed && routed.blocked) return res.status(403).json({ error: routed.error });
     if (routed) {
       const items = (await kvGet(user.id, KEY)) || [];
-      return res.status(200).json({ items, routed: true, agencyName: routed.agencyName });
+      return res.status(200).json({ items, routed: true, already: Boolean(routed.already), agencyName: routed.agencyName });
     }
     const list = (await kvGet(user.id, KEY)) || [];
     const arr = Array.isArray(list) ? list : [];
