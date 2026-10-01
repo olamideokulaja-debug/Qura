@@ -95,3 +95,48 @@ export const compOptions = () => ({
   salaryBands: SALARY_BANDS.map(({ key, label }) => ({ key, label })),
   employmentPreferences: PREFS,
 });
+
+// ---- Roles (1 October 2026) -------------------------------------------------
+// A posted role can say what kind of work it is and, for permanent and
+// fixed-term roles, its annual salary range. Both are optional so older posts
+// and the website form keep working. The free-text "rate" is kept as it was.
+
+export const prefLabel = (k) => { const p = PREFS.find((x) => x.key === k); return p ? p.label : ""; };
+
+const money = (v) => {
+  if (v === undefined || v === null || v === "") return null;
+  const n = Math.round(Number(String(v).replace(/[^0-9.]/g, "")));
+  return isFinite(n) && n >= 1000 && n <= 1000000 ? n : null;
+};
+
+// Cleans the role fields from a posting form. Returns only what is valid.
+export function cleanRolePay(raw) {
+  const out = {};
+  const t = String((raw && raw.employmentType) || "");
+  if (PREF_KEYS.includes(t)) out.employmentType = t;
+  let lo = money(raw && raw.salaryMin), hi = money(raw && raw.salaryMax);
+  if (lo !== null && hi !== null && lo > hi) { const x = lo; lo = hi; hi = x; }
+  if (lo !== null) out.salaryMin = lo;
+  if (hi !== null) out.salaryMax = hi;
+  if (lo !== null || hi !== null) { out.salaryCurrency = "GBP"; out.salaryPeriod = "year"; }
+  return out;
+}
+
+const k = (n) => "£" + (n % 1000 === 0 ? n / 1000 + "k" : Math.round(n / 100) / 10 + "k");
+// "£40k to £45k a year", "From £40k a year", "Up to £45k a year", or "".
+export function rolePayLabel(r) {
+  if (!r) return "";
+  const lo = r.salaryMin == null ? null : Number(r.salaryMin), hi = r.salaryMax == null ? null : Number(r.salaryMax);
+  if (lo && hi) return (lo === hi ? k(lo) : k(lo) + " to " + k(hi)) + " a year";
+  if (lo) return "From " + k(lo) + " a year";
+  if (hi) return "Up to " + k(hi) + " a year";
+  return "";
+}
+
+// Would this clinician want this kind of work? Anyone who has not said is
+// treated as open to it.
+export function wantsType(profile, type) {
+  if (!type) return true;
+  const prefs = profile && Array.isArray(profile.employmentPreferences) ? profile.employmentPreferences : [];
+  return !prefs.length || prefs.includes(type);
+}

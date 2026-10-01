@@ -4,6 +4,8 @@ import { limited } from "./_ratelimit.js";
 import { planOf, ENTITLEMENTS } from "./_entitlements.js";
 import { orgVerified } from "./_orgcheck.js";
 import { COUNTRIES, isOpen, closesLabel, alertMatches } from "./_roles.js";
+import { cleanRolePay } from "./_comp.js";
+import { noteAppBuild } from "./_appbuild.js";
 
 export const config = { maxDuration: 60 };
 
@@ -36,6 +38,7 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: "Sign in required" });
 
   if (req.method === "GET") {
+    await noteAppBuild(req, user);
     const posted = (await kvGet("shared", "demand_posted")) || [];
     const { market, profession } = req.query || {};
     // Real public procurement notices, refreshed daily by api/refresh-tenders.js
@@ -118,6 +121,8 @@ export default async function handler(req, res) {
       need: b.need || "", start: b.start || "", closes: days + " days",
       closesAt: new Date(Date.now() + days * 86400000).toISOString(), country: b.country,
       note: b.note || "", postedBy: user.id, at: new Date().toISOString(),
+      // Type of work and annual salary range (Permanent First, 1 October 2026).
+      ...cleanRolePay(raw),
     };
     await kvSet("shared", "demand_posted", [entry, ...arr]);
     // Tell matching clinicians. The counts are kept on the record so the

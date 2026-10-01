@@ -1,5 +1,6 @@
 import { getUser, kvGet, kvSet } from "./_auth.js";
 import { cleanComp, compOptions } from "./_comp.js";
+import { noteAppBuild } from "./_appbuild.js";
 
 // GET  /api/profile        -> the signed-in clinician's profile
 // POST /api/profile {..}   -> save/merge the profile
@@ -91,6 +92,7 @@ export default async function handler(req, res) {
   if (!user) return res.status(401).json({ error: "Sign in required" });
 
   if (req.method === "GET") {
+    await noteAppBuild(req, user);
     const raw = (await kvGet(user.id, KEY)) || {};
     const FIELDS = ["category", "profession", "regBody", "regNumber", "country", "experienceYears", "cvUploaded", "availableFrom", "dayRate", "salaryBand", "salaryMin", "salaryMax", "salaryCurrency", "salaryPeriod", "salaryNegotiable", "employmentPreferences", "sector", "registeredAt", "verifiedAt", "verifiedBy", "careerTrack", "targetRoles", "sectors", "markets", "workPatterns", "research"];
     const p = { email: user.email };
@@ -169,6 +171,24 @@ export default async function handler(req, res) {
     clean.updatedAt = new Date().toISOString();
     const ok = await kvSet(user.id, KEY, clean);
     if (!ok && !user._preview) return res.status(500).json({ error: "Could not save profile" });
+
+    // A history of pay and work-type changes, so a hospital or a founder can
+    // see when an expectation was set or changed. Written only when one of
+    // these actually changes; the newest 50 are kept.
+    try {
+      const COMP = ["salaryBand", "dayRate", "employmentPreferences"];
+      const sig = (p) => JSON.stringify(COMP.map((k) => (p[k] === undefined ? null : p[k])));
+      if (sig(clean) !== sig(current)) {
+        const hist = (await kvGet(user.id, "comp_history")) || [];
+        const entry = { at: clean.updatedAt };
+        for (const k of COMP) entry[k] = clean[k] === undefined ? null : clean[k];
+        if (current.salaryBand !== undefined || current.dayRate !== undefined || current.employmentPreferences !== undefined) {
+          entry.was = {};
+          for (const k of COMP) entry.was[k] = current[k] === undefined ? null : current[k];
+        }
+        await kvSet(user.id, "comp_history", [entry, ...(Array.isArray(hist) ? hist : [])].slice(0, 50));
+      }
+    } catch (e) {}
     return res.status(200).json({ profile: clean, status: completeness(clean), options: compOptions() });
   }
 
