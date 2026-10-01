@@ -6,8 +6,9 @@
 //     "Represented by a partner agency" (named if the agency chooses)
 //   - no other agency can see them
 //   - an introduction request goes to the agency, which introduces the
-//     clinician on its own terms and keeps its own fee; Qura charges the
-//     agency its introduction fee (recorded for invoicing)
+//     clinician on its own terms and keeps its own fee; Qura's introduction
+//     fee is charged to the agency's saved card automatically
+//     (api/_agencybill.js)
 //   - the agency is told when a posted role matches one of its clinicians
 //
 // Rules agreed for the first version:
@@ -34,6 +35,8 @@
 import crypto from "node:crypto";
 import { kvGet, kvSet, kvListByKey } from "./_auth.js";
 import { sign, verify, sendMail, owners, SUPPORT } from "./_waitlist.js";
+import { orgVerified, isFounderEmail } from "./_orgcheck.js";
+import { chargeIntro, cardLabel, payLink, saveCardFromSetup, saveCardFromPayment } from "./_agencybill.js";
 
 export const POOL_KEY = "agency_pool";
 export const REP_KEY = "rep";
@@ -111,8 +114,43 @@ export async function sendInvite(agencyId, agencyName, entry) {
 
 // ------------------------------------------------------------ introductions
 // When a hospital asks to meet a represented clinician, the request goes to
-// the agency. Returns null when the clinician is not represented, so the
-// caller carries on as before.
+// the agency, and Qura's introduction fee is charged to the agency's saved
+// card there and then (api/_agencybill.js). Returns null when the clinician
+// is not represented, so the caller carries on as before.
+//
+// Guards, because the agency pays for each request:
+//   - only an organisation a founder has checked can ask
+//   - one request per organisation per clinician per representation
+//   - at most 20 routed requests per organisation per day
+const DAILY_ROUTED = 20;
+
+function introHtml(item, paidNote) {
+  return '<div style="font-family:Inter,Arial,sans-serif;color:#0A1730;line-height:1.6;max-width:600px">' +
+    "<p>Hello,</p><p>An organisation on Qura would like an introduction to <b>" + esc(item.clinicianLabel) + "</b>" +
+    (item.clinicianProfession ? " (" + esc(item.clinicianProfession) + ")" : "") + ", whom you represent.</p>" +
+    '<div style="border:1px solid #E3E8F2;border-radius:12px;padding:14px 16px;margin:12px 0">' +
+    "<div><b>" + esc(item.requesterOrg || "Organisation") + "</b></div><div>Contact: " + esc(item.supplierEmail) + "</div></div>" +
+    "<p>Please contact them directly and introduce your clinician on your usual terms.</p>" +
+    "<p>" + paidNote + "</p>" +
+    '<p style="font-size:12px;color:#8A96AD">Qura Ltd, company number 17310951. Questions: ' + SUPPORT + ".</p></div>";
+}
+
+function payHtml(item) {
+  return '<div style="font-family:Inter,Arial,sans-serif;color:#0A1730;line-height:1.6;max-width:600px">' +
+    "<p>Hello,</p><p>An organisation on Qura would like an introduction to <b>" + esc(item.clinicianLabel) + "</b>" +
+    (item.clinicianProfession ? " (" + esc(item.clinicianProfession) + ")" : "") + ", whom you represent.</p>" +
+    "<p>We could not take Qura's £" + item.agencyFee + " introduction fee automatically" +
+    (item.agencyChargeNote === "no card saved" ? ", because there is no card on your account yet." : ", because your card did not go through.") +
+    " Pay by card and we will email you the organisation's name and contact details straight away. Your card is then saved, so future requests come straight to you.</p>" +
+    "<p>" + btn(payLink(item.id), "Pay £" + item.agencyFee + " and see the details", true) + "</p>" +
+    '<p style="font-size:12px;color:#8A96AD">Qura Ltd, company number 17310951. Questions: ' + SUPPORT + ".</p></div>";
+}
+
+async function readQueue() {
+  const q = await kvGet("shared", "intro_queue");
+  return Array.isArray(q) ? q : [];
+}
+
 export async function routeIntroduction(user, clinicianId, meta = {}) {
   const owner = String(clinicianId || "").replace(/^cl_/, "");
   if (!owner || owner === clinicianId) return null;
@@ -120,18 +158,38 @@ export async function routeIntroduction(user, clinicianId, meta = {}) {
   const rep = profile && profile.email ? await repFor(profile.email) : null;
   if (!isActive(rep)) return null;
   if (rep.agencyId === user.id) return { own: true, agencyName: rep.agencyName };
+  const shownName = rep.showName === false ? "" : rep.agencyName;
+
+  if (!isFounderEmail(user.email) && !(await orgVerified(user))) {
+    return { blocked: true, error: "We check every organisation before passing requests to a clinician's agency, usually within 1 working day. We will email you when it is done." };
+  }
+  const queue = await readQueue();
+  const dup = queue.find((q) => q.routedTo === rep.agencyId && q.supplier === user.id && q.clinicianId === clinicianId && q.repSince === rep.confirmedAt);
+  if (dup) return { routed: true, already: true, agencyName: shownName };
+  const dayAgo = Date.now() - 86400000;
+  if (queue.filter((q) => q.routedTo && q.supplier === user.id && Date.parse(q.at) > dayAgo).length >= DAILY_ROUTED) {
+    return { blocked: true, error: "You have sent " + DAILY_ROUTED + " requests to agencies today. Please try again tomorrow." };
+  }
 
   const ag = await agencyAccount(rep.agencyId);
   const reqAcc = (await kvGet(user.id, "account")) || {};
   const reqOrg = (reqAcc.org && typeof reqAcc.org === "object" ? reqAcc.org.name : reqAcc.org) || "";
+  const poolEntry = (await getPool(rep.agencyId)).entries.find((x) => x.id === rep.entryId) || {};
   const now = new Date().toISOString();
   const entry = {
-    id: "intro_" + Date.now(), clinicianId, handle: meta.handle || "", profession: meta.profession || "",
+    id: "intro_" + Date.now() + Math.random().toString(36).slice(2, 6), clinicianId, handle: meta.handle || "", profession: meta.profession || "",
     country: meta.country || "", status: "Sent to the clinician's agency", supplier: user.id, supplierEmail: user.email,
-    fee: 0, routedTo: rep.agencyId, agencyName: ag.name, agencyFee: INTRO_FEE, agencyFeeStatus: "to invoice", at: now,
+    requesterOrg: reqOrg, clinicianLabel: poolEntry.name || profile.profession || "one of your clinicians", clinicianProfession: profile.profession || "",
+    fee: 0, routedTo: rep.agencyId, agencyName: ag.name, agencyEmail: ag.email, repSince: rep.confirmedAt || "", agencyFee: INTRO_FEE, at: now,
   };
-  const queue = (await kvGet("shared", "intro_queue")) || [];
-  await kvSet("shared", "intro_queue", [entry, ...(Array.isArray(queue) ? queue : [])]);
+
+  const charge = await chargeIntro(rep.agencyId, ag, entry, INTRO_FEE);
+  if (charge.ok) {
+    entry.agencyFeeStatus = "paid"; entry.agencyPaidAt = now; entry.agencyPayment = charge.id; entry.detailsSentAt = now;
+  } else {
+    entry.agencyFeeStatus = "awaiting payment"; entry.agencyChargeNote = String(charge.reason || "").slice(0, 120);
+  }
+  await kvSet("shared", "intro_queue", [entry, ...(await readQueue())]);
   const mine = (await kvGet(user.id, "supplier_introductions")) || [];
   const arr = Array.isArray(mine) ? mine : [];
   if (!arr.some((i) => i.clinicianId === clinicianId)) {
@@ -144,25 +202,46 @@ export async function routeIntroduction(user, clinicianId, meta = {}) {
     if (e) { e.introductions = (e.introductions || 0) + 1; e.lastIntroAt = now; await savePool(rep.agencyId, pool); }
   } catch (e) {}
 
-  const poolEntry = (await getPool(rep.agencyId)).entries.find((x) => x.id === rep.entryId) || {};
-  const who = poolEntry.name || profile.profession || "one of your clinicians";
-  const html = '<div style="font-family:Inter,Arial,sans-serif;color:#0A1730;line-height:1.6;max-width:600px">' +
-    "<p>Hello,</p><p>An organisation on Qura would like an introduction to <b>" + esc(who) + "</b>" +
-    (profile.profession ? " (" + esc(profile.profession) + ")" : "") + ", whom you represent.</p>" +
-    '<div style="border:1px solid #E3E8F2;border-radius:12px;padding:14px 16px;margin:12px 0">' +
-    "<div><b>" + esc(reqOrg || "Organisation") + "</b></div><div>Contact: " + esc(user.email) + "</div></div>" +
-    "<p>Please contact them directly and introduce your clinician on your usual terms. Qura's introduction fee of £" + INTRO_FEE +
-    " applies to your account and we will invoice you.</p>" +
-    '<p style="font-size:12px;color:#8A96AD">Qura Ltd, company number 17310951. Questions: ' + SUPPORT + ".</p></div>";
   const to = ag.email ? [ag.email] : [];
-  if (to.length) await sendMail(to, "Introduction request for " + who, html, user.email);
+  if (to.length) {
+    if (charge.ok) {
+      await sendMail(to, "Introduction request for " + entry.clinicianLabel,
+        introHtml(entry, "Qura's £" + INTRO_FEE + " introduction fee has been charged to your " + cardLabel(charge.card) + ". Stripe will email your receipt."), user.email);
+    } else {
+      await sendMail(to, "Introduction request for " + entry.clinicianLabel + ": pay to see the details", payHtml(entry), SUPPORT);
+    }
+  }
   const founders = owners();
   if (founders.length) {
-    await sendMail(founders, "Introduction routed to an agency (£" + INTRO_FEE + " to invoice)",
-      "<p>" + esc(reqOrg || user.email) + " asked to meet " + esc(who) + ", represented by " + esc(ag.name) + " (" + esc(ag.email || "no email on file") +
-      "). The request went to the agency. Invoice the agency £" + INTRO_FEE + ".</p>", SUPPORT);
+    await sendMail(founders, "Introduction routed to " + ag.name + (charge.ok ? " (£" + INTRO_FEE + " charged)" : " (awaiting payment)"),
+      "<p>" + esc(reqOrg || user.email) + " asked to meet " + esc(entry.clinicianLabel) + ", represented by " + esc(ag.name) + " (" + esc(ag.email || "no email on file") + ").</p>" +
+      (charge.ok
+        ? "<p>£" + INTRO_FEE + " was charged to the agency's saved card automatically, and the request went to them. Nothing to do.</p>"
+        : "<p>The automatic charge did not go through (" + esc(entry.agencyChargeNote) + "). The agency has been emailed a payment link; the requester's details go to them as soon as they pay. Nothing to do unless they ask for help.</p>"), SUPPORT);
   }
-  return { routed: true, agencyName: rep.showName === false ? "" : ag.name, emailed: Boolean(to.length) };
+  return { routed: true, agencyName: shownName, emailed: Boolean(to.length), charged: charge.ok };
+}
+
+// From the webhook, for both kinds of agency payment page.
+export async function handleAgencyCheckout(session) {
+  const m = session.metadata || {};
+  if (m.kind === "agency_card") { await saveCardFromSetup(session); return { kind: "card" }; }
+  if (m.kind !== "agency_intro") return null;
+  try { await saveCardFromPayment(session); } catch (e) {}
+  const queue = await readQueue();
+  const item = queue.find((q) => q.id === m.agencyIntroId);
+  if (!item) return { kind: "intro", missing: true };
+  if (item.agencyFeeStatus === "paid" && item.detailsSentAt) return { kind: "intro", already: true };
+  const now = new Date().toISOString();
+  item.agencyFeeStatus = "paid"; item.agencyPaidAt = now; item.agencyPayment = session.payment_intent || session.id; item.detailsSentAt = now;
+  await kvSet("shared", "intro_queue", queue);
+  const ag = await agencyAccount(item.routedTo);
+  const to = ag.email ? [ag.email] : item.agencyEmail ? [item.agencyEmail] : [];
+  if (to.length) {
+    await sendMail(to, "Introduction request for " + item.clinicianLabel + ": the details",
+      introHtml(item, "Thank you for paying Qura's £" + item.agencyFee + " introduction fee. Stripe will email your receipt, and your card is saved so future requests come straight to you."), item.supplierEmail);
+  }
+  return { kind: "intro", item };
 }
 
 // ------------------------------------------------------------ role alerts

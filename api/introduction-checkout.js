@@ -35,11 +35,12 @@ export default async function handler(req, res) {
   if (isSeededId(clinicianId)) return refuseSeeded(res);
 
   // A clinician an agency represents: the request goes to the agency, which
-  // introduces them on its own terms. The requester is not charged; the agency
-  // is invoiced the introduction fee (api/_agency.js).
+  // introduces them on its own terms. The requester is not charged; the
+  // agency's saved card is charged the introduction fee (api/_agency.js).
   const routed = await routeIntroduction(user, clinicianId, { handle, profession, country });
   if (routed && routed.own) return res.status(400).json({ error: "This clinician is already one of yours." });
-  if (routed) return res.status(200).json({ routed: true, agencyName: routed.agencyName, fee: 0 });
+  if (routed && routed.blocked) return res.status(403).json({ error: routed.error });
+  if (routed) return res.status(200).json({ routed: true, already: Boolean(routed.already), agencyName: routed.agencyName, fee: 0 });
 
   // Subscribers on any paid plan (monthly or yearly) get introductions included, no fee.
   // Read through planOf, which expires trials, and only a paid supplier plan
