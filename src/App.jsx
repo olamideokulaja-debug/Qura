@@ -1874,59 +1874,95 @@ function ExecNetwork({ onToast }) {
   );
 }
 
+// Candidate search for hospitals and providers. Until 1 October 2026 this read
+// the CLINICIANS sample list, which is empty outside seed mode, so every
+// hospital saw "0 clinicians" whoever had joined. It now reads the same real,
+// founder-verified profiles as supplier Talent (api/clinicians.js), limited to
+// clinicians who joined Qura themselves: agency-represented clinicians are on
+// the Agency talent page, where the request goes to their agency. Cards carry
+// professional details only; names and registration numbers stay private
+// until an introduction is made.
+const yearsOf = (v) => { const n = parseInt(String(v == null ? "" : v).replace(/[^0-9]/g, ""), 10); return isFinite(n) ? n : 0; };
 function ClinicianNetwork({ onToast, isOwner }) {
+  const [items, setItems] = useState(null);
+  const [live, setLive] = useState(true);
+  const [err, setErr] = useState("");
   const [saved, setSaved] = useState([]);
+  const [asked, setAsked] = useState({});
   const [q, setQ] = useState("");
   const [country, setCountry] = useState("All");
-  const [sector, setSector] = useState("All");
+  const [prof, setProf] = useState("All");
   const [minExp, setMinExp] = useState(0);
   const [priority, setPriority] = useState(false);
-  const save = async (c) => {
-    const entry = { id: "cn_" + c.name.replace(/[^A-Za-z0-9]+/g, ""), name: c.name, role: c.spec, loc: c.loc, band: "", rate: c.rate, status: "Saved", note: "Last placed: " + c.last };
-    try {
-      let list = [];
-      try { const r = await window.storage?.get("qura_shortlist"); if (r?.value) list = JSON.parse(r.value); } catch (e) {}
-      if (!Array.isArray(list)) list = [];
-      if (!list.some((x) => x.name === c.name)) { list = [entry, ...list]; await window.storage?.set("qura_shortlist", JSON.stringify(list)); }
-    } catch (e) {}
-    setSaved((v) => v.includes(c.name) ? v : [...v, c.name]);
-    if (onToast) onToast(c.name + " saved to shortlist");
+  const call = async (path, body) => {
+    let t = "";
+    try { const { data } = await supabase.auth.getSession(); t = (data && data.session && data.session.access_token) || ""; } catch (e) {}
+    const r = await fetch(path, body
+      ? { method: "POST", headers: { authorization: "Bearer " + t, "content-type": "application/json" }, body: JSON.stringify(body) }
+      : { headers: { authorization: "Bearer " + t } });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || "Something went wrong. Please try again.");
+    return j;
   };
-  const countries = ["All", ...Array.from(new Set(CLINICIANS.map((c) => c.country)))];
-  const list = CLINICIANS.filter((c) => (country === "All" || c.country === country) && (sector === "All" || c.sector === sector || c.sector === "Both") && (c.yrs >= minExp) && ((c.name + c.spec + c.country).toLowerCase().includes(q.toLowerCase())) && (!priority || PRIORITY.includes(c.country)));
+  useEffect(() => { (async () => {
+    try {
+      const j = await call("/api/clinicians?direct=1");
+      setItems(Array.isArray(j.items) ? j.items : []);
+      setSaved(Array.isArray(j.shortlistIds) ? j.shortlistIds : []);
+      setLive(j.live !== false);
+    } catch (e) { setErr(e.message); setItems([]); }
+  })(); }, []);
+  const save = async (c) => {
+    try {
+      const j = await call("/api/clinicians", { clinicianId: c.id });
+      setSaved(Array.isArray(j.shortlistIds) ? j.shortlistIds : []);
+      if (onToast) onToast(j.shortlisted ? c.handle + " saved to shortlist" : c.handle + " removed from shortlist");
+    } catch (e) { setErr(e.message); }
+  };
+  const ask = async (c) => {
+    try {
+      const j = await call("/api/introductions", { clinicianId: c.id, handle: c.handle });
+      setAsked((s) => ({ ...s, [c.id]: true }));
+      if (onToast) onToast(j.already ? "You have already asked for this introduction." : "Introduction requested");
+    } catch (e) { setErr(e.message); }
+  };
+  const all = items || [];
+  const countries = ["All", ...Array.from(new Set(all.map((c) => c.country).filter(Boolean)))];
+  const profs = ["All", ...Array.from(new Set(all.map((c) => c.profession).filter(Boolean)))];
+  const list = all.filter((c) => (country === "All" || c.country === country) && (prof === "All" || c.profession === prof) && (yearsOf(c.experience) >= minExp) && (((c.handle || "") + " " + (c.profession || "") + " " + (c.country || "")).toLowerCase().includes(q.toLowerCase())) && (!priority || PRIORITY.includes(c.country)));
   const lab = { fontSize: 11.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: ".05em", color: "var(--faint)", marginBottom: 6 };
+  const chip = (on, bg) => ({ cursor: "pointer", padding: "7px 13px", background: on ? bg : "#EEF1F7", color: on ? "#fff" : "#5A6783" });
   return (
   <div>
     <PageHead title="Clinician network" sub="Registered, hospital-rated clinicians. Registration is checked against the official register before an introduction is made." right={<span className="chip chip-cyan"><ShieldCheck size={12} /> Registered on Qura</span>} />
-    {seedActive() ? <SampleNote what="clinician profiles" /> : null}
+    {!live ? <SampleNote what="clinician profiles" /> : null}
     <div className="card" style={{ padding: 14, marginBottom: 16, background: "var(--cyan-soft)", border: "none" }}><div className="row" style={{ gap: 10, alignItems: "flex-start" }}><Globe size={18} color="#06776F" style={{ flexShrink: 0, marginTop: 2 }} /><div style={{ fontSize: 12.5, lineHeight: 1.55 }}>Qura facilitates international recruitment in line with the WHO and UK Code of Practice protected-countries list. Clinicians from listed countries are welcome to join and apply directly, of their own accord. We do not actively advertise to or target recruitment from those countries, and availability is shown by country of residence in line with each destination's own recruitment policy.</div></div></div>
     <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-      <div className="row" style={{ gap: 8, border: "1px solid var(--line)", borderRadius: 999, padding: "0 14px", background: "var(--bg2)", marginBottom: 12 }}><Search size={16} className="faint" /><input className="in" style={{ border: "none", boxShadow: "none", padding: "10px 0" }} placeholder="Search name, specialty or country" value={q} onChange={(e) => setQ(e.target.value)} /></div>
-      <div style={lab}>Country</div>
-      <div className="row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 12 }}>{countries.map((m) => (<button key={m} onClick={() => setCountry(m)} className="chip" style={{ padding: "7px 13px", cursor: "pointer", background: country === m ? "var(--blue)" : "#EEF1F7", color: country === m ? "#fff" : "#5A6783" }}>{m}</button>))}</div>
+      <div className="row" style={{ gap: 8, border: "1px solid var(--line)", borderRadius: 999, padding: "0 14px", background: "var(--bg2)", marginBottom: 12 }}><Search size={16} className="faint" /><input className="in" style={{ border: "none", boxShadow: "none", padding: "10px 0" }} placeholder="Search profession or country" value={q} onChange={(e) => setQ(e.target.value)} /></div>
       <div className="row" style={{ gap: 22, flexWrap: "wrap" }}>
-        <div><div style={lab}>Sector (UK)</div><div className="row" style={{ gap: 8 }}>{["All", "NHS", "Private"].map((m) => (<button key={m} onClick={() => setSector(m)} className="chip" style={{ cursor: "pointer", background: sector === m ? "var(--navy)" : "#EEF1F7", color: sector === m ? "#fff" : "#5A6783" }}>{m}</button>))}</div></div>
-        <div><div style={lab}>Min. experience</div><div className="row" style={{ gap: 8, flexWrap: "wrap" }}>{[["All", 0], ["1+ yrs", 1], ["2+ yrs", 2], ["5+ yrs", 5], ["10+ yrs", 10]].map(([l, v]) => (<button key={l} onClick={() => setMinExp(v)} className="chip" style={{ cursor: "pointer", background: minExp === v ? "var(--teal)" : "#EEF1F7", color: minExp === v ? "#fff" : "#5A6783" }}>{l}</button>))}</div></div>
+        <div><div style={lab}>Profession</div><div className="row" style={{ gap: 8, flexWrap: "wrap" }}>{profs.map((m) => (<button key={m} onClick={() => setProf(m)} className="chip" style={chip(prof === m, "var(--navy)")}>{m}</button>))}</div></div>
+        <div><div style={lab}>Country</div><div className="row" style={{ gap: 8, flexWrap: "wrap" }}>{countries.map((m) => (<button key={m} onClick={() => setCountry(m)} className="chip" style={chip(country === m, "var(--blue)")}>{m}</button>))}</div></div>
+        <div><div style={lab}>Min. experience</div><div className="row" style={{ gap: 8, flexWrap: "wrap" }}>{[["All", 0], ["1+ yrs", 1], ["2+ yrs", 2], ["5+ yrs", 5], ["10+ yrs", 10]].map(([l, v]) => (<button key={l} onClick={() => setMinExp(v)} className="chip" style={chip(minExp === v, "var(--teal)")}>{l}</button>))}</div></div>
       </div>
     </div>
     {isOwner ? <div className="card" style={{ padding: "10px 14px", marginBottom: 12, background: "var(--navy)", color: "#fff", border: "none" }}><label className="row" style={{ gap: 10, cursor: "pointer", fontSize: 12.5, lineHeight: 1.4 }}><input type="checkbox" checked={priority} onChange={(e) => setPriority(e.target.checked)} style={{ marginTop: 2 }} /><span><b>Internal filter:</b> NHS priority source countries (New Zealand, Australia, Canada, South Africa, Philippines, India). Owner-only and never shown publicly.</span></label></div> : null}
-    <div className="muted" style={{ fontSize: 12.5, marginBottom: 12 }}>{list.length} clinicians · minimum 1 year experience to join, and 2 years for international candidates applying to the UK</div>
-    <div className="grid-3">{list.map((c, i) => { const on = saved.includes(c.name); return (
-      <div key={i} className="card lift" style={{ padding: 18 }}>
-        <div className="row" style={{ justifyContent: "space-between" }}><div style={{ width: 46, height: 46, borderRadius: 999, background: "#EEF3FF", color: "#1E54E6", display: "grid", placeItems: "center", fontWeight: 700 }} className="disp">{c.name.split(" ").slice(-2).map((x) => x[0]).join("")}</div><span className="chip chip-cyan"><Sparkles size={11} /> {c.match}%</span></div>
-        <div style={{ fontWeight: 600, fontSize: 15, marginTop: 12 }}>{c.name}</div>
-        <div className="muted" style={{ fontSize: 13 }}>{c.spec}</div>
-        <div className="row" style={{ gap: 6, marginTop: 8, flexWrap: "wrap" }}><span className="chip chip-grey" style={{ fontSize: 11.5 }}>{c.flag} {c.country}</span><span className="chip chip-grey" style={{ fontSize: 11.5 }}>{c.exp}</span><span className={"chip " + (c.sector === "NHS" ? "chip-blue" : c.sector === "Private" ? "chip-violet" : "chip-low")} style={{ fontSize: 11.5 }}>{c.sector === "Both" ? "NHS & Private" : c.sector}</span></div>
-        {c.direct ? <div className="row" style={{ gap: 6, marginTop: 8, fontSize: 11.5, color: "#9A5E00", background: "var(--amber-bg)", padding: "5px 9px", borderRadius: 8, lineHeight: 1.4 }}><ShieldCheck size={12} style={{ flexShrink: 0, marginTop: 1 }} /> Direct application only (protected-countries list)</div> : null}
-        {/* A star rating on a clinician profile was invented, and nobody has
-            ever rated a clinician on Qura. Verification is the real signal, and
-            it is one a hospital can check. */}
-        {c.verified ? <div className="row" style={{ gap: 6, marginTop: 9, alignItems: "center" }}><ShieldCheck size={14} color="var(--teal)" /><span style={{ fontWeight: 600, fontSize: 12.5, color: "var(--teal)" }}>Qura Verified</span></div> : null}
-        <div className="faint row" style={{ fontSize: 12, gap: 5, marginTop: 9 }}><BadgeCheck size={12} /> Last placed: {c.last}</div>
-        <div className="row" style={{ justifyContent: "space-between", marginTop: 10 }}><span style={{ fontWeight: 600, fontSize: 14 }}>{c.rate}</span><span className="chip chip-low">{c.avail}</span></div>
-        <button onClick={() => save(c)} disabled={on} className={"btn " + (on ? "btn-light" : "btn-ghost")} style={{ width: "100%", justifyContent: "center", marginTop: 12, padding: "9px" }}>{on ? <><Check size={14} /> Saved to shortlist</> : <><UserCheck size={14} /> Shortlist</>}</button>
+    {err ? <div style={{ marginBottom: 12, padding: "10px 12px", borderRadius: 10, background: "#FDECEA", color: "#B4433A", fontSize: 13.5 }}>{err}</div> : null}
+    <div className="muted" style={{ fontSize: 12.5, marginBottom: 12 }}>{items ? list.length + (list.length === 1 ? " verified clinician" : " verified clinicians") : "Loading clinicians..."} · minimum 1 year experience to join, and 2 years for international candidates applying to the UK</div>
+    <div className="grid-3">{list.map((c) => { const on = saved.includes(c.id); return (
+      <div key={c.id} className="card lift" style={{ padding: 18 }}>
+        <div className="row" style={{ justifyContent: "space-between" }}><div style={{ width: 46, height: 46, borderRadius: 999, background: "#EEF3FF", display: "grid", placeItems: "center" }}><Stethoscope size={20} color="#1E54E6" /></div>{c.priority ? <span className="chip chip-cyan"><Sparkles size={11} /> Career+</span> : null}</div>
+        <div style={{ fontWeight: 600, fontSize: 15, marginTop: 12 }}>{c.handle || c.profession}</div>
+        {c.regBody ? <div className="muted" style={{ fontSize: 13 }}>Registered with {c.regBody}</div> : null}
+        <div className="row" style={{ gap: 6, marginTop: 8, flexWrap: "wrap" }}>{c.country ? <span className="chip chip-grey" style={{ fontSize: 11.5 }}>{c.country}</span> : null}{c.experience !== undefined && c.experience !== null && c.experience !== "" ? <span className="chip chip-grey" style={{ fontSize: 11.5 }}>{typeof c.experience === "number" ? c.experience + (c.experience === 1 ? " year" : " years") : c.experience}</span> : null}{c.availableFrom ? <span className="chip chip-low" style={{ fontSize: 11.5 }}>Available from {c.availableFrom}</span> : null}</div>
+        {c.summary ? <p className="muted" style={{ fontSize: 12.5, margin: "10px 0 0", lineHeight: 1.5 }}>{c.summary}</p> : null}
+        <div className="row" style={{ gap: 6, marginTop: 9, alignItems: "center" }}><ShieldCheck size={14} color="var(--teal)" /><span style={{ fontWeight: 600, fontSize: 12.5, color: "var(--teal)" }}>Qura Verified</span></div>
+        {c.salaryLabel ? <div style={{ fontWeight: 600, fontSize: 13.5, marginTop: 9 }}>{c.salaryNegotiable ? "Salary negotiable" : c.salaryLabel + " a year expected"}</div> : c.payHidden ? <div className="faint" style={{ fontSize: 12, marginTop: 9 }}>Pay expectations show once your organisation is checked.</div> : null}
+        <div className="row" style={{ gap: 8, marginTop: 12 }}>
+          <button onClick={() => save(c)} className={"btn " + (on ? "btn-light" : "btn-ghost")} style={{ flex: 1, justifyContent: "center", padding: "9px" }}>{on ? <><Check size={14} /> Shortlisted</> : <><UserCheck size={14} /> Shortlist</>}</button>
+          <button onClick={() => ask(c)} disabled={asked[c.id]} className="btn btn-primary" style={{ flex: 1, justifyContent: "center", padding: "9px" }}>{asked[c.id] ? "Requested" : "Introduce"}</button>
+        </div>
       </div>
-    ); })}{!list.length ? <div className="card" style={{ padding: 40, textAlign: "center", gridColumn: "1/-1" }}><div className="muted">No clinicians match these filters.</div></div> : null}</div>
+    ); })}{items && !list.length ? <div className="card" style={{ padding: 40, textAlign: "center", gridColumn: "1/-1" }}><div className="muted" style={{ lineHeight: 1.6 }}>{all.length ? "No clinicians match these filters." : "No verified clinicians yet. Clinicians appear here once a founder has checked their registration against the official register."}</div></div> : null}</div>
   </div>
   );
 }
