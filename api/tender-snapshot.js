@@ -4,6 +4,7 @@ import { limited } from "./_ratelimit.js";
 import { planOf, ENTITLEMENTS } from "./_entitlements.js";
 import { isFounderEmail } from "./_orgcheck.js";
 import { bump } from "./_metrics.js";
+import { adminClient } from "./_waitlist.js";
 
 export const config = { maxDuration: 60 };
 
@@ -16,10 +17,13 @@ export const config = { maxDuration: 60 };
 // POST /api/tender-snapshot { id, refresh: true }      founders: make it again
 //
 // What it reads, in this order:
-//   1. the full notice as published: read from kv("tender_detail", id) once
-//      the tender archive keeps it there (next round), and until then fetched
-//      from the Find a Tender API. Contracts Finder has no per-notice API that
-//      works, so its notices use the feed's own fields until the archive lands.
+//   1. the full notice as published: the copy kept in the tender archive
+//      (api/_tenderarchive.js, table "tenders"), or else fetched from the
+//      Find a Tender API. Contracts Finder has no per-notice API that works,
+//      so a Contracts Finder notice the archive has not yet kept uses the
+//      feed's own fields.
+//   Archived tenders that have left the live feed (closed or awarded) can
+//   have a Snapshot too; the notice is then rebuilt from the archive.
 //   2. tender documents linked from the notice that are publicly downloadable
 //      PDFs (at most 2). Most NHS tender packs sit behind a supplier login on
 //      Atamis, Jaggaer or similar, so Qura cannot read them, and says so.
@@ -65,11 +69,22 @@ async function fetchWithTimeout(url, ms, opts = {}) {
   finally { clearTimeout(timer); }
 }
 
+async function archived(id) {
+  try {
+    const sb = adminClient();
+    if (!sb) return null;
+    const { data } = await sb.from("tenders").select("id,title,buyer,region,advertised_value,currency,description,category,source,source_url,closing_date,detail").eq("id", id).maybeSingle();
+    return data || null;
+  } catch (e) { return null; }
+}
+
 // The notice in full: the archive copy if there is one, otherwise fetched
 // from the Find a Tender public API.
 async function noticeDetail(notice) {
   const kept = await kvGet(DETAIL_OWNER, notice.id);
   if (kept && typeof kept === "object") return kept;
+  const row = notice._archive || (await archived(notice.id));
+  if (row && row.detail && typeof row.detail === "object") return row.detail;
   const m = String(notice.url || "").match(/find-tender\.service\.gov\.uk\/Notice\/([0-9]{6}-[0-9]{4})/);
   if (!m) return null;
   try {
@@ -205,7 +220,16 @@ export default async function handler(req, res) {
   if (!id) return res.status(400).json({ error: "id required" });
 
   const feed = (await kvGet("shared", "tenders")) || {};
-  const notice = (Array.isArray(feed.items) ? feed.items : []).find((n) => n.id === id && !n.seeded);
+  let notice = (Array.isArray(feed.items) ? feed.items : []).find((n) => n.id === id && !n.seeded);
+  if (!notice && body.action !== "source") {
+    // Not in the live feed: an archived tender, closed or awarded.
+    const row = await archived(id);
+    if (row) notice = {
+      id: row.id, title: row.title, buyer: row.buyer, region: row.region, note: row.description, category: row.category,
+      rate: row.advertised_value != null ? (row.currency && row.currency !== "GBP" ? row.currency + " " : "£") + Number(row.advertised_value).toLocaleString("en-GB") : "Value not stated",
+      closes: "", source: row.source, url: row.source_url, _archive: row,
+    };
+  }
   const stored = await kvGet(SNAP_OWNER, id);
 
   if (body.action === "source") {
