@@ -17,6 +17,7 @@ import { alertFounders } from "./_alert.js";
 import { sendMailEach, owners, adminClient } from "./_waitlist.js";
 import { bump } from "./_metrics.js";
 import { kvGet, kvSet } from "./_auth.js";
+import { handleAgencyCheckout } from "./_agency.js";
 
 // When a customer paid without being signed in, the payment carries no account
 // id and the plan was never applied. Fall back to the account with the same
@@ -79,7 +80,18 @@ export default async function handler(req, res) {
       const s = event.data.object;
       const who = (s.customer_details && s.customer_details.email) || s.customer_email || "unknown email";
       const paid = money(s.amount_total, s.currency);
-      if (s.metadata && s.metadata.introId) {
+      if (s.metadata && (s.metadata.kind === "agency_card" || s.metadata.kind === "agency_intro")) {
+        // An agency saving a card, or paying for one introduction through the
+        // emailed link (api/_agencybill.js). Never a plan.
+        const r = await handleAgencyCheckout(s);
+        if (r && r.kind === "intro") {
+          await bump("paid");
+          await tellFounders("Payment received: agency introduction fee " + paid, [
+            who + " paid " + paid + " through the payment link for an introduction request.",
+            r.missing ? "The introduction could not be found in the queue. Check it in Admin." : "The requester's details have been emailed to the agency. Nothing to do.",
+          ]);
+        }
+      } else if (s.metadata && s.metadata.introId) {
         // An introduction fee. This used to fall through to setPlan with no
         // plan, which could wipe the buyer's plan, and nothing recorded that
         // the introduction had been paid for.

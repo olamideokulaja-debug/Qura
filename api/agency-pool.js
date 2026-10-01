@@ -1,7 +1,10 @@
 import { getUser, kvListByKey, kvSet } from "./_auth.js";
 import { limited } from "./_ratelimit.js";
 import { orgVerified, isFounderEmail, roleOf } from "./_orgcheck.js";
-import { getPool, savePool, agencyAccount, repFor, repOwner, isActive, isEmail, normEmail, sendInvite, REP_KEY } from "./_agency.js";
+import { getPool, savePool, agencyAccount, repFor, repOwner, isActive, isEmail, normEmail, sendInvite, REP_KEY, INTRO_FEE } from "./_agency.js";
+import { getBilling, cardOf, cardLink, payLink } from "./_agencybill.js";
+import { kvGet } from "./_auth.js";
+import { sendMail, SUPPORT } from "./_waitlist.js";
 
 export const config = { maxDuration: 60 };
 
@@ -10,6 +13,10 @@ export const config = { maxDuration: 60 };
 // POST /api/agency-pool { action: "resend", id }
 // POST /api/agency-pool { action: "remove", id }
 // POST /api/agency-pool { action: "settings", showName }
+// POST /api/agency-pool { action: "card", email }     link to save a card (emailed when email is true)
+//
+// A card must be saved before clinicians can be added: Qura's introduction
+// fee is charged to it automatically (api/_agencybill.js).
 //
 // Workforce suppliers only. Inviting needs an organisation a founder has
 // checked. See api/_agency.js for the rules.
@@ -44,8 +51,14 @@ export default async function handler(req, res) {
       };
     });
     const count = (s) => entries.filter((e) => e.status === s).length;
+    const billing = await getBilling(user.id);
+    const queue = (await kvGet("shared", "intro_queue")) || [];
+    const unpaid = (Array.isArray(queue) ? queue : []).filter((q) => q.routedTo === user.id && q.agencyFeeStatus === "awaiting payment")
+      .slice(0, 50).map((q) => ({ id: q.id, at: q.at, clinician: q.clinicianLabel || q.clinicianProfession || "", payUrl: payLink(q.id) }));
     return res.status(200).json({
-      showName: pool.showName, canInvite: checked, entries,
+      showName: pool.showName, canInvite: checked, entries, fee: INTRO_FEE,
+      card: cardOf(billing), cardFailed: billing.failedAt ? { at: billing.failedAt, reason: billing.failReason || "" } : null,
+      needsCard: !founder && !cardOf(billing), unpaid,
       totals: { all: entries.length, confirmed: count("confirmed"), invited: count("invited"), declined: count("declined"), visible: entries.filter((e) => e.status === "confirmed" && e.checked).length },
     });
   }
@@ -83,6 +96,20 @@ export default async function handler(req, res) {
   }
   const ag = await agencyAccount(user.id);
 
+  if (body.action === "card") {
+    const url = cardLink(user.id);
+    if (!body.email) return res.status(200).json({ url });
+    if (await limited(req, res, user, { bucket: "agency-card", limit: 5, windowSec: 86400 })) return;
+    const to = ag.email || normEmail(user.email);
+    const r = await sendMail([to], "Add a card for Qura introduction fees",
+      '<div style="font-family:Inter,Arial,sans-serif;color:#0A1730;line-height:1.6;max-width:600px"><p>Hello,</p>' +
+      "<p>Here is your secure link to save a card for Qura's £" + INTRO_FEE + " introduction fee. Stripe holds the card, not Qura, and nothing is charged now.</p>" +
+      "<p>From then on, when a hospital asks to meet one of your clinicians, the fee is charged automatically and the request comes straight to you. Stripe emails a receipt each time.</p>" +
+      '<p><a href="' + url + '" style="display:inline-block;padding:12px 22px;border-radius:999px;text-decoration:none;font-weight:700;background:#00C2B8;color:#04231F">Add my card</a></p>' +
+      '<p style="font-size:12px;color:#8A96AD">Qura Ltd, company number 17310951. Questions: ' + SUPPORT + ".</p></div>", SUPPORT);
+    return res.status(200).json({ emailed: r.ok, to: r.ok ? to : "" });
+  }
+
   if (body.action === "resend") {
     const e = pool.entries.find((x) => x.id === String(body.id || ""));
     if (!e || e.status !== "invited") return res.status(400).json({ error: "Only an invitation that is still waiting can be sent again." });
@@ -95,6 +122,9 @@ export default async function handler(req, res) {
   }
 
   if (body.action === "invite") {
+    if (!founder && !cardOf(await getBilling(user.id))) {
+      return res.status(402).json({ error: "Add a payment card first. Qura's £" + INTRO_FEE + " introduction fee is charged to it automatically when a hospital asks to meet one of your clinicians.", needsCard: true });
+    }
     const list = Array.isArray(body.clinicians) ? body.clinicians.slice(0, 200) : [];
     if (!list.length) return res.status(400).json({ error: "Add at least one clinician with an email address." });
     if (await limited(req, res, user, { bucket: "agency-invite", limit: 10, windowSec: 86400 })) return;
