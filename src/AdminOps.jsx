@@ -264,6 +264,11 @@ export default function AdminOps() {
                 <div>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{q.clinicianLabel || q.handle || q.clinicianId} <span className="faint">for</span> {q.supplierEmail}</div>
                   <div className="faint" style={{ fontSize: 12, marginTop: 2 }}>{q.at ? new Date(q.at).toLocaleString("en-GB") : ""}{q.updatedBy ? " · last action " + q.updatedBy : ""}</div>
+                  {q.routedTo ? (
+                    <div style={{ fontSize: 12, marginTop: 3, color: q.agencyFeeStatus === "paid" ? "#06776F" : "#9A5E00" }}>
+                      {"Routed to " + (q.agencyName || "an agency") + " · £" + (q.agencyFee || 99) + " " + (q.agencyFeeStatus === "paid" ? "charged automatically" + (q.agencyPaidAt ? " " + new Date(q.agencyPaidAt).toLocaleDateString("en-GB") : "") : "waiting for the agency to pay (" + (q.agencyChargeNote || "card not charged") + ")")}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="row" style={{ gap: 6, alignItems: "center" }}>
                   <span style={{ fontSize: 11.5, fontWeight: 700, color: chipTone[norm(q.status)], border: "1px solid " + chipTone[norm(q.status)], borderRadius: 999, padding: "3px 10px" }}>{norm(q.status).toUpperCase()}</span>
