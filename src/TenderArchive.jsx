@@ -41,11 +41,42 @@ function Row({ label, children }) {
   );
 }
 
+// Founders: when an award notice arrived under a different procurement id from
+// its tender, the same contract shows as two records. Find the other one and
+// merge this one into it; the awards move across and this record is hidden.
+function MergeTool({ id, onDone }) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [hits, setHits] = useState(null);
+  const [err, setErr] = useState("");
+  const find = () => call("/api/tender-archive?q=" + encodeURIComponent(q)).then((j) => setHits(j.items.filter((t) => t.id !== id).slice(0, 6))).catch((e) => setErr(e.message));
+  const merge = async (into) => {
+    if (!window.confirm("Merge this record into the one you chose? Its awards move across and this record is hidden. This cannot be undone here.")) return;
+    try { await call("/api/tender-archive", { action: "merge", fromId: id, intoId: into }); onDone(into); } catch (e) { setErr(e.message); }
+  };
+  if (!open) return <div style={{ marginTop: 18, fontSize: 12.5 }}><a href="#" onClick={(e) => { e.preventDefault(); setOpen(true); }}>Founders: this is the same contract as another record</a></div>;
+  return (
+    <div style={{ marginTop: 18, padding: 12, border: "1px dashed var(--line)", borderRadius: 10, fontSize: 13 }}>
+      <form className="row" style={{ gap: 8 }} onSubmit={(e) => { e.preventDefault(); find(); }}>
+        <input className="in" style={{ flex: 1, padding: "7px 10px", fontSize: 13 }} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find the other record by title or buyer" />
+        <button className="btn btn-light" type="submit" style={{ fontSize: 12.5 }}>Find</button>
+      </form>
+      {err ? <div style={{ color: "#B4433A", marginTop: 6 }}>{err}</div> : null}
+      {hits ? (hits.length ? hits.map((h) => (
+        <div key={h.id} className="row" style={{ justifyContent: "space-between", gap: 8, padding: "6px 0", borderTop: "1px solid var(--line)" }}>
+          <span style={{ minWidth: 0, flex: 1 }}>{h.title} <span className="faint">({h.buyer}, {h.status})</span></span>
+          <button className="btn btn-light" style={{ fontSize: 12, padding: "3px 10px" }} onClick={() => merge(h.id)}>Merge into this</button>
+        </div>
+      )) : <div className="faint" style={{ marginTop: 6 }}>No other records match.</div>) : null}
+    </div>
+  );
+}
+
 function Record({ id, onClose, onOpen, onToast }) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState("");
   const [snap, setSnap] = useState(false);
-  const load = () => call("/api/tender-archive?id=" + encodeURIComponent(id)).then(setD).catch((e) => setErr(e.message));
+  const load = () => call("/api/tender-archive?id=" + encodeURIComponent(id)).then((j) => (j.merged ? onOpen(j.into) : setD(j))).catch((e) => setErr(e.message));
   useEffect(() => { setD(null); setErr(""); load(); }, [id]);
   const source = () => { call("/api/tender-archive", { action: "source", id }).catch(() => {}); };
   const admin = async (body, done) => { try { await call("/api/tender-archive", body); if (onToast) onToast(done); load(); } catch (e) { setErr(e.message); } };
@@ -132,6 +163,7 @@ function Record({ id, onClose, onOpen, onToast }) {
               </>
             ) : null}
 
+            {d.canEdit ? <MergeTool id={id} onDone={(into) => { if (onToast) onToast("Merged"); onOpen(into); }} /> : null}
             {d.canEdit ? (
               <div style={{ marginTop: 18, paddingTop: 12, borderTop: "1px dashed var(--line)", fontSize: 12.5 }} className="row">
                 <span className="faint" style={{ marginRight: 8 }}>Founders: correct the status</span>
