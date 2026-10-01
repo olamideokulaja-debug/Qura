@@ -1,5 +1,6 @@
 import { isSeededId, refuseSeeded } from "./_seed.js";
 import { getUser, kvGet, kvSet } from "./_auth.js";
+import { routeIntroduction } from "./_agency.js";
 
 // GET  /api/introductions        -> this supplier's introduction requests
 // POST /api/introductions {clinicianId, handle} -> request an introduction
@@ -19,6 +20,13 @@ export default async function handler(req, res) {
     const { clinicianId, handle } = req.body || {};
     if (!clinicianId) return res.status(400).json({ error: "clinicianId required" });
     if (isSeededId(clinicianId)) return refuseSeeded(res);
+    // Represented clinicians: the request goes to their agency (api/_agency.js).
+    const routed = await routeIntroduction(user, clinicianId, { handle });
+    if (routed && routed.own) return res.status(400).json({ error: "This clinician is already one of yours." });
+    if (routed) {
+      const items = (await kvGet(user.id, KEY)) || [];
+      return res.status(200).json({ items, routed: true, agencyName: routed.agencyName });
+    }
     const list = (await kvGet(user.id, KEY)) || [];
     const arr = Array.isArray(list) ? list : [];
     if (arr.some((i) => i.clinicianId === clinicianId)) {

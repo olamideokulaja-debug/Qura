@@ -3,12 +3,13 @@ import Stripe from "stripe";
 import { getUser, kvGet, kvSet } from "./_auth.js";
 import { planOf, ENTITLEMENTS } from "./_entitlements.js";
 import { foundingActive } from "./_founding.js";
+import { routeIntroduction } from "./_agency.js";
 
 // POST /api/introduction-checkout { clinicianId, handle, profession, country }
 // Creates a Stripe Checkout session for the introduction fee and records a pending
 // introduction. On success (via redirect), the intro is marked paid. Also notifies founders.
 const FOUNDERS = ["olamideokulaja@qurahealth.org", "olafolawiyo@qurahealth.org"];
-const INTRO_FEE_GBP = Number(process.env.INTRO_FEE_GBP || 49); // set INTRO_FEE_GBP in Vercel to change
+const INTRO_FEE_GBP = Number(process.env.INTRO_FEE_GBP || 99); // set INTRO_FEE_GBP in Vercel to change
 
 async function notifyFounders(subject, text) {
   const key = process.env.RESEND_API_KEY;
@@ -32,6 +33,13 @@ export default async function handler(req, res) {
   if (!clinicianId) return res.status(400).json({ error: "clinicianId required" });
   // This is the one that takes money. Never for an illustrative profile.
   if (isSeededId(clinicianId)) return refuseSeeded(res);
+
+  // A clinician an agency represents: the request goes to the agency, which
+  // introduces them on its own terms. The requester is not charged; the agency
+  // is invoiced the introduction fee (api/_agency.js).
+  const routed = await routeIntroduction(user, clinicianId, { handle, profession, country });
+  if (routed && routed.own) return res.status(400).json({ error: "This clinician is already one of yours." });
+  if (routed) return res.status(200).json({ routed: true, agencyName: routed.agencyName, fee: 0 });
 
   // Subscribers on any paid plan (monthly or yearly) get introductions included, no fee.
   // Read through planOf, which expires trials, and only a paid supplier plan
