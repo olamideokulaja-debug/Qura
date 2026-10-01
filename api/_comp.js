@@ -48,11 +48,15 @@ export const bandLabel = (key) => { const b = bandOf(key); return b ? b.label : 
 
 // Cleans the compensation fields on a profile in place. `incoming` is the
 // request body and `current` what is stored; a field missing from the request
-// keeps its stored value, and an empty string or null clears it.
+// keeps its stored value, an unknown band is ignored, and an empty string or
+// null clears it.
 export function cleanComp(clean, incoming, current) {
   const pick = (k) => (incoming[k] !== undefined ? incoming[k] : current[k]);
 
-  const band = pick("salaryBand");
+  // An unknown band (an old or mistyped key) keeps what is stored rather than
+  // wiping it; an empty string or null clears it on purpose.
+  let band = pick("salaryBand");
+  if (band && !bandOf(String(band))) band = current.salaryBand;
   for (const k of ["salaryBand", "salaryMin", "salaryMax", "salaryCurrency", "salaryPeriod", "salaryNegotiable"]) delete clean[k];
   const b = band ? bandOf(String(band)) : null;
   if (b) {
