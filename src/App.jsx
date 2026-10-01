@@ -336,6 +336,7 @@ import { PlatformContent, WhySwitch, MarketMap } from "./pages/sections.jsx";
 import { HomeHero, HomeValue, HomeVerify, HomeEcosystem, HomeApp, HomeTrust, HomeFinalCta } from "./pages/home.jsx";
 import PostRole from "./PostRole.jsx";
 import AgencyPool from "./AgencyPool.jsx";
+import TenderSnapshot from "./TenderSnapshot.jsx";
 import { LAUNCH_AT, seedActive } from "./launch.js";
 import Academy from "./Academy.jsx";
 // Split out of this file: it had grown past 550 KB, which made every change
@@ -901,6 +902,7 @@ const Opportunities = ({ go, onPropose, onPipeline, market = "all", onToast }) =
   // set. Until this, the web Clinical Demand page showed only examples while
   // the live notices sat in the API unread.
   const [live, setLive] = useState([]);
+  const [snapId, setSnapId] = useState(null);
   useEffect(() => {
     let dead = false;
     (async () => {
@@ -914,7 +916,7 @@ const Opportunities = ({ go, onPropose, onPipeline, market = "all", onToast }) =
         const j = await r.json();
         if (dead || !Array.isArray(j.items)) return;
         setLive(j.items.filter((n) => n.live && !n.seeded).map((n) => ({
-          org: n.buyer, role: n.title, spec: n.profession || "Healthcare services",
+          id: n.id, org: n.buyer, role: n.title, spec: n.profession || "Healthcare services",
           val: n.rate || "Value not stated",
           // Derive the tab from SOURCE, not from n.market. The stored market
           // field only ever holds "NHS", "Private" or "International" — the
@@ -949,6 +951,7 @@ const Opportunities = ({ go, onPropose, onPipeline, market = "all", onToast }) =
         <div className="row" style={{ gap: 10, marginBottom: 12, flexWrap: "wrap" }}><div className="row" style={{ flex: 1, minWidth: 220, gap: 8, border: "1px solid var(--line)", borderRadius: 999, padding: "0 14px", background: "var(--bg2)" }}><Search size={16} className="faint" /><input className="in" style={{ border: "none", boxShadow: "none", padding: "10px 0" }} placeholder="Search organisations" value={q} onChange={(e) => setQ(e.target.value)} /></div></div>
         <div className="row scrollx" style={{ gap: 8, overflowX: "auto", paddingBottom: 4 }}>{markets.map((m) => (<button key={m} onClick={() => setF(m)} className="chip" style={{ padding: "7px 14px", whiteSpace: "nowrap", background: f === m ? "var(--blue)" : "#EEF1F7", color: f === m ? "#fff" : "#5A6783" }}>{flagFor(m)} {m}</button>))}</div>
       </div>
+      {snapId ? <TenderSnapshot id={snapId} onClose={() => setSnapId(null)} onUpgrade={() => { setSnapId(null); if (go) go("pricing"); }} /> : null}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {list.map((o, i) => (
           <div key={i} className="card lift" style={{ padding: 18 }}>
@@ -961,6 +964,11 @@ const Opportunities = ({ go, onPropose, onPipeline, market = "all", onToast }) =
                 <a className="btn btn-primary" href={o.url} target="_blank" rel="noreferrer" style={{ fontSize: 13, padding: "9px 16px", textDecoration: "none" }}>
                   Open on {o.source || "the source portal"} <ExternalLink size={14} />
                 </a>
+                {o.id ? (
+                  <button className="btn btn-light" style={{ fontSize: 13, padding: "9px 16px" }} onClick={() => setSnapId(o.id)}>
+                    <Sparkles size={13} /> Tender Snapshot
+                  </button>
+                ) : null}
                 <button className="btn btn-ghost" style={{ fontSize: 13, padding: "9px 16px" }}
                   onClick={() => { if (onPipeline) onPipeline({ org: o.org, role: o.role, val: o.val }); else if (onToast) onToast("Could not add to pipeline"); }}>
                   Save to pipeline
@@ -3395,7 +3403,7 @@ function ScreenGallery({ onBack }) {
     { s: "publicintel", l: "Public sector intel", d: "ICB and trust board papers read and summarised for you, every day." },
     { s: "aiassistant", l: "AI assistant", d: "Outreach and answers drafted in your own tone of voice, in seconds." },
     { s: "cliniciannetwork", l: "Clinician network", d: "Registered clinicians, filtered by country, sector and experience." },
-    { s: "talentpipeline", l: "Talent pipeline", d: "Advertise available candidates anonymously, and let hospitals come to you." },
+    { s: "talentpipeline", l: "Your clinicians", d: "Add the clinicians you represent. Hospitals ask to meet them through you." },
     { s: "weeklyreport", l: "Weekly report", d: "A board-ready activity report, written for you and emailed each week." },
     { s: "analytics", l: "Analytics", d: "What is working, what is not, and where the next win is coming from." },
     { s: "accommodation", l: "Accommodation", d: "Verified relocation and housing partners, country by country, worldwide." },
