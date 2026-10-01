@@ -1889,6 +1889,7 @@ function ClinicianNetwork({ onToast, isOwner }) {
   const [err, setErr] = useState("");
   const [saved, setSaved] = useState([]);
   const [asked, setAsked] = useState({});
+  const [openSum, setOpenSum] = useState({});
   const [q, setQ] = useState("");
   const [country, setCountry] = useState("All");
   const [prof, setProf] = useState("All");
@@ -1954,7 +1955,12 @@ function ClinicianNetwork({ onToast, isOwner }) {
         <div style={{ fontWeight: 600, fontSize: 15, marginTop: 12 }}>{c.handle || c.profession}</div>
         {c.regBody ? <div className="muted" style={{ fontSize: 13 }}>Registered with {c.regBody}</div> : null}
         <div className="row" style={{ gap: 6, marginTop: 8, flexWrap: "wrap" }}>{c.country ? <span className="chip chip-grey" style={{ fontSize: 11.5 }}>{c.country}</span> : null}{c.experience !== undefined && c.experience !== null && c.experience !== "" ? <span className="chip chip-grey" style={{ fontSize: 11.5 }}>{typeof c.experience === "number" ? c.experience + (c.experience === 1 ? " year" : " years") : c.experience}</span> : null}{c.availableFrom ? <span className="chip chip-low" style={{ fontSize: 11.5 }}>Available from {c.availableFrom}</span> : null}</div>
-        {c.summary ? <p className="muted" style={{ fontSize: 12.5, margin: "10px 0 0", lineHeight: 1.5 }}>{c.summary}</p> : null}
+        {/* CV summaries can run to a whole career, which pushed the buttons
+            off the card. Four lines, with the rest one tap away. */}
+        {c.summary ? <>
+          <p className="muted" style={{ fontSize: 12.5, margin: "10px 0 0", lineHeight: 1.5, whiteSpace: "pre-line", ...(openSum[c.id] ? {} : { display: "-webkit-box", WebkitLineClamp: 4, WebkitBoxOrient: "vertical", overflow: "hidden" }) }}>{String(c.summary).trim()}</p>
+          {c.summary.length > 180 ? <button onClick={() => setOpenSum((s) => ({ ...s, [c.id]: !s[c.id] }))} style={{ background: "none", border: "none", padding: 0, marginTop: 4, cursor: "pointer", color: "var(--blue)", fontSize: 12.5, fontWeight: 600 }}>{openSum[c.id] ? "Show less" : "Read more"}</button> : null}
+        </> : null}
         <div className="row" style={{ gap: 6, marginTop: 9, alignItems: "center" }}><ShieldCheck size={14} color="var(--teal)" /><span style={{ fontWeight: 600, fontSize: 12.5, color: "var(--teal)" }}>Qura Verified</span></div>
         {c.salaryLabel ? <div style={{ fontWeight: 600, fontSize: 13.5, marginTop: 9 }}>{c.salaryNegotiable ? "Salary negotiable" : c.salaryLabel + " a year expected"}</div> : c.payHidden ? <div className="faint" style={{ fontSize: 12, marginTop: 9 }}>Pay expectations show once your organisation is checked.</div> : null}
         <div className="row" style={{ gap: 8, marginTop: 12 }}>
