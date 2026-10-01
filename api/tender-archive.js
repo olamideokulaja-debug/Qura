@@ -16,6 +16,13 @@ import { reprocurementEstimate } from "./_tenderarchive.js";
 // POST /api/tender-archive { action: "source", id }   counts a click to the official source
 // POST /api/tender-archive { action: "status", id, status, note }  founders: correct the status (status null clears it)
 // POST /api/tender-archive { action: "award", awardId, confirmed } founders: confirm or reject an award match
+// POST /api/tender-archive { action: "merge", fromId, intoId }    founders: the same contract under two ids;
+//                                              its awards move to intoId and fromId
+//                                              is hidden (cannot be undone here)
+//
+// Search: words match title, buyer, service and description, including the
+// start of a word ("radiog" finds radiography). Buyer history groups by the
+// buyer's scheme id or by its name with punctuation and case ignored.
 //
 // Signed-in organisations only; clinicians do not see procurement records.
 // The data is filled by api/archive-refresh.js; the rules are in
@@ -23,7 +30,7 @@ import { reprocurementEstimate } from "./_tenderarchive.js";
 
 const STATUSES = ["LIVE", "AWARDED", "CLOSED"];
 const PAGE = 25;
-const COLS = "id,title,buyer,buyer_key,status,status_override,closing_date,published_at,advertised_value,advertised_value_max,currency,source,source_url,category,region,contract_start,contract_end,duration_days,extension_options,lots,procurement_route,cpv,first_seen,updated_at,status_note";
+const COLS = "id,title,buyer,buyer_key,buyer_name_key,merged_into,status,status_override,closing_date,published_at,advertised_value,advertised_value_max,currency,source,source_url,category,region,contract_start,contract_end,duration_days,extension_options,lots,procurement_route,cpv,first_seen,updated_at,status_note";
 const AWARD_COLS = "id,tender_id,lot_id,supplier_name,award_date,awarded_value,currency,contract_start,contract_end,award_source_url,match,confirmed";
 
 const safe = (v, n = 80) => String(v || "").replace(/[^\p{L}\p{N} &'\-./]/gu, " ").replace(/\s+/g, " ").trim().slice(0, n);
@@ -58,6 +65,19 @@ export default async function handler(req, res) {
       const { error } = await sb.from("tenders").update({ status_override: st, status_note: st ? String(b.note || "Corrected by " + user.email).slice(0, 300) : null, updated_at: new Date().toISOString() }).eq("id", String(b.id || ""));
       return error ? res.status(500).json({ error: error.message }) : res.status(200).json({ ok: true });
     }
+    if (b.action === "merge") {
+      const fromId = String(b.fromId || ""), intoId = String(b.intoId || "");
+      if (!fromId || !intoId || fromId === intoId) return res.status(400).json({ error: "Choose two different records." });
+      const { data: both } = await sb.from("tenders").select("id,merged_into").in("id", [fromId, intoId]);
+      if ((both || []).length !== 2) return res.status(404).json({ error: "One of those records is not in the archive." });
+      if ((both || []).some((r) => r.merged_into)) return res.status(400).json({ error: "One of those records has already been merged." });
+      const { data: moved, error: e1 } = await sb.from("tender_awards").update({ tender_id: intoId, match: "manual", confirmed: true }).eq("tender_id", fromId).select("id");
+      if (e1) return res.status(500).json({ error: e1.message });
+      await sb.from("tenders").update({ merged_into: intoId, status_note: "Merged into " + intoId + " by " + user.email, updated_at: new Date().toISOString() }).eq("id", fromId);
+      await sb.from("tenders").update({ merged_into: intoId }).eq("merged_into", fromId);
+      if ((moved || []).length) await sb.from("tenders").update({ status: "AWARDED", updated_at: new Date().toISOString() }).eq("id", intoId);
+      return res.status(200).json({ ok: true, movedAwards: (moved || []).length });
+    }
     if (b.action === "award") {
       const { error } = await sb.from("tender_awards").update({ confirmed: b.confirmed !== false }).eq("id", String(b.awardId || ""));
       return error ? res.status(500).json({ error: error.message }) : res.status(200).json({ ok: true });
@@ -73,6 +93,7 @@ export default async function handler(req, res) {
     const id = String(q.id);
     const { data: t } = await sb.from("tenders").select(COLS).eq("id", id).maybeSingle();
     if (!t) return res.status(404).json({ error: "Not in the archive." });
+    if (t.merged_into) return res.status(200).json({ merged: true, into: t.merged_into });
     const { data: awards } = await sb.from("tender_awards").select(AWARD_COLS).eq("tender_id", id).order("award_date", { ascending: false });
     const shown = (awards || []).filter((a) => founder || a.confirmed !== false);
     const stored = await kvGet("tender_snapshot", id);
@@ -87,7 +108,9 @@ export default async function handler(req, res) {
     // The buyer's other tenders, newest first.
     let history = [], previous = null;
     if (t.buyer_key) {
-      const { data: others } = await sb.from("tenders").select(COLS).eq("buyer_key", t.buyer_key).neq("id", id).order("closing_date", { ascending: false, nullsFirst: false }).limit(30);
+      const same = ['buyer_key.eq."' + String(t.buyer_key).replace(/"/g, "") + '"'];
+      if (t.buyer_name_key) same.push('buyer_name_key.eq."' + String(t.buyer_name_key).replace(/"/g, "") + '"');
+      const { data: others } = await sb.from("tenders").select(COLS).or(same.join(",")).is("merged_into", null).neq("id", id).order("closing_date", { ascending: false, nullsFirst: false }).limit(30);
       const oIds = (others || []).map((o) => o.id);
       const { data: oAwards } = oIds.length ? await sb.from("tender_awards").select(AWARD_COLS).in("tender_id", oIds) : { data: [] };
       history = (others || []).map((o) => card(o, oAwards));
@@ -108,9 +131,9 @@ export default async function handler(req, res) {
   }
 
   // ---------------------------------------------------------------- search
-  let query = sb.from("tenders").select(COLS, { count: "exact" });
-  const text = safe(q.q);
-  if (text) query = query.or("title.ilike.%" + text + "%,buyer.ilike.%" + text + "%,category.ilike.%" + text + "%");
+  let query = sb.from("tenders").select(COLS, { count: "exact" }).is("merged_into", null);
+  const words = String(q.q || "").toLowerCase().match(/[\p{L}\p{N}]+/gu) || [];
+  if (words.length) query = query.textSearch("search", words.slice(0, 8).map((w) => w + ":*").join(" & "), { config: "english" });
   const buyer = safe(q.buyer);
   if (buyer) query = query.ilike("buyer", "%" + buyer + "%");
   const st = String(q.status || "").toUpperCase();

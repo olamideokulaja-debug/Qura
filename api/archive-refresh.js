@@ -82,12 +82,17 @@ async function ingest(sb, from, to, started) {
     }
   }
 
-  // What is already stored, so an update never undoes an award.
+  // What is already stored, so an update never undoes an award, and never
+  // undoes a founder's merge (api/tender-archive.js, action "merge").
   const ids = [...new Set([...tenders.keys(), ...fromAwards.keys()])];
   const existing = new Map();
   for (let i = 0; i < ids.length; i += 200) {
-    const { data } = await sb.from("tenders").select("id,status").in("id", ids.slice(i, i + 200));
+    const { data } = await sb.from("tenders").select("id,status,merged_into").in("id", ids.slice(i, i + 200));
     (data || []).forEach((r) => existing.set(r.id, r));
+  }
+  for (const a of awards.values()) {
+    const ex = existing.get(a.tender_id);
+    if (ex && ex.merged_into) { a.tender_id = ex.merged_into; a.match = "manual"; }
   }
 
   // Tender notices: insert, or refresh the notice data.
@@ -104,7 +109,7 @@ async function ingest(sb, from, to, started) {
     if (error) errors.push("tenders: " + error.message);
   }
   // Tenders already held that now have an award.
-  const toAward = [...fromAwards.keys()].filter((id) => existing.has(id) || tenders.has(id));
+  const toAward = [...new Set([...fromAwards.keys()].filter((id) => existing.has(id) || tenders.has(id)).map((id) => (existing.get(id) && existing.get(id).merged_into) || id))];
   for (const batch of chunk(toAward, 200)) {
     const { error } = await sb.from("tenders").update({ status: "AWARDED", updated_at: new Date().toISOString() }).in("id", batch);
     if (error) errors.push("status: " + error.message);
