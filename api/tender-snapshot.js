@@ -44,6 +44,7 @@ const FREE_KEY = "snapshot_free";
 const SNAP_OWNER = "tender_snapshot";
 const DETAIL_OWNER = "tender_detail";
 const MODEL = "claude-sonnet-4-6";
+const PROMPT_VERSION = 2; // raise to remake every Snapshot after a prompt change
 const MAX_DOCS = 2;
 const MAX_DOC_BYTES = 4500000;
 
@@ -114,7 +115,7 @@ const ukDateTime = (iso) => {
 const SYSTEM =
   "You extract the commercial facts of a public healthcare tender for workforce suppliers (agencies, insourcing and staffing firms). " +
   "Use ONLY the sources provided: the notice data and any attached documents. Never estimate, infer or fill gaps from general knowledge. " +
-  "If a fact is not stated in the sources, return null for that field. If two sources disagree, give both values in the field text and add a short note in 'flag' saying the documents should be checked. " +
+  "If a fact is not stated in the sources, the text must be JSON null: never write a sentence saying it is not stated. If two sources disagree, give both values in the field text and add a short note in 'flag' saying the documents should be checked. " +
   "Never tell the supplier whether to bid. Plain British English, no jargon, no em dashes, figures as numerals. " +
   "Reply with ONLY a JSON object, no markdown, in exactly this shape:\n" +
   '{"fields":{' + FIELDS.map(([k]) => '"' + k + '":{"text":string|null,"flag":string|null}').join(",") + "}," +
@@ -127,6 +128,8 @@ const SYSTEM =
   "evaluation = quality and price weighting and other material criteria; conditions = mobilisation, performance, payment or contract terms that matter commercially. " +
   "Keep each field under 300 characters. overview: 3 to 5 short sentences on what the opportunity is. " +
   "considerations: 2 to 5 short points a supplier should check before deciding, drawn only from the sources (requirements or potential barriers). Never write 'you should bid' or 'do not bid'.";
+
+const NOT_STATED = /^(not (stated|specified|available|provided|given|included)\b[^.]*|no [^.]{0,90}\b(is |are )?(stated|specified|provided|given|available)\b[^.]*)\.?$/i;
 
 function parseJson(text) {
   const t = String(text || "").replace(/^```(?:json)?/i, "").replace(/```\s*$/, "").trim();
@@ -172,7 +175,12 @@ function shape(out, notice, detail) {
   const fields = {};
   for (const [k, label] of FIELDS) {
     const f = (out.fields && out.fields[k]) || {};
-    fields[k] = { label, text: clean(f.text, 400), flag: clean(f.flag, 200) };
+    let text = clean(f.text, 400);
+    // The model sometimes writes "Not stated in the notice" as text instead of
+    // null. One sentence saying only that becomes null, so every app shows the
+    // same "Not stated in tender".
+    if (text && NOT_STATED.test(text)) text = null;
+    fields[k] = { label, text, flag: clean(f.flag, 200) };
   }
   // Hard facts from the notice data, never from the model.
   fields.title.text = clean(t.title || notice.title, 300);
@@ -180,7 +188,7 @@ function shape(out, notice, detail) {
   const end = (t.tenderPeriod || {}).endDate;
   const deadlineISO = end && !isNaN(Date.parse(end)) ? new Date(end).toISOString() : null;
   if (deadlineISO) fields.deadline.text = ukDateTime(deadlineISO);
-  else if (!fields.deadline.text && notice.closes) fields.deadline.text = "Closes in " + notice.closes + " (as listed)";
+  else if (notice.closes) fields.deadline.text = "About " + notice.closes + " left when the feed last refreshed. The exact date and time are on the official notice.";
   const noticeValue = fmtMoney(t.value);
   if (noticeValue && !fields.value.text) fields.value.text = noticeValue + " (from the notice)";
   const considerations = (Array.isArray(out.considerations) ? out.considerations : []).map((x) => clean(x, 300)).filter(Boolean).slice(0, 5);
@@ -228,7 +236,7 @@ export default async function handler(req, res) {
   if (notice && !(fresh && !(body.refresh === true && founder))) {
     const detail = await noticeDetail(notice);
     const docLinks = ((detail && detail.tender && detail.tender.documents) || []).map((d) => d && d.url).filter(Boolean);
-    const version = hash(JSON.stringify([notice.title, notice.buyer, notice.rate, notice.note, detail && detail.tender, docLinks]));
+    const version = hash(JSON.stringify([PROMPT_VERSION, notice.title, notice.buyer, notice.rate, notice.note, detail && detail.tender, docLinks]));
     const remake = !snap || snap.version !== version || (body.refresh === true && founder);
     if (snap) snap.checkedAt = new Date().toISOString();
     if (remake) {
