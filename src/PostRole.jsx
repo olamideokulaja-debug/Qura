@@ -21,8 +21,13 @@ const PROFESSIONS = [
 const COUNTRIES = ["United Kingdom", "Ireland", "Australia", "New Zealand", "Canada", "United States",
   "UAE", "Saudi Arabia", "Qatar", "Nigeria", "Ghana", "Kenya", "South Africa", "Brazil", "European Union", "Other"];
 const MARKETS = ["NHS", "Private", "International", "Public"];
+// Type of work and salary range (Permanent First, 1 October 2026), the same
+// as the phone app. Permanent and fixed-term roles can give a yearly range.
+const TYPES = [["permanent", "Permanent"], ["fixed_term", "Fixed-term"], ["locum_bank", "Locum / Bank"], ["contract_insourcing", "Contract / Insourcing"]];
+const TYPE_LABEL = Object.fromEntries(TYPES);
+const digits = (v) => String(v || "").replace(/[^0-9]/g, "");
 const EMPTY = { title: "", profession: "", buyer: "", country: "United Kingdom", region: "", market: "NHS",
-  rate: "", need: "", start: "", closesInDays: 30, note: "" };
+  rate: "", need: "", start: "", closesInDays: 30, note: "", employmentType: "permanent", salaryMin: "", salaryMax: "" };
 
 async function call(path, body) {
   let token = "";
@@ -50,9 +55,12 @@ export default function PostRole() {
   const submit = async () => {
     if (busy) return;
     if (!f.title.trim() || !f.profession.trim()) { setErr("Please give the role a title and choose a profession."); return; }
+    const salaried = f.employmentType === "permanent" || f.employmentType === "fixed_term";
+    const lo = Number(digits(f.salaryMin)), hi = Number(digits(f.salaryMax));
+    if (salaried && ((f.salaryMin && lo < 1000) || (f.salaryMax && hi < 1000))) { setErr("Please give the salary as a yearly figure in pounds, for example 42000."); return; }
     setBusy(true); setErr(""); setMsg("");
     try {
-      const j = await call("/api/demand", { ...f, title: f.title.trim() });
+      const j = await call("/api/demand", { ...f, title: f.title.trim(), salaryMin: salaried && lo ? lo : "", salaryMax: salaried && hi ? hi : "" });
       const a = j.alerted || {};
       setMsg(a.matched
         ? "Role posted. " + a.matched + (a.matched === 1 ? " matching clinician has" : " matching clinicians have") + " been told about it."
@@ -101,8 +109,17 @@ export default function PostRole() {
               <input className="in" style={input} maxLength={80} value={f.region} onChange={(e) => set("region", e.target.value)} placeholder="e.g. Manchester" /></div>
             <div><label style={label}>Setting</label>
               <select className="in" style={input} value={f.market} onChange={(e) => set("market", e.target.value)}>{MARKETS.map((c) => <option key={c}>{c}</option>)}</select></div>
-            <div><label style={label}>Pay</label>
-              <input className="in" style={input} maxLength={60} value={f.rate} onChange={(e) => set("rate", e.target.value)} placeholder="e.g. Band 7, or £320 a day" /></div>
+            <div><label style={label}>Type of work</label>
+              <select className="in" style={input} value={f.employmentType} onChange={(e) => set("employmentType", e.target.value)}>{TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
+            {f.employmentType === "permanent" || f.employmentType === "fixed_term" ? (
+              <div><label style={label}>Salary range, per year (optional)</label>
+                <div className="row" style={{ gap: 8 }}>
+                  <input className="in" style={input} inputMode="numeric" maxLength={7} value={f.salaryMin} onChange={(e) => set("salaryMin", digits(e.target.value))} placeholder="From, e.g. 40000" />
+                  <input className="in" style={input} inputMode="numeric" maxLength={7} value={f.salaryMax} onChange={(e) => set("salaryMax", digits(e.target.value))} placeholder="To, e.g. 46000" />
+                </div></div>
+            ) : null}
+            <div><label style={label}>{f.employmentType === "permanent" || f.employmentType === "fixed_term" ? "Other pay details" : "Pay"}</label>
+              <input className="in" style={input} maxLength={60} value={f.rate} onChange={(e) => set("rate", e.target.value)} placeholder={f.employmentType === "permanent" || f.employmentType === "fixed_term" ? "e.g. Band 7, plus relocation" : "e.g. £320 a day"} /></div>
             <div className="row" style={{ gap: 10 }}>
               <div style={{ flex: 1 }}><label style={label}>How many</label>
                 <input className="in" style={input} maxLength={80} value={f.need} onChange={(e) => set("need", e.target.value)} placeholder="e.g. 2 posts" /></div>
@@ -128,7 +145,7 @@ export default function PostRole() {
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{m.title}</div>
                 <div className="faint" style={{ fontSize: 12.5 }}>
-                  {[m.profession, m.region, m.country].filter(Boolean).join(" · ")} · {m.open ? "closes in " + m.closes : "closed"}
+                  {[m.profession, TYPE_LABEL[m.employmentType], m.region, m.country].filter(Boolean).join(" · ")} · {m.open ? "closes in " + m.closes : "closed"}
                   {m.notified && m.notified.matched ? " · " + m.notified.matched + " matching clinicians told" : ""}
                 </div>
               </div>
