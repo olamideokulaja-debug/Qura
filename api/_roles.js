@@ -11,6 +11,7 @@
 import { kvListByKey } from "./_auth.js";
 import { shouldPush } from "./push-register.js";
 import { sendMail, owners, SUPPORT } from "./_waitlist.js";
+import { wantsType, rolePayLabel } from "./_comp.js";
 
 export const COUNTRIES = ["United Kingdom", "Ireland", "Australia", "New Zealand", "Canada", "United States",
   "UAE", "Saudi Arabia", "Qatar", "Nigeria", "Ghana", "Kenya", "South Africa", "Brazil", "European Union", "Other"];
@@ -82,6 +83,10 @@ export function matches(profile, role) {
   const profOk = professionMatches(prof, rp) ||
     targets.some((t) => (rp && (rp.includes(t) || t.includes(rp))) || (title && title.includes(t)));
   if (!profOk) return false;
+  // Someone who has said which kinds of work they want is not alerted about
+  // the others: a permanent-only nurse does not want locum alerts. Salary is
+  // never used to rule anyone out.
+  if (!wantsType(profile, role.employmentType)) return false;
   const rc = low(role.country);
   if (!rc || rc === "other" || /international/.test(low(role.market))) return true;
   const markets = [low(profile.country), ...(Array.isArray(profile.markets) ? profile.markets.map((m) => low(m && m.country)) : [])].filter(Boolean);
@@ -114,6 +119,7 @@ export async function alertMatches(role) {
     const regOf = {};
     for (const r of regs) regOf[r.owner] = r.value;
     const where = [role.region, role.country].filter(Boolean).join(", ");
+    const pay = rolePayLabel(role) || role.rate || "";
     const pushes = [];
     const emailTo = [];
     for (const h of hits) {
@@ -121,7 +127,7 @@ export async function alertMatches(role) {
       if (reg && reg.token && shouldPush(reg, "matches")) {
         pushes.push({ to: reg.token, sound: "default", channelId: "default",
           title: "New role: " + (role.title || role.profession),
-          body: (role.buyer || "A healthcare organisation") + (where ? " · " + where : "") + (role.rate ? " · " + role.rate : ""),
+          body: (role.buyer || "A healthcare organisation") + (where ? " · " + where : "") + (pay ? " · " + pay : ""),
           data: { type: "role", id: role.id } });
       } else if (h.value.email) {
         emailTo.push(h.value.email);
@@ -133,7 +139,7 @@ export async function alertMatches(role) {
       '<div style="border:1px solid #E3E8F2;border-radius:12px;padding:14px 16px;margin:12px 0">' +
       '<div style="font-weight:700;font-size:16px">' + esc(role.title) + "</div>" +
       '<div style="font-size:13.5px;color:#5A6783;margin-top:4px">' + esc([role.buyer, where, role.market].filter(Boolean).join(" · ")) + "</div>" +
-      (role.rate || role.start ? '<div style="font-size:13.5px;margin-top:6px">' + esc([role.rate, role.start ? "Start " + role.start : ""].filter(Boolean).join(" · ")) + "</div>" : "") +
+      (pay || role.start ? '<div style="font-size:13.5px;margin-top:6px">' + esc([pay, role.start ? "Start " + role.start : ""].filter(Boolean).join(" · ")) + "</div>" : "") +
       (role.note ? '<div style="font-size:13.5px;margin-top:8px">' + esc(String(role.note).slice(0, 400)) + "</div>" : "") +
       "</div>" +
       '<p style="margin:20px 0"><a href="' + SITE + '" style="background:#00C2B8;color:#04231F;font-weight:700;padding:12px 24px;border-radius:999px;text-decoration:none;display:inline-block">See the role on Qura</a></p>' +

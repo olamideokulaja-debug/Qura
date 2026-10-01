@@ -1,6 +1,7 @@
 import { seedActive } from "./_seed.js";
 import { getUser, kvGet } from "./_auth.js";
 import { isOpen, closesLabel } from "./_roles.js";
+import { prefLabel, rolePayLabel, salaryFit, wantsType } from "./_comp.js";
 
 // GET /api/opportunities?country=&profession=&market=
 //
@@ -22,11 +23,11 @@ import { isOpen, closesLabel } from "./_roles.js";
 // showing them an empty list with no explanation.
 const SEED = [
   { id: "op_1", role: "MRI Radiographer", employer: "Community Diagnostic Centre", country: "United Kingdom", region: "London", market: "NHS", profession: "Radiographer", spec: "MRI", rate: "Band 7", start: "ASAP", fit: 96, closes: "6 days", summary: "Insourcing programme across three imaging sites. Immediate starts available." },
-  { id: "op_2", role: "Sonographer (MSK)", employer: "Private provider", country: "United Kingdom", region: "Manchester", market: "Private", profession: "Sonographer", spec: "MSK", rate: "\u00a3320/day", start: "1 Sep", fit: 91, closes: "12 days", summary: "12-month contract, MSK and general lists, modern equipment." },
+  { id: "op_2", role: "Sonographer (MSK)", employer: "Private provider", country: "United Kingdom", region: "Manchester", market: "Private", profession: "Sonographer", spec: "MSK", rate: "£320/day", start: "1 Sep", fit: 91, closes: "12 days", summary: "12-month contract, MSK and general lists, modern equipment." },
   { id: "op_3", role: "Echocardiographer", employer: "NHS trust", country: "United Kingdom", region: "Leeds", market: "NHS", profession: "Echocardiographer", spec: "Cardiac", rate: "Band 7", start: "Flexible", fit: 88, closes: "21 days", summary: "Backlog-clearance role, stress and TOE experience welcome." },
   { id: "op_4", role: "ICU Nurse", employer: "Private hospital group", country: "United Arab Emirates", region: "Dubai", market: "International", profession: "Nurse", spec: "Critical care", rate: "Tax-free package", start: "Q4", fit: 84, closes: "30 days", summary: "International relocation with full support. 2+ years ICU required." },
   { id: "op_5", role: "Biomedical Scientist", employer: "NHS trust", country: "United Kingdom", region: "Birmingham", market: "NHS", profession: "Biomedical Scientist", spec: "Blood sciences", rate: "Band 6", start: "ASAP", fit: 80, closes: "9 days", summary: "HCPC-registered, blood sciences rotation, pathology network." },
-  { id: "op_6", role: "Diagnostic Radiographer", employer: "Mobile imaging partner", country: "United Kingdom", region: "South East", market: "NHS", profession: "Radiographer", spec: "General", rate: "\u00a338/hr", start: "ASAP", fit: 78, closes: "5 days", summary: "Mobile unit sessions across the region, flexible shifts." },
+  { id: "op_6", role: "Diagnostic Radiographer", employer: "Mobile imaging partner", country: "United Kingdom", region: "South East", market: "NHS", profession: "Radiographer", spec: "General", rate: "£38/hr", start: "ASAP", fit: 78, closes: "5 days", summary: "Mobile unit sessions across the region, flexible shifts." },
 ];
 
 // A real fit, computed from the signed-in clinician's profile rather than
@@ -63,6 +64,20 @@ function fitFor(profile, o) {
   possible += 10;
   if (profile.verifiedAt) score += 10;
 
+  // Type of work and salary (Permanent First, 1 October 2026). Each counts only
+  // when both sides have said something, so nobody is marked down for a field
+  // they have not filled in or a role that does not give it.
+  const prefs = Array.isArray(profile.employmentPreferences) ? profile.employmentPreferences : [];
+  if (o.employmentType && prefs.length) {
+    possible += 10;
+    if (wantsType(profile, o.employmentType)) score += 10;
+  }
+  if ((o.salaryMin || o.salaryMax) && profile.salaryBand) {
+    possible += 10;
+    const f = salaryFit(profile, o.salaryMin, o.salaryMax);
+    if (f !== "outside") score += 10;
+  }
+
   if (!possible) return null;
   return Math.max(20, Math.min(99, Math.round((score / possible) * 100)));
 }
@@ -77,7 +92,12 @@ function asRole(d) {
     region: d.region || "",
     market: d.market || "NHS",
     profession: d.profession || "",
-    rate: d.rate || "Rate on application",
+    rate: d.rate || rolePayLabel(d) || "Rate on application",
+    employmentType: d.employmentType || "",
+    employmentLabel: prefLabel(d.employmentType),
+    salaryMin: d.salaryMin == null ? null : d.salaryMin,
+    salaryMax: d.salaryMax == null ? null : d.salaryMax,
+    salaryLabel: rolePayLabel(d),
     need: d.need || "",
     start: d.start || "",
     closes: closesLabel(d),
@@ -107,7 +127,13 @@ export default async function handler(req, res) {
   // illustrative figure and are labelled as such in the app.
   let profile = null;
   try { profile = await kvGet(user.id, "clinician_profile"); } catch (e) {}
-  items = items.map((o) => (o.seeded ? o : { ...o, fit: fitFor(profile, o) }));
+  items = items.map((o) => (o.seeded ? o : {
+    ...o,
+    fit: fitFor(profile, o),
+    // How the role's salary sits against what the clinician asked for:
+    // "overlap", "outside" or "open" (either side has not said).
+    salaryFit: (o.salaryMin || o.salaryMax) ? salaryFit(profile, o.salaryMin, o.salaryMax) : "open",
+  }));
 
   if (country && country !== "All") items = items.filter((o) => o.country === country);
   if (profession && profession !== "All") items = items.filter((o) => o.profession === profession);
