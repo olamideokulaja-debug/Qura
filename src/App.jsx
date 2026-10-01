@@ -365,6 +365,7 @@ import SupplierStanding from "./SupplierStanding.jsx";
 import AuthPanel from "./AuthPanel.jsx";
 import ClinicianRegistration from "./ClinicianRegistration.jsx";
 import { CLIN_TAGLINES, CLIN_UNIVERSAL, CLIN_TABS, CLIN_COUNTRIES, ClinicianSection } from "./pages/clinician.jsx";
+import { AgencyFilm } from "./pages/agency.jsx";
 import { APP_NAME } from "./constants.js";
 import { initAnalytics, trackPage, setMarketingMode, track } from "./lib/analytics.js";
 import { QuraLogo, Wordmark, Avatar, useCountUp, Stat, Kpi, SectionHead, PageHead, Toggle, Stars, Reveal, PulseLine, DemoTag, IllustrativeBanner } from "./components/ui.jsx";
@@ -3584,6 +3585,9 @@ function SupplierAppSection() {
           <h1 className="disp" style={{ fontSize: "clamp(26px,4vw,40px)", fontWeight: 700, margin: "16px 0 10px", lineHeight: 1.1 }}>Your pipeline, in your pocket.</h1>
           <p style={{ color: "#AEBED6", fontSize: 16, lineHeight: 1.6 }}>Being out of office doesn't mean being out of touch. Run your business development from your phone, wherever you are.</p>
         </div>
+        {/* The agency film (1 October 2026), placed exactly as the clinician
+            film is on its page: under the heading, above everything else. */}
+        <AgencyFilm />
         <div style={{ display: "grid", gap: 12, maxWidth: 860, margin: "0 auto 30px", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))" }}>
           {SUPPLIER_TAGLINES.map((t, i) => (
             <div key={i} style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: "18px 20px", textAlign: "left" }}>
