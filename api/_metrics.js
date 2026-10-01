@@ -11,6 +11,7 @@ import { kvGet, kvSet } from "./_auth.js";
 export const EVENTS = [
   "signup", "role_picked", "trial_started", "trial_extended", "pricing_viewed",
   "locked_viewed", "checkout_started", "paid", "enquiry", "billing_portal",
+  "snapshot_opened", "snapshot_source_clicked",
 ];
 
 export async function bump(event, n = 1) {
