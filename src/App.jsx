@@ -337,6 +337,7 @@ import { HomeHero, HomeValue, HomeVerify, HomeEcosystem, HomeApp, HomeTrust, Hom
 import PostRole from "./PostRole.jsx";
 import AgencyPool from "./AgencyPool.jsx";
 import TenderSnapshot from "./TenderSnapshot.jsx";
+import TenderArchive from "./TenderArchive.jsx";
 import { LAUNCH_AT, seedActive } from "./launch.js";
 import Academy from "./Academy.jsx";
 // Split out of this file: it had grown past 550 KB, which made every change
@@ -903,6 +904,7 @@ const Opportunities = ({ go, onPropose, onPipeline, market = "all", onToast }) =
   // the live notices sat in the API unread.
   const [live, setLive] = useState([]);
   const [snapId, setSnapId] = useState(null);
+  const [oppView, setOppView] = useState("live");
   useEffect(() => {
     let dead = false;
     (async () => {
@@ -947,6 +949,13 @@ const Opportunities = ({ go, onPropose, onPipeline, market = "all", onToast }) =
     <div>
       <PostRole />
       <PageHead title="Opportunities" sub={live.length ? `${live.length} live procurement notices, refreshed daily, plus ${OPPS.length} illustrative examples` : `${OPPS.length} opportunities across your markets`} right={CURRENCY[market].rate !== 1 ? <span className="chip" style={{ background: "var(--cyan-soft)", color: "#06776F" }}>Converted at {CURRENCY[market].sym}{CURRENCY[market].rate}/£</span> : null} />
+      <div className="row" style={{ gap: 8, marginBottom: 14 }}>
+        {[["live", "Live opportunities"], ["archive", "Tender archive"]].map(([k, l]) => (
+          <button key={k} onClick={() => setOppView(k)} className="chip" style={{ padding: "8px 16px", cursor: "pointer", fontWeight: 600, fontSize: 13, background: oppView === k ? "var(--blue)" : "#EEF1F7", color: oppView === k ? "#fff" : "#5A6783" }}>{l}</button>
+        ))}
+      </div>
+      {oppView === "archive" ? <TenderArchive onToast={onToast} /> : (
+      <>
       <div className="card" style={{ padding: 16, marginBottom: 16 }}>
         <div className="row" style={{ gap: 10, marginBottom: 12, flexWrap: "wrap" }}><div className="row" style={{ flex: 1, minWidth: 220, gap: 8, border: "1px solid var(--line)", borderRadius: 999, padding: "0 14px", background: "var(--bg2)" }}><Search size={16} className="faint" /><input className="in" style={{ border: "none", boxShadow: "none", padding: "10px 0" }} placeholder="Search organisations" value={q} onChange={(e) => setQ(e.target.value)} /></div></div>
         <div className="row scrollx" style={{ gap: 8, overflowX: "auto", paddingBottom: 4 }}>{markets.map((m) => (<button key={m} onClick={() => setF(m)} className="chip" style={{ padding: "7px 14px", whiteSpace: "nowrap", background: f === m ? "var(--blue)" : "#EEF1F7", color: f === m ? "#fff" : "#5A6783" }}>{flagFor(m)} {m}</button>))}</div>
@@ -1007,6 +1016,8 @@ const Opportunities = ({ go, onPropose, onPipeline, market = "all", onToast }) =
           </div>
         ))}
       </div>
+      </>
+      )}
     </div>
   );
 };
