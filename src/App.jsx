@@ -3558,7 +3558,7 @@ function HowItWorks({ section = "walk", go }) {
   const L = LENSES[lens];
   const S = L.steps[Math.min(step, L.steps.length - 1)];
   return (
-    <div id="lens" className="sec how" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
+    <div className="sec how" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
       <div className="wrap" style={{ padding: section === "gallery" ? "22px 24px 40px" : "68px 24px" }}>
         {section === "walk" ? (<>
         <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 30px" }}><div className="eyebrow">How it works</div><h1 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "8px 0 10px" }}>See {APP_NAME} through your lens</h1><p className="muted" style={{ fontSize: 16, lineHeight: 1.6, marginTop: 0 }}>Pick who you are, then step through what would take hours by hand and takes seconds here.</p></div></Reveal>
@@ -4027,7 +4027,7 @@ function Landing({ onEnter, onDemo, earlyFocus, onJoin, onOpen, signedIn }) {
           {/* Film and live feed side by side. The feed is the single most
               persuasive thing on the page and was buried below the fold. */}
           <div className="hero-split reveal" style={{ marginTop: 16, textAlign: "left" }}>
-            <div style={{ display: "flex" }}><QuraFilmPlayer /></div>
+            <div style={{ display: "flex" }}><QuraFilmPlayer onFinish={() => goTo("how:walk")} /></div>
             <div onMouseEnter={() => setHold(true)} onMouseLeave={() => setHold(false)} style={{ background: "var(--navy)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 16, alignSelf: "center", display: "flex", flexDirection: "column", overflow: "hidden" }}>
               <div className="row" style={{ justifyContent: "space-between", padding: "2px 6px 10px" }}>
                 <span className="row" style={{ gap: 9, color: "#fff", fontWeight: 600, fontSize: 13.5 }}><span style={{ position: "relative", width: 9, height: 9 }}><span style={{ position: "absolute", inset: 0, borderRadius: 999, background: "#22E0A1" }} /><span style={{ position: "absolute", inset: 0, borderRadius: 999, background: "#22E0A1", animation: "quraPulse 1.8s infinite" }} /></span>Live marketplace</span>
@@ -5232,8 +5232,9 @@ function QuraJoinBlock({ earlyFocus }) {
 // stacked under the join box. Since 2 October 2026 it plays "Every lens", the
 // 86s film for all five lenses. The 92s launch film stays in /public as a
 // fallback. The film ends on "Choose your lens", so when it finishes the page
-// leaves full screen and scrolls to the lens switcher below.
-function QuraFilmPlayer() {
+// leaves full screen and opens the lens switcher (/how-it-works), which is its
+// own view: on the home view that section is hidden.
+function QuraFilmPlayer({ onFinish }) {
   const goFull = (ev) => {
     const v = ev.currentTarget;
     if (document.fullscreenElement || document.webkitFullscreenElement) return;
@@ -5255,10 +5256,7 @@ function QuraFilmPlayer() {
       onPlay={goFull}
       onEnded={() => {
         leaveFull();
-        setTimeout(() => {
-          const el = typeof document !== "undefined" && document.getElementById("lens");
-          if (el) { try { el.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) { el.scrollIntoView(); } }
-        }, 400);
+        if (onFinish) setTimeout(onFinish, 400);
       }}
       style={{ width: "100%", display: "block", borderRadius: 16, background: "#0A1730", boxShadow: "0 18px 50px rgba(10,23,48,.18)" }}
     >
