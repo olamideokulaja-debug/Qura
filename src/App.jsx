@@ -4021,7 +4021,7 @@ function Landing({ onEnter, onDemo, earlyFocus, onJoin, onOpen, signedIn }) {
           <div className="eyebrow" style={{ color: "#06776F" }}>For organisations</div>
           <h2 className="disp" style={{ fontSize: 30, fontWeight: 700, margin: "8px 0 0" }}>See the market moving</h2>
           <div className="muted reveal" style={{ fontSize: 13.5, marginTop: 30, textAlign: "center" }}>
-            86 seconds on what {APP_NAME} does for every lens. Live since 22 September 2026.
+            88 seconds on what {APP_NAME} does for every lens. Live since 22 September 2026.
           </div>
 
           {/* Film and live feed side by side. The feed is the single most
@@ -5230,7 +5230,7 @@ function QuraJoinBlock({ earlyFocus }) {
 
 // The player, on its own, so it can sit beside the live feed rather than
 // stacked under the join box. Since 2 October 2026 it plays "Every lens", the
-// 86s film for all five lenses. The 92s launch film stays in /public as a
+// 88s film for all five lenses. The 92s launch film stays in /public as a
 // fallback. The film ends on "Choose your lens", so when it finishes the page
 // leaves full screen and opens the lens switcher (/how-it-works), which is its
 // own view: on the home view that section is hidden.
@@ -5260,8 +5260,8 @@ function QuraFilmPlayer({ onFinish }) {
       }}
       style={{ width: "100%", display: "block", borderRadius: 16, background: "#0A1730", boxShadow: "0 18px 50px rgba(10,23,48,.18)" }}
     >
-      <source src="/qura-every-lens-86s.mp4" type="video/mp4" />
-      <track kind="captions" srcLang="en" label="English" default src="/qura-every-lens-86s-subtitles.vtt" />
+      <source src="/qura-every-lens-88s.mp4" type="video/mp4" />
+      <track kind="captions" srcLang="en" label="English" default src="/qura-every-lens-88s-subtitles.vtt" />
     </video>
   );
 }
