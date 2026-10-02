@@ -225,7 +225,7 @@ function LiveRoles() {
       <div className="row" style={{ gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
         <div className="row" style={{ flex: 1, minWidth: 260, gap: 8, border: "1px solid var(--line)", borderRadius: 999, padding: "4px 14px", background: "#fff" }}>
           <Search size={15} color="var(--faint)" />
-          <input className="in" style={{ flex: 1, border: 0, outline: "none", padding: "7px 0", fontSize: 14, background: "transparent" }} value={input} onChange={(e) => setInput(e.target.value)} placeholder="Search any role, e.g. Clinical Research Associate" />
+          <input style={{ flex: 1, border: 0, outline: "none", padding: "7px 0", fontSize: 14, background: "transparent" }} value={input} onChange={(e) => setInput(e.target.value)} placeholder="Search any role, e.g. Clinical Research Associate" />
         </div>
         {TYPES.map(([k, l]) => (
           <button key={l} className="chip" onClick={() => { setKind(k); load(q, k); }} style={{ padding: "7px 13px", cursor: "pointer", border: "1px solid " + (kind === k ? "var(--navy, #0A1730)" : "var(--line)"), background: kind === k ? "var(--navy, #0A1730)" : "#fff", color: kind === k ? "#fff" : "#5A6783", fontWeight: 700, fontSize: 12.5 }}>{l}</button>
