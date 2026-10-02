@@ -6,6 +6,7 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "./supabase.js";
+import AdminClaims from "./AdminClaims.jsx";
 
 const LABEL = { pending: "Waiting", "not asked": "Not asked yet", verified: "Confirmed", rejected: "Not confirmed" };
 const TONE = {
@@ -25,7 +26,7 @@ async function call(path, body) {
   return j;
 }
 
-export default function AdminOrgChecks() {
+function AdminOrgChecksList() {
   const [d, setD] = useState(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState("");
@@ -112,4 +113,12 @@ export default function AdminOrgChecks() {
       )}
     </div>
   );
+}
+
+// New organisations, then the advert claims queue (Opportunity Engine).
+export default function AdminOrgChecks(props) {
+  return <>
+    <AdminOrgChecksList {...props} />
+    <AdminClaims />
+  </>;
 }

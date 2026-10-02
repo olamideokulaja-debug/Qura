@@ -7,6 +7,7 @@
 import React, { useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { supabase } from "./supabase.js";
+import ClaimAdverts from "./ClaimAdverts.jsx";
 
 const PROFESSIONS = [
   "Adult Nurse (RGN)", "Mental Health Nurse (RMN)", "Learning Disability Nurse", "Children's Nurse", "Midwife",
@@ -40,7 +41,7 @@ async function call(path, body) {
   return j;
 }
 
-export default function PostRole() {
+function PostRoleCard() {
   const [open, setOpen] = useState(false);
   const [f, setF] = useState(EMPTY);
   const [busy, setBusy] = useState(false);
@@ -156,4 +157,12 @@ export default function PostRole() {
       ) : null}
     </div>
   );
+}
+
+// The post form, then "Already advertising on NHS Jobs?" (claim your adverts).
+export default function PostRole(props) {
+  return <>
+    <PostRoleCard {...props} />
+    <ClaimAdverts />
+  </>;
 }
