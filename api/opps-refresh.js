@@ -1,8 +1,9 @@
 import { cronAllowed } from "./_cron.js";
 import { kvGet, kvSet, kvListByKey } from "./_auth.js";
 import { shouldPush } from "./push-register.js";
-import { sendMail, owners, SUPPORT } from "./_waitlist.js";
+import { owners, SUPPORT, sign } from "./_waitlist.js";
 import { sbAdmin, NHS_GROUPS, nhsPage, nhsRow, adzunaOn, adzunaPage, adzunaRow, reedOn, REED_TERMS, reedPage, reedRow, alertHit, payLabel } from "./_opps.js";
+import { protectedResident } from "./_protected.js";
 
 export const config = { maxDuration: 300 };
 
@@ -154,10 +155,13 @@ async function sendAlerts(fresh) {
   const regs = await kvListByKey("push_registration");
   const regOf = {};
   for (const r of regs) regOf[r.owner] = r.value;
+  // Code of Practice: no alerts to anyone living in a red or amber list country.
+  const profs = await kvListByKey("clinician_profile");
+  const blocked = new Set(profs.filter((p) => protectedResident(p.value)).map((p) => p.owner));
   let sent = 0;
   for (const { owner, value } of rows) {
     const list = Array.isArray(value) ? value : [];
-    if (!list.length) continue;
+    if (!list.length || blocked.has(owner)) continue;
     const hits = new Map();
     let changed = false;
     for (const a of list) {
@@ -180,14 +184,15 @@ async function sendAlerts(fresh) {
       } else {
         const email = (list.find((a) => a.email) || {}).email;
         if (email) {
+          const unsub = "https://www.qurahealth.org/api/opp-unsubscribe?o=" + encodeURIComponent(owner) + "&t=" + sign(owner, "opp_unsub");
           const html = '<div style="font-family:Inter,Arial,sans-serif;color:#0A1730;line-height:1.6;max-width:600px"><p>Hello,</p><p>New roles match a search you saved on Qura:</p>' +
             top.map((r) => '<div style="border:1px solid #E3E8F2;border-radius:12px;padding:12px 16px;margin:10px 0"><div style="font-weight:700">' + esc(r.title) + '</div><div style="font-size:13.5px;color:#5A6783">' +
               esc([r.employer, r.city].filter(Boolean).join(" · ")) + '</div><div style="font-size:13px;margin-top:4px">' + esc([payLabel(r), r.closing_date ? "Closes " + r.closing_date : ""].filter(Boolean).join(" · ")) +
               '</div><div style="font-size:12px;color:#8A96AD;margin-top:4px">Discovered by Qura · Source: ' + esc(r.source_name) + "</div></div>").join("") +
             (hits.size > 5 ? "<p>And " + (hits.size - 5) + " more.</p>" : "") +
             '<p style="margin:20px 0"><a href="https://www.qurahealth.org" style="background:#00C2B8;color:#04231F;font-weight:700;padding:12px 24px;border-radius:999px;text-decoration:none;display:inline-block">See them on Qura</a></p>' +
-            '<p style="font-size:12px;color:#8A96AD">You receive this because you saved a search on Qura. Turn the alert off in Opportunities, or reply "stop". Qura Ltd, company number 17310951.</p></div>';
-          const r = await sendMail([email], title, html, owners()[0] || SUPPORT);
+            '<p style="font-size:12px;color:#8A96AD">You receive this because you saved a search on Qura. <a href="' + unsub + '" style="color:#5A6783">Unsubscribe from role alerts</a> in one click, or turn single alerts off in Opportunities. Qura Ltd, company number 17310951.</p></div>';
+          const r = await alertMail(email, title, html, unsub);
           if (r && r.ok) sent++;
         }
       }
@@ -195,4 +200,19 @@ async function sendAlerts(fresh) {
     if (changed) await kvSet(owner, "opp_alerts", list);
   }
   return sent;
+}
+
+// Like sendMail in api/_waitlist.js, plus the List-Unsubscribe headers that let
+// Gmail and Outlook show their own one-click unsubscribe button (RFC 8058).
+async function alertMail(to, subject, html, unsub) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return { ok: false };
+  const from = process.env.MAIL_FROM || "noreply@qurahealth.org";
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { authorization: "Bearer " + key, "content-type": "application/json" },
+    body: JSON.stringify({ from: "Qura <" + from + ">", to: [to], subject, html, reply_to: owners()[0] || SUPPORT,
+      headers: { "List-Unsubscribe": "<" + unsub + ">", "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" } }),
+  }).catch(() => null);
+  return { ok: Boolean(r && r.ok) };
 }
