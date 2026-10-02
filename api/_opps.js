@@ -36,7 +36,7 @@ export function sbAdmin() {
 
 const low = (v) => String(v == null ? "" : v).toLowerCase();
 const clean = (v, n = 300) => String(v == null ? "" : v).replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ")
-  .replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+  .replace(/&amp;/g, "&").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">")
   .replace(/\\'/g, "'").replace(/\s+/g, " ").trim().slice(0, n);
 
 // ------------------------------------------------------------------ taxonomy
@@ -50,30 +50,41 @@ export const TAXONOMY = [
   { family: "therapeutic radiographer", profession: "Therapeutic Radiographer", re: /therapeutic radiograph|radiotherap/, related: ["Therapeutic Radiographer", "Radiotherapy Radiographer", "Treatment Radiographer"] },
   { family: "nuclear medicine", profession: "Nuclear Medicine", re: /nuclear medicine|\bpet[- ]?ct\b/, related: ["Nuclear Medicine Technologist", "PET-CT Radiographer"] },
   { family: "radiographer", profession: "Diagnostic Radiographer", re: /radiograph|mammograph|\bmri\b|\bct\b|x-?ray|imaging (assistant|practitioner)|cardiac cath/, related: ["Diagnostic Radiographer", "MRI Radiographer", "CT Radiographer", "Mammographer", "Assistant Practitioner Radiography"] },
-  { family: "echocardiograph", profession: "Cardiac Physiologist", re: /echocardiograph|cardiac physiolog|cardiorespiratory|physiological scien|cardiac scien/, related: ["Echocardiographer", "Cardiac Physiologist", "Healthcare Science Practitioner"] },
+  { family: "echocardiograph", profession: "Cardiac Physiologist", re: /echocardiograph|cardiac physiolog|cardiorespiratory|physiological scien|cardiac scien|cardiograph|cardiac (diagnostic )?technician/, related: ["Echocardiographer", "Cardiac Physiologist", "Healthcare Science Practitioner"] },
   { family: "physiotherap", profession: "Physiotherapist", re: /physio/, related: ["Physiotherapist", "MSK Physiotherapist", "Rotational Physiotherapist", "Physiotherapy Assistant"] },
   { family: "occupational therap", profession: "Occupational Therapist", re: /occupational therap|\bot\b/, related: ["Occupational Therapist", "Community Occupational Therapist", "OT Assistant"] },
   { family: "speech", profession: "Speech and Language Therapist", re: /speech (and|&) language|\bslt\b|\bsalt\b/, related: ["Speech and Language Therapist", "SLT Assistant"] },
   { family: "podiatr", profession: "Podiatrist", re: /podiatr/, related: ["Podiatrist", "Podiatry Assistant"] },
   { family: "dietitian", profession: "Dietitian", re: /dietit|dietic|dietet/, related: ["Dietitian", "Dietetic Assistant"] },
-  { family: "paramedic", profession: "Paramedic", re: /paramedic/, related: ["Paramedic", "Specialist Paramedic", "Emergency Care Assistant"] },
+  { family: "paramedic", profession: "Paramedic", re: /paramedic|first responder|emergency care assistant/, related: ["Paramedic", "Specialist Paramedic", "Emergency Care Assistant"] },
   { family: "operating department", profession: "Operating Department Practitioner", re: /operating department|\bodp\b|anaesthetic practitioner|scrub practitioner|theatre (practitioner|team leader|manager)|perioperative/, related: ["Operating Department Practitioner", "Theatre Practitioner", "Anaesthetic Practitioner"] },
   { family: "orthoptist", profession: "Orthoptist", re: /orthoptist/, related: ["Orthoptist"] },
+  { family: "ophthalmic", profession: "Optometrist / Ophthalmic Practitioner", re: /optometr|ophthalm/, related: ["Optometrist", "Ophthalmic Technician", "Ophthalmic Nurse"] },
   { family: "prosthetist", profession: "Prosthetist / Orthotist", re: /prosthetist|orthotist/, related: ["Prosthetist", "Orthotist"] },
-  { family: "psycholog", profession: "Psychologist", re: /psycholog|cbt therapist|psychotherap|counsell?or|wellbeing practitioner|emdr|(art|music|drama|addictions?) therap/, related: ["Clinical Psychologist", "Psychological Wellbeing Practitioner", "CBT Therapist"] },
-  { family: "pharmacy technician", profession: "Pharmacy Technician", re: /pharmacy technician|pharmacy assistant/, related: ["Pharmacy Technician", "Pharmacy Assistant"] },
+  { family: "psycholog", profession: "Psychologist", re: /psycholog|cbt therapist|cognitive behavio|psychotherap|counsell?or|wellbeing practitioner|emdr|(art|music|drama|addictions?|family|systemic|camhs) therap/, related: ["Clinical Psychologist", "Psychological Wellbeing Practitioner", "CBT Therapist"] },
+  { family: "pharmacy technician", profession: "Pharmacy Technician", re: /pharmacy technician|pharmacy assistant|dispenser|medicines management technician/, related: ["Pharmacy Technician", "Pharmacy Assistant"] },
   { family: "pharmacist", profession: "Pharmacist", re: /pharmacist/, related: ["Pharmacist", "Clinical Pharmacist", "Specialist Pharmacist"] },
   { family: "biomedical scientist", profession: "Biomedical Scientist", re: /biomedical scien|medical laboratory|laboratory assistant|phlebotom/, related: ["Biomedical Scientist", "Medical Laboratory Assistant", "Associate Practitioner (Pathology)"] },
   { family: "audiolog", profession: "Audiologist", re: /audiolog|hearing/, related: ["Audiologist", "Associate Audiologist"] },
-  { family: "clinical scientist", profession: "Clinical Scientist", re: /clinical scien|healthcare scien|genomic|clinical physiolog|neurophysiolog|respiratory physiolog|medical physic|perfusion|medical engineering|clinical engineering|\bebme\b/, related: ["Clinical Scientist", "Healthcare Science Practitioner", "Genomic Scientist"] },
-  { family: "advanced practice", profession: "Advanced Clinical Practitioner", re: /advanced clinical practi|\bacp\b|physician associate|nurse practitioner|first contact practitioner/, related: ["Advanced Clinical Practitioner", "Trainee Advanced Clinical Practitioner", "Physician Associate", "Nurse Practitioner"] },
+  { family: "clinical scientist", profession: "Clinical Scientist", re: /clinical scien|healthcare scien|genomic|clinical physiolog|neurophysiolog|respiratory physiolog|medical physic|perfusion|medical engineering|clinical engineering|\bebme\b|anatomical pathology|clinical technologist|blood transfusion|\beqa\b/, related: ["Clinical Scientist", "Healthcare Science Practitioner", "Genomic Scientist"] },
+  { family: "advanced practice", profession: "Advanced Clinical Practitioner", re: /advanced clinical practi|advanced practitioner|enhanced (clinical )?practitioner|(urgent|emergency) (care|clinical) practitioner|\bacp\b|\banp\b|physician associate|nurse practitioner|first contact practitioner|independent prescriber/, related: ["Advanced Clinical Practitioner", "Trainee Advanced Clinical Practitioner", "Physician Associate", "Nurse Practitioner"] },
   { family: "social work", profession: "Social Worker", re: /social worker/, related: ["Social Worker", "Senior Social Worker", "Approved Mental Health Professional"] },
   { family: "midwife", profession: "Midwife", re: /midwi/, related: ["Midwife", "Community Midwife", "Specialist Midwife"] },
-  { family: "nursing associate", profession: "Nursing Associate / Healthcare Assistant", re: /nursing associate|healthcare assistant|health care assistant|\bhca\b|support worker|nursing assistant|care assistant|assistant practitioner/, related: ["Healthcare Assistant", "Nursing Associate", "Clinical Support Worker"] },
-  { family: "nurse", profession: "Nurse", re: /nurse|nursing|\brgn\b|\brmn\b|ward sister|ward manager|matron|infection prevention|\bnmc\b/, related: ["Staff Nurse", "Registered Nurse", "Community Nurse", "Mental Health Nurse", "Theatre Nurse"] },
+  { family: "nursing associate", profession: "Nursing Associate / Healthcare Assistant", re: /nursing associate|healthcare assistant|health care assistant|\bhca\b|support worker|nursing assistant|care assistant|assistant practitioner|associate practitioner|\bcarers?\b|care worker|therapy assistant|rehab(ilitation)? assistant|ward assistant|general practice assistant|play (specialist|assistant)|radiology assistant|blood donation assistant|care supervisor/, related: ["Healthcare Assistant", "Nursing Associate", "Clinical Support Worker"] },
+  { family: "nurse", profession: "Nurse", re: /nurse|nursing|\brgn\b|\brmn\b|ward sister|ward manager|matron|infection prevention|\bnmc\b|health visitor|\bsister\b/, related: ["Staff Nurse", "Registered Nurse", "Community Nurse", "Mental Health Nurse", "Theatre Nurse"] },
   { family: "dental", profession: "Dental", re: /dental|dentist|orthodont|hygienist/, related: ["Dentist", "Dental Nurse", "Dental Hygienist"] },
-  { family: "doctor", profession: "Doctor", re: /consultant|registrar|doctor|specialty (doctor|grade)|\bst[1-8]\b|\bfy[12]\b|physician|surgeon|psychiatrist|anaesthetist|radiologist|general practitioner|\bgp\b|clinical fellow|resident doctor/, related: ["Consultant", "Specialty Doctor", "Clinical Fellow", "Registrar"] },
+  { family: "doctor", profession: "Doctor", re: /consa?ultant|registrar|doctor|medical director|\b(?!techn)[a-z]+ologist\b|sexual offence examiner|forensic (healthcare professional|physician)|specialty (doctor|grade)|\bst[1-8]\b|\bfy[12]\b|physician|surgeon|psychiatrist|anaesthetist|radiologist|general practitioner|\bgp\b|clinical fellow|resident doctor/, related: ["Consultant", "Specialty Doctor", "Clinical Fellow", "Registrar"] },
+  // Last, so a mental health nurse stays a nurse and a psychiatrist a doctor.
+  { family: "mental health", profession: "Mental Health Practitioner", re: /mental health|camhs|crisis|liaison and diversion|neurodevelopment|recovery worker|substance misuse|\bcyp\b|young persons? worker/, related: ["Mental Health Practitioner", "CAMHS Practitioner", "Recovery Worker", "Education Mental Health Practitioner"] },
+  { family: "care coordination", profession: "Care Coordinator / Social Prescriber", re: /care co-?ordinat|social prescrib|link worker|care navigator|health navigator|health and social care assessor/, related: ["Care Coordinator", "Social Prescribing Link Worker", "Care Navigator"] },
 ];
+
+// Roles that sit in a clinical NHS Jobs staff group but are not clinical work.
+// Qura is for clinicians, so these are kept as HIDDEN: stored and refreshed like
+// any other advert, but never shown in search or alerts. Checked before the
+// taxonomy, so "Medical Secretary" or "Pharmacy Administrator" is hidden.
+export const NON_CLINICAL = /\bdrivers?\b|housekeep|\bchef\b|\bcook\b|kitchen|catering|receptionist|administrat|\badmin\b|secretar|\bclerk\b|business (analyst|partner|support|manager)|financ|accountant|payroll|\bhr\b|human resources|recruitment open day|\bporter|domestic (assistant|supervisor|services)|cleaner|estates|maintenance (technician|operative|assistant|manager)|electrician|plumber|gardener|security officer|systems analyst|\bim&t\b|data analyst|project (manager|lead|officer|support)|call handler|111 health advis|learning and development|activit(y|ies) co|volunteer|procurement|communications|marketing|production controller|process technician|\bssd\b|decontamination/;
+export const nonClinical = (title) => NON_CLINICAL.test(low(title));
 
 export function classify(title, staffGroup) {
   const t = low(title);
@@ -162,7 +173,7 @@ export function nhsRow(v, group, now) {
     salary_min: pay.min, salary_max: pay.max, salary_period: pay.period, currency: pay.min ? "GBP" : null,
     summary: v.description || null, posted_at: v.postDate ? new Date(v.postDate.slice(0, 23) + "Z").toISOString() : null,
     closing_date: /^\d{4}-\d{2}-\d{2}$/.test(v.closeDate) ? v.closeDate : null,
-    last_seen: now, last_verified_at: now, status: "LIVE", updated_at: now,
+    last_seen: now, last_verified_at: now, status: nonClinical(v.title) ? "HIDDEN" : "LIVE", updated_at: now,
     raw: { reference: v.reference, type: v.type, salary: v.salary },
   };
   if (row.posted_at && isNaN(Date.parse(row.posted_at))) row.posted_at = null;
@@ -191,7 +202,7 @@ export function adzunaRow(j, now) {
     contract_type: [j.contract_type, j.contract_time].filter(Boolean).join(", ") || null,
     salary_min: money(j.salary_min), salary_max: money(j.salary_max), salary_period: j.salary_min ? "year" : null, currency: j.salary_min ? "GBP" : null,
     salary_text: null, summary: clean(j.description, 300) || null,
-    posted_at: j.created || null, closing_date: null, last_seen: now, last_verified_at: now, status: "LIVE", updated_at: now,
+    posted_at: j.created || null, closing_date: null, last_seen: now, last_verified_at: now, status: nonClinical(j.title) ? "HIDDEN" : "LIVE", updated_at: now,
     raw: { category: j.category && j.category.tag },
   };
   // Adzuna's predicted salaries are estimates, not the employer's figure.
@@ -223,7 +234,7 @@ export function reedRow(j, now) {
     currency: j.minimumSalary ? "GBP" : null, summary: clean(j.jobDescription, 300) || null,
     posted_at: posted ? posted[3] + "-" + posted[2] + "-" + posted[1] + "T00:00:00Z" : null,
     closing_date: exp ? exp[3] + "-" + exp[2] + "-" + exp[1] : null,
-    last_seen: now, last_verified_at: now, status: "LIVE", updated_at: now, raw: {},
+    last_seen: now, last_verified_at: now, status: nonClinical(j.jobTitle) ? "HIDDEN" : "LIVE", updated_at: now, raw: {},
   };
   row.dedupe_key = dedupeKey(row);
   return row;
