@@ -1,6 +1,7 @@
 import { seedActive } from "./_seed.js";
 import { getUser, kvGet, kvSet } from "./_auth.js";
 import { sbAdmin, asDiscover, tsQuery, familyOf, relatedFor, classify, TAXONOMY } from "./_opps.js";
+import { protectedResident, PROTECTED_ALERT_MSG } from "./_protected.js";
 import { bump } from "./_metrics.js";
 import { limited } from "./_ratelimit.js";
 import { orgVerified, isFounderEmail } from "./_orgcheck.js";
@@ -241,6 +242,7 @@ async function actions(req, res, user) {
     const q = clip(b.q, 80), place = clip(b.place, 40);
     const family = TAXONOMY.some((x) => x.family === b.family) ? b.family : "";
     if (!q && !family) return res.status(400).json({ error: "Type a role or choose a profession for the alert." });
+    if (protectedResident(await kvGet(user.id, "clinician_profile"))) return res.status(403).json({ error: PROTECTED_ALERT_MSG, protectedCountry: true });
     const list = (await kvGet(user.id, "opp_alerts")) || [];
     const arr = Array.isArray(list) ? list : [];
     if (arr.some((a) => a.q.toLowerCase() === q.toLowerCase() && a.family === family && (a.place || "") === place)) return res.status(200).json({ ok: true, already: true, alerts: arr.map(({ email, ...a }) => a) });
