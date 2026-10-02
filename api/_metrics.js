@@ -12,6 +12,7 @@ export const EVENTS = [
   "signup", "role_picked", "trial_started", "trial_extended", "pricing_viewed",
   "locked_viewed", "checkout_started", "paid", "enquiry", "billing_portal",
   "snapshot_opened", "snapshot_source_clicked", "archive_searched", "archive_viewed", "archive_source_clicked",
+  "opp_searched", "opp_zero_result", "opp_discover_viewed", "opp_external_click", "opp_alert_created", "opp_claim_requested",
 ];
 
 export async function bump(event, n = 1) {
