@@ -175,7 +175,7 @@ async function sendAlerts(fresh) {
     try {
       if (reg && reg.token && shouldPush(reg, "matches")) {
         await fetch("https://exp.host/--/api/v2/push/send", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify([{ to: reg.token, sound: "default", channelId: "default", title, body, data: { type: "opportunity", id: top[0].id } }]) });
+          body: JSON.stringify([{ to: reg.token, sound: "default", channelId: "default", title, body, data: { type: "role", id: top[0].id } }]) });
         sent++;
       } else {
         const email = (list.find((a) => a.email) || {}).email;
