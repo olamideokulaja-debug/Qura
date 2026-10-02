@@ -1,9 +1,25 @@
 import { seedActive } from "./_seed.js";
-import { getUser, kvGet } from "./_auth.js";
+import { getUser, kvGet, kvSet } from "./_auth.js";
+import { sbAdmin, asDiscover, tsQuery, familyOf, relatedFor, classify, TAXONOMY } from "./_opps.js";
+import { bump } from "./_metrics.js";
+import { limited } from "./_ratelimit.js";
+import { orgVerified, isFounderEmail } from "./_orgcheck.js";
+import { sendMail, owners, SUPPORT } from "./_waitlist.js";
 import { isOpen, closesLabel } from "./_roles.js";
 import { prefLabel, rolePayLabel, salaryFit, wantsType } from "./_comp.js";
 
 // GET /api/opportunities?country=&profession=&market=
+//   The original list: Qura Direct roles only. Older app builds call this.
+// GET /api/opportunities?v=2&q=&family=&place=&type=&page=
+//   Qura Opportunity Engine (2 October 2026): Qura Direct roles plus Qura
+//   Discover adverts (api/_opps.js), ranked for this clinician. A search with
+//   no results returns related roles and is counted as demand intelligence.
+// GET /api/opportunities?v=2&id=nhsjobs:123   one Discover advert
+// POST /api/opportunities { action: "alert_add", q, family, place }   save a search alert (max 10)
+// POST /api/opportunities { action: "alert_remove", id }
+// POST /api/opportunities { action: "click", id }   counts a click to the original advert
+// POST /api/opportunities { action: "claim", id, note }   an organisation says the advert is theirs
+// POST /api/opportunities { action: "claim_decide", id, approve }   founders only
 //
 // Roles a clinician can pursue. These are the real requirements posted by
 // suppliers, hospitals and GP practices through /api/demand, reshaped into the
@@ -107,9 +123,177 @@ function asRole(d) {
   };
 }
 
+
+const PAGE = 25;
+const words = (q) => (String(q || "").toLowerCase().match(/[a-z0-9]+/g) || []).slice(0, 8);
+const escH = (v) => String(v == null ? "" : v).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const clip = (v, n) => String(v == null ? "" : v).replace(/[<>]/g, "").trim().slice(0, n);
+
+function directMatches(o, q, family, place, type) {
+  const w = words(q);
+  const hay = String([o.role, o.employer, o.region, o.profession, o.note].join(" ")).toLowerCase().split(/[^a-z0-9]+/);
+  if (w.length && !w.every((x) => hay.some((h) => h.startsWith(x)))) return false;
+  if (family && familyOf(o.profession || o.role) !== family) return false;
+  if (place && !String(o.region || "").toLowerCase().includes(place.toLowerCase())) return false;
+  if (type && o.employmentType !== type) return false;
+  return true;
+}
+
+// Relevance first. A Qura Direct role gets a small lift, never enough to put an
+// unrelated Direct role above a closely matching Discover one.
+function rank(o, family) {
+  let s = typeof o.fit === "number" ? o.fit : 50;
+  if (family && familyOf(o.profession || o.role) === family) s += 15;
+  const age = o.postedAt ? (Date.now() - Date.parse(o.postedAt)) / 86400000 : 30;
+  if (age < 3) s += 8; else if (age < 7) s += 4;
+  if (o.kind === "direct") s += 6;
+  return s;
+}
+
+async function engine(req, res, user) {
+  if (await limited(req, res, user, { bucket: "opps-search", limit: 300, windowSec: 3600 })) return;
+  const sb = sbAdmin();
+  const qy = req.query || {};
+  let profile = null;
+  try { profile = await kvGet(user.id, "clinician_profile"); } catch (e) {}
+
+  if (qy.id) {
+    if (!sb) return res.status(500).json({ error: "Not configured" });
+    const { data: r } = await sb.from("opportunities").select("*").eq("id", String(qy.id)).maybeSingle();
+    if (!r) return res.status(404).json({ error: "This advert is no longer on Qura." });
+    await bump("opp_discover_viewed");
+    const o = asDiscover(r);
+    return res.status(200).json({ item: { ...o, fit: fitFor(profile, o), status: r.status } });
+  }
+
+  const q = clip(qy.q, 80);
+  const family = TAXONOMY.some((x) => x.family === qy.family) ? qy.family : "";
+  const place = clip(qy.place, 40).replace(/[^\p{L}\p{N} ]/gu, "");
+  const type = ["permanent", "fixed_term", "locum_bank", "contract_insourcing"].includes(qy.type) ? qy.type : "";
+  const page = Math.max(1, Math.min(40, Number(qy.page) || 1));
+  // No search typed: start from the clinician's own profession.
+  const myFamily = profile && profile.profession ? familyOf(profile.profession) : "";
+  const useFamily = family || (!q ? myFamily : "");
+
+  // Qura Direct
+  const posted = (await kvGet("shared", "demand_posted")) || [];
+  const direct = page === 1 ? (Array.isArray(posted) ? posted : []).filter(isOpen).map(asRole)
+    .map((o) => ({ ...o, kind: "direct", label: "Qura Direct" }))
+    .filter((o) => directMatches(o, q, useFamily, place, type)) : [];
+
+  // Qura Discover
+  let discover = [], total = 0;
+  if (sb) {
+    // Past closing dates are taken out of LIVE every hour by api/opps-refresh.js.
+    let query = sb.from("opportunities").select("*", { count: "exact" }).eq("status", "LIVE").is("duplicate_of", null);
+    if (q && tsQuery(q)) query = query.textSearch("search", tsQuery(q), { config: "english" });
+    if (useFamily) query = query.eq("family", useFamily);
+    if (place) query = query.or("city.ilike.%" + place + "%,postcode.ilike." + place + "%,region.ilike.%" + place + "%");
+    if (type) query = query.eq("employment_type", type);
+    const { data, count, error } = await query.order("posted_at", { ascending: false, nullsFirst: false }).range((page - 1) * PAGE, page * PAGE - 1);
+    if (error) return res.status(500).json({ error: "Search failed. Please try again." });
+    discover = (data || []).map(asDiscover);
+    total = count || 0;
+  }
+
+  let items = [...direct, ...discover].map((o) => ({
+    ...o,
+    fit: fitFor(profile, o),
+    salaryFit: (o.salaryMin || o.salaryMax) ? salaryFit(profile, o.salaryMin, o.salaryMax) : "open",
+  }));
+  items = items.map((o) => ({ ...o, _r: rank(o, useFamily) })).sort((a, b) => b._r - a._r).map(({ _r, ...o }) => o);
+
+  // A search that finds nothing never dead-ends: related roles with live
+  // counts, and the search itself is kept (without who made it) as a signal of
+  // what clinicians want that the market is not showing.
+  let related = [];
+  if (!items.length && (q || family)) {
+    await bump("opp_zero_result");
+    try {
+      const z = (await kvGet("shared", "opp_zero_queries")) || [];
+      await kvSet("shared", "opp_zero_queries", [{ q, family, place, at: new Date().toISOString() }, ...(Array.isArray(z) ? z : [])].slice(0, 500));
+    } catch (e) {}
+    if (sb) {
+      for (const t of relatedFor(q || (TAXONOMY.find((x) => x.family === family) || {}).profession || "")) {
+        const { count } = await sb.from("opportunities").select("id", { count: "exact", head: true }).eq("status", "LIVE").is("duplicate_of", null)
+          .textSearch("search", tsQuery(t), { config: "english" });
+        related.push({ title: t, count: count || 0 });
+      }
+      related = related.filter((r) => r.count > 0).sort((a, b) => b.count - a.count);
+    }
+  } else if (q) await bump("opp_searched");
+
+  const alerts = (await kvGet(user.id, "opp_alerts")) || [];
+  res.setHeader("Cache-Control", "private, max-age=30");
+  return res.status(200).json({
+    items, page, pageSize: PAGE, total: total + direct.length, directCount: direct.length, discoverTotal: total,
+    hasMore: page * PAGE < total, related, family: useFamily, usedProfileFamily: Boolean(!family && !q && myFamily),
+    alerts: (Array.isArray(alerts) ? alerts : []).map(({ email, ...a }) => a),
+    sources: ["NHS Jobs"].concat(process.env.ADZUNA_APP_ID ? ["Adzuna"] : [], process.env.REED_API_KEY ? ["reed.co.uk"] : []),
+  });
+}
+
+async function actions(req, res, user) {
+  const b = req.body || {};
+  const sb = sbAdmin();
+  if (b.action === "alert_add") {
+    if (await limited(req, res, user, { bucket: "opps-alert", limit: 30, windowSec: 86400 })) return;
+    const q = clip(b.q, 80), place = clip(b.place, 40);
+    const family = TAXONOMY.some((x) => x.family === b.family) ? b.family : "";
+    if (!q && !family) return res.status(400).json({ error: "Type a role or choose a profession for the alert." });
+    const list = (await kvGet(user.id, "opp_alerts")) || [];
+    const arr = Array.isArray(list) ? list : [];
+    if (arr.some((a) => a.q.toLowerCase() === q.toLowerCase() && a.family === family && (a.place || "") === place)) return res.status(200).json({ ok: true, already: true, alerts: arr.map(({ email, ...a }) => a) });
+    if (arr.length >= 10) return res.status(400).json({ error: "You can keep up to 10 alerts. Remove one first." });
+    const next = [{ id: "al_" + Date.now(), q, family, place, email: user.email || "", createdAt: new Date().toISOString() }, ...arr];
+    await kvSet(user.id, "opp_alerts", next);
+    await bump("opp_alert_created");
+    return res.status(200).json({ ok: true, alerts: next.map(({ email, ...a }) => a) });
+  }
+  if (b.action === "alert_remove") {
+    const list = (await kvGet(user.id, "opp_alerts")) || [];
+    const next = (Array.isArray(list) ? list : []).filter((a) => a.id !== String(b.id || ""));
+    await kvSet(user.id, "opp_alerts", next);
+    return res.status(200).json({ ok: true, alerts: next.map(({ email, ...a }) => a) });
+  }
+  if (b.action === "click") { await bump("opp_external_click"); return res.status(200).json({ ok: true }); }
+  if (b.action === "claim") {
+    if (!sb) return res.status(500).json({ error: "Not configured" });
+    const acc = (await kvGet(user.id, "account")) || {};
+    const lens = acc.lens || ({ agency: "supplier", supplier: "supplier", hospital: "healthcare_provider", gp: "healthcare_provider", care: "healthcare_provider" })[acc.role] || "";
+    const founder = isFounderEmail(user.email);
+    if (!founder && lens !== "supplier" && lens !== "healthcare_provider") return res.status(403).json({ error: "Only organisation accounts can claim an advert." });
+    if (!founder && !(await orgVerified(user))) return res.status(403).json({ error: "We check every organisation before it can claim an advert, usually within 1 working day." });
+    if (await limited(req, res, user, { bucket: "opps-claim", limit: 10, windowSec: 86400 })) return;
+    const id = String(b.id || "");
+    const { data: r } = await sb.from("opportunities").select("id,title,employer,source_name,source_url,claim_status").eq("id", id).maybeSingle();
+    if (!r) return res.status(404).json({ error: "Advert not found." });
+    if (r.claim_status === "CLAIMED") return res.status(409).json({ error: "This advert has already been claimed." });
+    const org = clip(acc.org, 120) || user.email;
+    await sb.from("opportunities").update({ claim_status: "CLAIM_REQUESTED", claimed_by: org, claim_note: clip(b.note, 400) + " [by " + user.email + "]", updated_at: new Date().toISOString() }).eq("id", id);
+    await bump("opp_claim_requested");
+    try {
+      await sendMail(owners().length ? owners() : [SUPPORT], "Advert claim: " + r.title,
+        "<p>" + escH(org) + " (" + escH(user.email) + ") says this advert is theirs:</p><p><b>" + escH(r.title) + "</b><br>" + escH(r.employer) + "<br>" + escH(r.source_name) + ": " + escH(r.source_url) + "</p><p>Note: " + escH(clip(b.note, 400)) +
+        "</p><p>Check that they really are the employer before approving. Approve or reject with POST /api/opportunities {action: \"claim_decide\", id: \"" + id + "\", approve: true|false}.</p>", SUPPORT);
+    } catch (e) {}
+    return res.status(200).json({ ok: true, claimStatus: "CLAIM_REQUESTED" });
+  }
+  if (b.action === "claim_decide") {
+    if (!isFounderEmail(user.email)) return res.status(403).json({ error: "Founders only." });
+    if (!sb) return res.status(500).json({ error: "Not configured" });
+    const ok = b.approve === true;
+    await sb.from("opportunities").update({ claim_status: ok ? "CLAIMED" : "REJECTED", updated_at: new Date().toISOString() }).eq("id", String(b.id || ""));
+    return res.status(200).json({ ok: true, claimStatus: ok ? "CLAIMED" : "REJECTED" });
+  }
+  return res.status(400).json({ error: "Unknown action." });
+}
+
 export default async function handler(req, res) {
   const user = await getUser(req);
   if (!user) return res.status(401).json({ error: "Sign in required" });
+  if (req.method === "POST") return actions(req, res, user);
+  if (req.query && String(req.query.v) === "2") return engine(req, res, user);
   const { country, profession, market } = req.query || {};
 
   // Real posts first, newest first. These are requirements someone has
