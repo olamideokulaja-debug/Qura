@@ -35,7 +35,7 @@ export function sbAdmin() {
 }
 
 const low = (v) => String(v == null ? "" : v).toLowerCase();
-const clean = (v, n = 300) => String(v == null ? "" : v).replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ")
+const clean = (v, n = 300) => String(v == null ? "" : v).replace(/<[^>]*>/g, " ").replace(/&nbsp;|&#160;/g, " ")
   .replace(/&amp;/g, "&").replace(/&amp;/g, "&").replace(/&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">")
   .replace(/\\'/g, "'").replace(/\s+/g, " ").trim().slice(0, n);
 
@@ -51,13 +51,13 @@ export const TAXONOMY = [
   { family: "nuclear medicine", profession: "Nuclear Medicine", re: /nuclear medicine|\bpet[- ]?ct\b/, related: ["Nuclear Medicine Technologist", "PET-CT Radiographer"] },
   { family: "radiographer", profession: "Diagnostic Radiographer", re: /radiograph|mammograph|\bmri\b|\bct\b|x-?ray|imaging (assistant|practitioner)|cardiac cath/, related: ["Diagnostic Radiographer", "MRI Radiographer", "CT Radiographer", "Mammographer", "Assistant Practitioner Radiography"] },
   { family: "echocardiograph", profession: "Cardiac Physiologist", re: /echocardiograph|cardiac physiolog|cardiorespiratory|physiological scien|cardiac scien|cardiograph|cardiac (diagnostic )?technician/, related: ["Echocardiographer", "Cardiac Physiologist", "Healthcare Science Practitioner"] },
-  { family: "physiotherap", profession: "Physiotherapist", re: /physio/, related: ["Physiotherapist", "MSK Physiotherapist", "Rotational Physiotherapist", "Physiotherapy Assistant"] },
+  { family: "physiotherap", profession: "Physiotherapist", re: /physio(?!log)/, related: ["Physiotherapist", "MSK Physiotherapist", "Rotational Physiotherapist", "Physiotherapy Assistant"] },
   { family: "occupational therap", profession: "Occupational Therapist", re: /occupational therap|\bot\b|hand therap|wheelchair therap/, related: ["Occupational Therapist", "Community Occupational Therapist", "OT Assistant"] },
   { family: "speech", profession: "Speech and Language Therapist", re: /speech (and|&) language|\bslt\b|\bsalt\b/, related: ["Speech and Language Therapist", "SLT Assistant"] },
   { family: "podiatr", profession: "Podiatrist", re: /podiatr/, related: ["Podiatrist", "Podiatry Assistant"] },
   { family: "dietitian", profession: "Dietitian", re: /dietit|dietic|dietet/, related: ["Dietitian", "Dietetic Assistant"] },
   { family: "paramedic", profession: "Paramedic", re: /paramedic|first responder|emergency care assistant|ambulance technician/, related: ["Paramedic", "Specialist Paramedic", "Emergency Care Assistant"] },
-  { family: "operating department", profession: "Operating Department Practitioner", re: /operating department|\bodp\b|anaesthetic practitioner|scrub practitioner|theatre (practitioner|team leader|manager)|perioperative|surgical first assistant|theatre assistant|plaster technician|endoscopy practitioner/, related: ["Operating Department Practitioner", "Theatre Practitioner", "Anaesthetic Practitioner"] },
+  { family: "operating department", profession: "Operating Department Practitioner", re: /operating department|\bodp\b|anaesthetic practitioner|scrub practitioner|theatre (practitioner|team leader|manager)|perioperative (practitioner|assistant|support)|surgical first assistant|theatre assistant|plaster technician|endoscopy practitioner/, related: ["Operating Department Practitioner", "Theatre Practitioner", "Anaesthetic Practitioner"] },
   { family: "orthoptist", profession: "Orthoptist", re: /orthoptist/, related: ["Orthoptist"] },
   { family: "ophthalmic", profession: "Optometrist / Ophthalmic Practitioner", re: /optometr|ophthalm|eye (screen|care)/, related: ["Optometrist", "Ophthalmic Technician", "Ophthalmic Nurse"] },
   { family: "prosthetist", profession: "Prosthetist / Orthotist", re: /prosthetist|orthotist/, related: ["Prosthetist", "Orthotist"] },
