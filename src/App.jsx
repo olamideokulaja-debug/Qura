@@ -3558,7 +3558,7 @@ function HowItWorks({ section = "walk", go }) {
   const L = LENSES[lens];
   const S = L.steps[Math.min(step, L.steps.length - 1)];
   return (
-    <div className="sec how" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
+    <div id="lens" className="sec how" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
       <div className="wrap" style={{ padding: section === "gallery" ? "22px 24px 40px" : "68px 24px" }}>
         {section === "walk" ? (<>
         <Reveal><div style={{ textAlign: "center", maxWidth: 620, margin: "0 auto 30px" }}><div className="eyebrow">How it works</div><h1 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "8px 0 10px" }}>See {APP_NAME} through your lens</h1><p className="muted" style={{ fontSize: 16, lineHeight: 1.6, marginTop: 0 }}>Pick who you are, then step through what would take hours by hand and takes seconds here.</p></div></Reveal>
@@ -4021,7 +4021,7 @@ function Landing({ onEnter, onDemo, earlyFocus, onJoin, onOpen, signedIn }) {
           <div className="eyebrow" style={{ color: "#06776F" }}>For organisations</div>
           <h2 className="disp" style={{ fontSize: 30, fontWeight: 700, margin: "8px 0 0" }}>See the market moving</h2>
           <div className="muted reveal" style={{ fontSize: 13.5, marginTop: 30, textAlign: "center" }}>
-            92 seconds on what {APP_NAME} does and who it is for. Live since 22 September 2026.
+            86 seconds on what {APP_NAME} does for every lens. Live since 22 September 2026.
           </div>
 
           {/* Film and live feed side by side. The feed is the single most
@@ -5229,7 +5229,10 @@ function QuraJoinBlock({ earlyFocus }) {
 }
 
 // The player, on its own, so it can sit beside the live feed rather than
-// stacked under the join box.
+// stacked under the join box. Since 2 October 2026 it plays "Every lens", the
+// 86s film for all five lenses. The 92s launch film stays in /public as a
+// fallback. The film ends on "Choose your lens", so when it finishes the page
+// leaves full screen and scrolls to the lens switcher below.
 function QuraFilmPlayer() {
   const goFull = (ev) => {
     const v = ev.currentTarget;
@@ -5248,13 +5251,19 @@ function QuraFilmPlayer() {
       controls
       preload="none"
       playsInline
-      poster="/qura-video-poster.jpg"
+      poster="/qura-every-lens-poster.jpg"
       onPlay={goFull}
-      onEnded={leaveFull}
+      onEnded={() => {
+        leaveFull();
+        setTimeout(() => {
+          const el = typeof document !== "undefined" && document.getElementById("lens");
+          if (el) { try { el.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) { el.scrollIntoView(); } }
+        }, 400);
+      }}
       style={{ width: "100%", display: "block", borderRadius: 16, background: "#0A1730", boxShadow: "0 18px 50px rgba(10,23,48,.18)" }}
     >
-      <source src="/qura-launch-92s.mp4" type="video/mp4" />
-      <track kind="captions" srcLang="en" label="English" default src="/qura-launch-92s-subtitles.vtt" />
+      <source src="/qura-every-lens-86s.mp4" type="video/mp4" />
+      <track kind="captions" srcLang="en" label="English" default src="/qura-every-lens-86s-subtitles.vtt" />
     </video>
   );
 }
