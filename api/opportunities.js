@@ -307,12 +307,35 @@ export default async function handler(req, res) {
     .sort((a, b) => String(b.postedAt || "").localeCompare(String(a.postedAt || "")));
 
   const filler = seedActive() ? SEED.map((o) => ({ ...o, seeded: true })) : [];
-  let items = [...real, ...filler];
 
   // Score the real posts against this clinician. Seeded examples keep their
   // illustrative figure and are labelled as such in the app.
   let profile = null;
   try { profile = await kvGet(user.id, "clinician_profile"); } catch (e) {}
+
+  // App builds from before the Opportunity Engine still call this list and
+  // cannot be updated over the air (a different app runtime). So they are not
+  // left blank, they also get the newest live NHS Jobs vacancies, for the
+  // clinician's own profession where we know it. The old screens have no
+  // "Apply on NHS Jobs" button, so the summary says where to apply and gives
+  // the link; Express interest on these is refused by /api/applications with
+  // the same message. Remove once every phone runs an Opportunity Engine build.
+  const discovered = [];
+  const sb = sbAdmin();
+  if (sb && market !== "International" && market !== "Private") {
+    try {
+      const fam = profile && profile.profession ? familyOf(profile.profession) : "";
+      let qd = sb.from("opportunities").select("*").eq("status", "LIVE").is("duplicate_of", null).eq("employer_type", "NHS");
+      if (fam) qd = qd.eq("family", fam);
+      const { data } = await qd.order("posted_at", { ascending: false, nullsFirst: false }).limit(60);
+      for (const r of data || []) {
+        const o = asDiscover(r);
+        discovered.push({ ...o, note: o.summary,
+          summary: "Discovered by Qura on " + o.sourceName + ". Apply on " + o.sourceName + ": " + o.sourceUrl + (o.summary ? "\n\n" + o.summary : "") });
+      }
+    } catch (e) {}
+  }
+  let items = [...real, ...filler, ...discovered];
   items = items.map((o) => (o.seeded ? o : {
     ...o,
     fit: fitFor(profile, o),
@@ -329,9 +352,9 @@ export default async function handler(req, res) {
   return res.status(200).json({
     items,
     total: items.length,
-    live: real.length,
-    // True when there is genuinely nothing posted yet, so the client can show
-    // a page that recruits rather than a page that apologises.
-    awaitingPosts: real.length === 0 && !seedActive(),
+    live: real.length + discovered.length,
+    // True when there is genuinely nothing to show, so the client can show a
+    // page that recruits rather than a page that apologises.
+    awaitingPosts: real.length === 0 && discovered.length === 0 && !seedActive(),
   });
 }
