@@ -111,6 +111,8 @@ export default async function handler(req, res) {
   // ---- a clinician applies -------------------------------------------------
   const opportunityId = clean(body.opportunityId, 80);
   if (!opportunityId) return res.status(400).json({ error: "opportunityId required" });
+  // Discovered adverts are applied for on the original site, never through Qura.
+  if (/^(nhsjobs|adzuna|reed):/.test(opportunityId)) return res.status(400).json({ error: "This role was discovered by Qura on another site. Apply on the original advert." });
 
   const existing = arr.find((a) => a.opportunityId === opportunityId);
   if (existing) return res.status(200).json({ applications: arr, already: true });
