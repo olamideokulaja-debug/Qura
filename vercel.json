@@ -35,6 +35,10 @@
     {
       "path": "/api/send-discover",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/send-vacancies",
+      "schedule": "5-59/10 * * * *"
     }
   ],
   "rewrites": [

@@ -74,5 +74,22 @@ export default async function handler(req, res) {
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json({ total: count || 0, page, pageSize: PAGE, items: data || [] });
   }
+  if (view === "vacancies") {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    let q = sb.from("send_vacancies").select("id,original_title,taxonomy_code,profession_family,salary_text,salary_min,salary_max,contract_type,working_pattern,closing_at,source_url,first_seen_at,last_verified_at,confidence,status,organisation_id,send_organisations(name,setting_group,la_name,region,postcode)", { count: "exact" })
+      .eq("status", String(req.query.status || "LIVE"));
+    if (req.query.family) q = q.eq("profession_family", String(req.query.family));
+    if (req.query.code) q = q.eq("taxonomy_code", String(req.query.code));
+    const { data, count, error } = await q.order("first_seen_at", { ascending: false }).range((page - 1) * PAGE, page * PAGE - 1);
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(200).json({ total: count || 0, page, pageSize: PAGE, items: data || [], note: "Vacancies come from school careers pages Qura is allowed to check. Coverage is partial; see view=coverage." });
+  }
+  if (view === "coverage") {
+    const { data, error } = await sb.from("send_area_metrics").select("*").eq("nation", "england").eq("area_kind", "local_authority").order("area_name");
+    if (error) return res.status(500).json({ error: error.message });
+    const st = (await kvGet("shared", "send_discover_state")) || {};
+    const vs = (await kvGet("shared", "send_vacancy_state")) || {};
+    return res.status(200).json({ areas: data || [], discovery: st.totals || {}, vacancy_checks: access.founder ? vs.totals || {} : undefined });
+  }
   return res.status(400).json({ error: "Unknown view" });
 }
