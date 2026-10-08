@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How Qura sources SEND data | Qura</title>
+<meta name="description" content="What Qura SEND Intelligence collects, where it comes from, how QuraBot behaves, and how to ask us to remove your details.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+body{margin:0;font-family:Inter,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#F5F7FB;color:#12263F;line-height:1.65}
+.wrap{max-width:760px;margin:0 auto;padding:28px 20px 60px}h1{font-size:26px;margin:0 0 6px}h2{font-size:18px;margin:28px 0 8px}
+.card{background:#fff;border:1px solid #E3E8F2;border-radius:14px;padding:18px 20px;margin-top:14px}p,li{font-size:15px}.muted{color:#5A6783;font-size:13.5px}
+code{background:#EEF3FA;border-radius:6px;padding:2px 6px}label{display:block;font-weight:600;font-size:13.5px;margin:12px 0 4px}
+input,textarea{width:100%;box-sizing:border-box;border:1px solid #D5DDEA;border-radius:10px;padding:10px 12px;font-size:14px;font-family:inherit}
+button{margin-top:14px;background:#0E8C7E;color:#fff;border:none;border-radius:999px;padding:12px 22px;font-weight:700;font-size:15px;cursor:pointer}
+#msg{margin-top:12px;font-weight:600}a{color:#0E8C7E}
+</style></head><body><div class="wrap">
+<p class="muted"><a href="/">Qura</a> · SEND Intelligence</p>
+<h1>How Qura sources SEND data</h1>
+<p class="muted">Last updated 8 October 2026</p>
+
+<div class="card"><p>SEND Intelligence is a research service for specialist staffing and therapy suppliers. It brings together public information about special schools, alternative provision, schools with SEN units, the trusts and councils that run them, the vacancies they advertise and related public tenders, so that suppliers can find and respond to staffing needs sooner.</p></div>
+
+<h2>Where the information comes from</h2>
+<ul>
+<li><b>Official school records:</b> Get Information about Schools (Department for Education), covering England. The equivalent official lists for Wales, Scotland and Northern Ireland will follow where their terms allow reuse. Contains public sector information licensed under the Open Government Licence v3.0.</li>
+<li><b>Vacancies:</b> the careers or vacancies pages that schools, academy trusts and councils publish on their own websites, checked about once a day. Each vacancy links back to the original advert, and applications are always made through the employer's own process.</li>
+<li><b>Tenders:</b> public procurement notices from Find a Tender and Contracts Finder, with Public Contracts Scotland and Sell2Wales to follow.</li>
+</ul>
+<p>We do not use commercial job boards unless we hold a licence to do so, and we do not use Teaching Vacancies unless the Department for Education agrees.</p>
+
+<h2>Children and families</h2>
+<p>Qura never collects, stores or shows any information about pupils, families or Education, Health and Care Plans. Where we show figures such as the number of pupils with an EHC plan at a school, these are totals published in official school records.</p>
+
+<h2>Information about staff</h2>
+<p>SEND Intelligence does not currently show the names or contact details of school staff. If we add them, we will show only names, roles and work contact details that schools, trusts and councils publish themselves, with a link to where we found them and the date we last checked, and we will update this page first. We never guess or invent email addresses. You can use the form below at any time to ask us not to show your details.</p>
+
+<h2>QuraBot</h2>
+<p>Our checks identify themselves as <code>QuraBot/1.0</code>. QuraBot follows each site's robots.txt, makes at most a few requests to a site each day, never signs in, and never gets around paywalls or bot protection. To stop QuraBot visiting your site, add this to your robots.txt:</p>
+<p><code>User-agent: QuraBot</code><br><code>Disallow: /</code></p>
+
+<h2>Ask us to remove your details</h2>
+<div class="card">
+<p class="muted">We stop showing matching details straight away and confirm by email within one month if you give an address.</p>
+<form id="f">
+<label for="n">Your name</label><input id="n" maxlength="120" autocomplete="name">
+<label for="e">Work email</label><input id="e" type="email" maxlength="200" autocomplete="email">
+<label for="o">School, trust or council</label><input id="o" maxlength="200">
+<label for="t">Anything else we should know (optional)</label><textarea id="t" rows="3" maxlength="1000"></textarea>
+<button type="submit">Remove my details</button><div id="msg" role="status"></div>
+</form></div>
+
+<p class="muted" style="margin-top:28px">Qura Ltd, company number 17310951, 167 to 169 Great Portland Street, London W1W 5PF. Questions: <a href="mailto:privacy@qurahealth.org">privacy@qurahealth.org</a>. You can also complain to the Information Commissioner's Office.</p>
+</div>
+<script>
+document.getElementById("f").addEventListener("submit", async (ev) => {
+  ev.preventDefault(); const m = document.getElementById("msg"); m.textContent = "Sending…";
+  try {
+    const r = await fetch("/api/send-removal", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: document.getElementById("n").value, email: document.getElementById("e").value, organisation: document.getElementById("o").value, note: document.getElementById("t").value }) });
+    const j = await r.json().catch(() => ({})); m.textContent = r.ok ? j.message : (j.error || j.message || "Something went wrong. Please email privacy@qurahealth.org.");
+    if (r.ok) ev.target.reset();
+  } catch (e) { m.textContent = "Something went wrong. Please email privacy@qurahealth.org."; }
+});
+</script>
+</body></html>
