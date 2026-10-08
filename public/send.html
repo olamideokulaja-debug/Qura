@@ -27,11 +27,18 @@ a{color:var(--teal2)}#map{height:560px;border-radius:14px;border:1px solid var(-
 .tag{display:inline-block;font-size:11px;border-radius:999px;padding:2px 8px;background:#EEF3FA;color:var(--ink);margin:1px 2px 1px 0}
 footer{padding:20px;color:var(--muted);font-size:11.5px;text-align:center;line-height:1.6}
 .center{text-align:center;padding:60px 20px}
+.modal{position:fixed;inset:0;background:#0A173080;display:grid;place-items:center;padding:16px;z-index:2000}
+.modal .box{background:#fff;border-radius:14px;max-width:640px;width:100%;padding:16px;max-height:90vh;overflow:auto}
+textarea{width:100%;min-height:280px;border:1px solid var(--line);border-radius:10px;padding:10px;font:13px/1.5 inherit;font-family:inherit}
+.chips{display:flex;flex-wrap:wrap;gap:6px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px}
+.chips label{font-size:12.5px;border:1px solid var(--line);border-radius:999px;padding:4px 9px;cursor:pointer;white-space:nowrap}
+.chips input{margin:0 5px 0 0;padding:0}
+@media (max-width:600px){main{padding:14px 16px}#map{height:420px}td,th{padding:6px 4px}}
 </style></head><body>
 <header><div class="mark">Q</div><h1>SEND Intelligence</h1><span class="pill">Pilot</span><span class="who" id="who"></span></header>
 <nav id="tabs"></nav>
 <main id="app"><div class="center muted">Loading…</div></main>
-<footer>Schools data: Get Information about Schools, Department for Education. Contains public sector information licensed under the Open Government Licence v3.0.<br>Vacancies come only from school, trust and council pages Qura is allowed to check. Coverage is partial and shown for every area. Estimates and AI inferences are labelled.<br>Qura holds no data about pupils, families or EHC plans. Qura Ltd, company number 17310951.</footer>
+<footer>Schools data: Get Information about Schools, Department for Education. Contains public sector information licensed under the Open Government Licence v3.0.<br>Vacancies come only from school, trust and council pages Qura is allowed to check. Coverage is partial and shown for every area. Estimates and AI inferences are labelled.<br>Qura holds no data about pupils, families or EHC plans. Qura Ltd, company number 17310951. <a href="/send-data.html">How Qura uses data</a>.</footer>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
@@ -54,9 +61,20 @@ async function addToPipeline(org, role, url, note) {
 }
 const pipeAttrs = (org, role, url, note) => `data-org="${esc(org)}" data-role="${esc(role)}" data-url="${esc(url)}" data-note="${esc(note)}"`;
 document.addEventListener("click", (e) => { const b = e.target.closest("[data-org]"); if (b) addToPipeline(b.dataset.org, b.dataset.role, b.dataset.url, b.dataset.note); });
-const TABS = [["overview", "Overview"], ["vacancies", "Vacancies"], ["schools", "Schools"], ["map", "Map"], ["coverage", "Coverage"], ["insights", "Insights"]];
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-draft]"); if (b) draftOutreach(b.dataset.draft, b.dataset.kind); });
+function modal(html) { const m = document.createElement("div"); m.className = "modal"; m.innerHTML = `<div class="box">${html}</div>`; m.addEventListener("click", (e) => { if (e.target === m || e.target.closest("[data-close]")) m.remove(); }); document.body.appendChild(m); return m; }
+async function draftOutreach(id, kind) {
+  const m = modal(`<b>Outreach draft</b><p class="muted">Writing a first draft from the school's public record${kind === "v" ? " and this advert" : ""}…</p>`);
+  try {
+    const company = sessionStorage.getItem("co") || "";
+    const j = await api("/api/send-territory", { method: "POST", body: JSON.stringify({ action: "outreach", [kind === "v" ? "vacancy_id" : "organisation_id"]: id, company }) });
+    m.querySelector(".box").innerHTML = `<b>Outreach draft</b><div class="note" style="margin-top:8px">${esc(j.note)} Fill in everything in [square brackets]. Qura does not send this for you.</div><textarea id="dr">${esc(j.draft)}</textarea><div class="row" style="margin-top:10px"><button class="btn" id="cp">Copy</button>${j.source_url ? `<a href="${esc(j.source_url)}" target="_blank" rel="noopener">Check the advert</a>` : ""}<button class="btn ghost" data-close style="margin-left:auto">Close</button></div>`;
+    m.querySelector("#cp").onclick = async () => { try { await navigator.clipboard.writeText(m.querySelector("#dr").value); m.querySelector("#cp").textContent = "Copied"; } catch (e) { m.querySelector("#dr").select(); } };
+  } catch (e) { m.querySelector(".box").innerHTML = `<b>Outreach draft</b><p>${esc(e.message)}</p><button class="btn ghost" data-close>Close</button>`; }
+}
+const TABS = [["overview", "Overview"], ["vacancies", "Vacancies"], ["territories", "Territories"], ["schools", "Schools"], ["map", "Map"], ["coverage", "Coverage"], ["insights", "Insights"]];
 let tab = (location.hash || "#overview").slice(1);
-function renderTabs() { $("#tabs").innerHTML = TABS.map(([k, l]) => `<button class="${k === tab ? "on" : ""}" data-t="${k}">${l}</button>`).join(""); $("#tabs").onclick = (e) => { const t = e.target.dataset.t; if (t) { tab = t; location.hash = t; renderTabs(); show(); } }; }
+function renderTabs() { $("#tabs").innerHTML = TABS.map(([k, l]) => `<button class="${k === tab ? "on" : ""}" data-t="${k}">${l}</button>`).join(""); $("#tabs").onclick = (e) => { const t = e.target.dataset.t; if (t) { if (t === "territories") { sessionStorage.removeItem("te"); sessionStorage.removeItem("to"); } tab = t; location.hash = t; renderTabs(); show(); } }; }
 
 async function overview() {
   const s = await api("/api/send?view=summary"); const e = s.england;
@@ -78,7 +96,7 @@ async function vacancies() {
   setTimeout(() => { $("#vf").onchange = (e) => { sessionStorage.setItem("vf", e.target.value); sessionStorage.setItem("vp", 1); show(); }; }, 0);
   return `<div class="note">${esc(v.note)}</div><div class="row"><select id="vf">${opts}</select><span class="muted">${v.total.toLocaleString()} live vacancies</span></div>
   <div class="card"><table><tr><th>Role</th><th>School</th><th>Council</th><th>Pay</th><th>Closes</th><th>Checked</th><th></th></tr>
-  ${v.items.map((x) => { const o = x.send_organisations || {}; return `<tr><td><b>${esc(x.original_title)}</b><br><span class="tag">${esc(FAM[x.profession_family] || x.profession_family)}</span></td><td>${esc(o.name)}<br><span class="muted">${esc(SETTING[o.setting_group] || "")}</span></td><td>${esc(o.la_name)}</td><td>${esc(x.salary_text || "")}</td><td>${date(x.closing_at)}</td><td class="muted">${date(x.last_verified_at)}</td><td><a href="${esc(x.source_url)}" target="_blank" rel="noopener">Advert</a><br><button class="btn ghost" ${pipeAttrs((o.name || ""),(x.original_title),(x.source_url),"From SEND Intelligence")}>Pipeline</button></td></tr>`; }).join("") || `<tr><td colspan=7 class="muted">No live vacancies yet. Daily checks started on 9 October 2026 and fill in over the first days.</td></tr>`}</table>
+  ${v.items.map((x) => { const o = x.send_organisations || {}; return `<tr><td><b>${esc(x.original_title)}</b><br><span class="tag">${esc(FAM[x.profession_family] || x.profession_family)}</span></td><td>${esc(o.name)}<br><span class="muted">${esc(SETTING[o.setting_group] || "")}</span></td><td>${esc(o.la_name)}</td><td>${esc(x.salary_text || "")}</td><td>${date(x.closing_at)}</td><td class="muted">${date(x.last_verified_at)}</td><td><a href="${esc(x.source_url)}" target="_blank" rel="noopener">Advert</a><br><button class="btn ghost" ${pipeAttrs((o.name || ""),(x.original_title),(x.source_url),"From SEND Intelligence")}>Pipeline</button><br><button class="btn ghost" data-draft="${esc(x.id)}" data-kind="v" style="margin-top:4px">Draft email</button></td></tr>`; }).join("") || `<tr><td colspan=7 class="muted">No live vacancies yet. Daily checks started on 9 October 2026 and fill in over the first days.</td></tr>`}</table>
   ${pager(v.total, v.page, v.pageSize, "vp")}</div>`;
 }
 async function schools() {
@@ -87,7 +105,7 @@ async function schools() {
   setTimeout(() => { $("#sq").onchange = (e) => { sessionStorage.setItem("sq", e.target.value); sessionStorage.setItem("sp", 1); show(); }; $("#ss").onchange = (e) => { sessionStorage.setItem("ss", e.target.value); sessionStorage.setItem("sp", 1); show(); }; }, 0);
   return `<div class="row"><input id="sq" placeholder="Search school name" value="${esc(q)}"><select id="ss"><option value="">All settings</option>${Object.entries(SETTING).map(([k, l]) => `<option value="${k}" ${k === st ? "selected" : ""}>${l}</option>`).join("")}</select><span class="muted">${r.total.toLocaleString()} schools</span></div>
   <div class="card"><table><tr><th>School</th><th>Council</th><th>Pupils</th><th>With EHC plan</th><th>SEN provision</th><th></th></tr>
-  ${r.items.map((o) => `<tr><td><b>${esc(o.name)}</b><br><span class="muted">${esc(o.establishment_type)}${o.status !== "Open" ? " · " + esc(o.status) : ""}</span>${o.trust_name ? `<br><span class="muted">${esc(o.trust_name)}</span>` : ""}</td><td>${esc(o.la_name)}<br><span class="muted">${esc(o.postcode)}</span></td><td>${o.pupils ?? ""}</td><td>${o.sen_ehcp ?? ""}</td><td>${(o.sen_provision || []).map((p) => `<span class="tag">${esc(p.split(" - ")[0])}</span>`).join("")}${o.resourced_provision_type ? `<span class="tag">${esc(o.resourced_provision_type)}</span>` : ""}</td><td>${o.website ? `<a href="${esc(o.website)}" target="_blank" rel="noopener">Website</a><br>` : ""}<a href="${esc(o.source_ref)}" target="_blank" rel="noopener">Official record</a><br><button class="btn ghost" ${pipeAttrs((o.name),"SEND staffing",(o.website || o.source_ref),"From SEND Intelligence")}>Pipeline</button></td></tr>`).join("")}</table>
+  ${r.items.map((o) => `<tr><td><b>${esc(o.name)}</b><br><span class="muted">${esc(o.establishment_type)}${o.status !== "Open" ? " · " + esc(o.status) : ""}</span>${o.trust_name ? `<br><span class="muted">${esc(o.trust_name)}</span>` : ""}</td><td>${esc(o.la_name)}<br><span class="muted">${esc(o.postcode)}</span></td><td>${o.pupils ?? ""}</td><td>${o.sen_ehcp ?? ""}</td><td>${(o.sen_provision || []).map((p) => `<span class="tag">${esc(p.split(" - ")[0])}</span>`).join("")}${o.resourced_provision_type ? `<span class="tag">${esc(o.resourced_provision_type)}</span>` : ""}</td><td>${o.website ? `<a href="${esc(o.website)}" target="_blank" rel="noopener">Website</a><br>` : ""}<a href="${esc(o.source_ref)}" target="_blank" rel="noopener">Official record</a><br><button class="btn ghost" ${pipeAttrs((o.name),"SEND staffing",(o.website || o.source_ref),"From SEND Intelligence")}>Pipeline</button><br><button class="btn ghost" data-draft="${esc(o.id)}" data-kind="o" style="margin-top:4px">Draft email</button></td></tr>`).join("")}</table>
   ${pager(r.total, r.page, r.pageSize, "sp")}</div>`;
 }
 function pager(total, page, size, key) {
@@ -96,15 +114,28 @@ function pager(total, page, size, key) {
   return `<div class="row" style="margin-top:10px">${page > 1 ? `<button class="btn ghost" data-pg="${page - 1}">Previous</button>` : ""}<span class="muted">Page ${page} of ${pages}</span>${page < pages ? `<button class="btn ghost" data-pg="${page + 1}">Next</button>` : ""}</div>`;
 }
 async function map() {
-  const r = await api("/api/send?view=map");
+  const mode = sessionStorage.getItem("mm") || "schools";
+  const r = await api(mode === "heat" ? "/api/send-territory?view=heat" : "/api/send?view=map");
   setTimeout(() => {
+    document.querySelectorAll("[data-mm]").forEach((b) => b.onclick = () => { sessionStorage.setItem("mm", b.dataset.mm); show(); });
     const m = L.map("map").setView([52.8, -1.6], 6);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap contributors" }).addTo(m);
+    if (mode === "heat") {
+      const max = Math.max(1, ...r.areas.map((a) => a.live_vacancies || 0));
+      for (const a of r.areas) {
+        const low = a.coverage_pct == null || a.coverage_pct < 30;
+        L.circleMarker([a.lat, a.lng], { radius: 6 + 22 * Math.sqrt((a.live_vacancies || 0) / max), color: low ? "#8A94A8" : "#0E8C7E", weight: 1, dashArray: low ? "3 3" : null, fillOpacity: a.live_vacancies ? .55 : .15 }).addTo(m)
+          .bindPopup(`<b>${esc(a.name)}</b><br>${a.schools} schools in scope<br>${a.live_vacancies} live SEND vacancies seen<br>${a.per_1000_sen == null ? "" : a.per_1000_sen + " per 1,000 pupils with SEN<br>"}Coverage: ${a.coverage_pct == null ? "not yet measured" : a.coverage_pct + "%"}`);
+      }
+      return;
+    }
     const col = { special: "#0E8C7E", ap: "#B7791F", mainstream_unit: "#4A6FA5" };
     for (const p of r.points) L.circleMarker([p.lat, p.lng], { radius: p.live ? 7 : 4, color: col[p.setting_group] || "#555", weight: 1, fillOpacity: p.live ? .9 : .5 }).addTo(m)
       .bindPopup(`<b>${esc(p.name)}</b><br>${esc(SETTING[p.setting_group] || "")}<br>${esc(p.la_name)}<br>${p.live ? p.live + " live SEND vacancies" : "No live vacancies seen"}${p.sen_ehcp ? "<br>" + p.sen_ehcp + " pupils with an EHC plan" : ""}`);
   }, 0);
-  return `<div class="row"><span class="tag" style="background:#0E8C7E;color:#fff">Special</span><span class="tag" style="background:#B7791F;color:#fff">Alternative provision</span><span class="tag" style="background:#4A6FA5;color:#fff">Mainstream with SEN unit</span><span class="muted">Larger dots have live vacancies. ${r.points.length.toLocaleString()} schools.</span></div><div id="map"></div>`;
+  const toggle = `<button class="btn ${mode === "schools" ? "" : "ghost"}" data-mm="schools">Schools</button><button class="btn ${mode === "heat" ? "" : "ghost"}" data-mm="heat">Councils</button>`;
+  if (mode === "heat") return `<div class="row">${toggle}<span class="muted">Circle size shows live SEND vacancies Qura has seen in each council. Grey dashed circles have under 30% coverage, so read them with care.</span></div><div class="note">${esc(r.note)}</div><div id="map"></div>`;
+  return `<div class="row">${toggle}<span class="tag" style="background:#0E8C7E;color:#fff">Special</span><span class="tag" style="background:#B7791F;color:#fff">Alternative provision</span><span class="tag" style="background:#4A6FA5;color:#fff">Mainstream with SEN unit</span><span class="muted">Larger dots have live vacancies. ${r.points.length.toLocaleString()} schools.</span></div><div id="map"></div>`;
 }
 async function coverage() {
   const c = await api("/api/send?view=coverage");
@@ -119,7 +150,60 @@ async function insights() {
   <div class="card"><b>Pay benchmarks</b> <span class="muted">${esc(i.notes.pay_benchmarks)}</span><table><tr><th>Role</th><th>Region</th><th>Adverts</th><th>Median low</th><th>Median high</th></tr>${i.pay_benchmarks.map((p) => `<tr><td>${esc(p.role)}</td><td>${esc(p.region)}</td><td>${p.adverts}</td><td>£${(p.median_low || 0).toLocaleString()}</td><td>£${(p.median_high || 0).toLocaleString()}</td></tr>`).join("") || `<tr><td colspan=5 class="muted">Needs at least 3 adverts with pay for a role and region.</td></tr>`}</table></div>
   <div class="card"><b>School changes</b> <span class="muted">New schools in scope, trust moves and status changes from the weekly official file.</span><table><tr><th>When</th><th>School</th><th>Change</th></tr>${i.school_changes.map((e) => `<tr><td>${date(e.at)}</td><td>${esc(e.send_organisations && e.send_organisations.name)}</td><td>${esc(e.event.replace(/_/g, " "))}${e.detail && (e.detail.from || e.detail.to) ? ": " + esc(e.detail.from || "none") + " to " + esc(e.detail.to || "none") : ""}</td></tr>`).join("") || `<tr><td colspan=3 class="muted">Changes appear after the second weekly update.</td></tr>`}</table></div>`;
 }
-const VIEWS = { overview, vacancies, schools, map, coverage, insights };
+let LAS = null;
+async function territories() {
+  const edit = sessionStorage.getItem("te"); const open = sessionStorage.getItem("to");
+  if (edit !== null) return territoryForm(edit);
+  if (open) return territoryDetail(open);
+  const r = await api("/api/send-territory?view=list");
+  setTimeout(() => {
+    $("#tnew").onclick = () => { sessionStorage.setItem("te", ""); show(); };
+    document.querySelectorAll("[data-topen]").forEach((b) => b.onclick = () => { sessionStorage.setItem("to", b.dataset.topen); show(); });
+    document.querySelectorAll("[data-tedit]").forEach((b) => b.onclick = () => { sessionStorage.setItem("te", b.dataset.tedit); show(); });
+  }, 0);
+  return `<div class="note">A territory is the councils, settings and professions you cover. Qura emails you new matching vacancies each morning and a briefing every Monday. You can switch either off.</div>
+  <div class="row"><button class="btn" id="tnew">New territory</button><span class="muted">${r.territories.length} of 20 saved</span></div>
+  <div class="card"><table><tr><th>Territory</th><th>Schools</th><th>Live vacancies</th><th>New in 7 days</th><th>Coverage</th><th>Emails</th><th></th></tr>
+  ${r.territories.map((t) => `<tr><td><b>${esc(t.name)}</b><br><span class="muted">${t.la_codes.length} council${t.la_codes.length === 1 ? "" : "s"}${t.settings.length ? " · " + t.settings.map((x) => esc(SETTING[x])).join(", ") : ""}${t.families.length ? " · " + t.families.map((x) => esc(FAM[x] || x)).join(", ") : ""}</span></td><td>${t.figures.schools}</td><td>${t.figures.live_vacancies}</td><td>${t.figures.new_7d}</td><td>${t.figures.coverage_pct == null ? "—" : t.figures.coverage_pct + "%"}</td><td class="muted">${t.alerts ? "Daily" : ""}${t.alerts && t.briefing ? ", " : ""}${t.briefing ? "Monday" : ""}${!t.alerts && !t.briefing ? "Off" : ""}</td><td><button class="btn" data-topen="${esc(t.id)}">Open</button> <button class="btn ghost" data-tedit="${esc(t.id)}">Edit</button></td></tr>`).join("") || `<tr><td colspan=7 class="muted">No territories yet. Choose New territory to set one up.</td></tr>`}</table></div>`;
+}
+async function territoryForm(id) {
+  if (!LAS) LAS = (await api("/api/send-territory?view=las")).las;
+  let t = { name: "", la_codes: [], settings: [], families: [], alerts: true, briefing: true };
+  if (id) t = (await api("/api/send-territory?view=detail&id=" + encodeURIComponent(id))).territory;
+  const chk = (name, val, on, label) => `<label><input type="checkbox" name="${name}" value="${esc(val)}" ${on ? "checked" : ""}>${esc(label)}</label>`;
+  setTimeout(() => {
+    $("#lf").oninput = (e) => { const q = e.target.value.toLowerCase(); document.querySelectorAll("#las label").forEach((l) => l.style.display = l.textContent.toLowerCase().includes(q) ? "" : "none"); };
+    $("#tcancel").onclick = () => { sessionStorage.removeItem("te"); show(); };
+    if ($("#tdel")) $("#tdel").onclick = async () => { if (!confirm("Delete this territory?")) return; await api("/api/send-territory", { method: "POST", body: JSON.stringify({ action: "delete", id }) }); sessionStorage.removeItem("te"); show(); };
+    $("#tsave").onclick = async () => {
+      const vals = (n) => [...document.querySelectorAll(`input[name=${n}]:checked`)].map((x) => x.value);
+      if (!vals("la").length) { $("#terr").textContent = "Choose at least one council."; return; }
+      try { await api("/api/send-territory", { method: "POST", body: JSON.stringify({ action: "save", id: id || undefined, name: $("#tn").value, la_codes: vals("la"), settings: vals("st"), families: vals("fm"), alerts: $("#ta").checked, briefing: $("#tb").checked }) }); sessionStorage.removeItem("te"); show(); }
+      catch (e) { $("#terr").textContent = e.message; }
+    };
+  }, 0);
+  return `<div class="card"><b>${id ? "Edit territory" : "New territory"}</b>
+  <div class="row" style="margin-top:10px"><input id="tn" placeholder="Name, for example North West therapies" value="${esc(t.name)}" style="flex:1;min-width:220px" maxlength="80"></div>
+  <p class="muted">Councils (choose at least one)</p><div class="row"><input id="lf" placeholder="Filter councils"></div>
+  <div class="chips" id="las">${LAS.map((l) => chk("la", l.code, t.la_codes.includes(l.code), l.name)).join("")}</div>
+  <p class="muted">Settings (none ticked means all)</p><div class="chips">${Object.entries(SETTING).map(([k, l]) => chk("st", k, t.settings.includes(k), l)).join("")}</div>
+  <p class="muted">Professions (none ticked means all)</p><div class="chips">${Object.entries(FAM).map(([k, l]) => chk("fm", k, t.families.includes(k), l)).join("")}</div>
+  <div class="row" style="margin-top:12px"><label><input type="checkbox" id="ta" ${t.alerts ? "checked" : ""}> Email and app alerts for new vacancies each morning</label></div>
+  <div class="row"><label><input type="checkbox" id="tb" ${t.briefing ? "checked" : ""}> Monday briefing</label></div>
+  <p id="terr" style="color:#B42318;font-size:13px"></p>
+  <div class="row"><button class="btn" id="tsave">Save</button><button class="btn ghost" id="tcancel">Cancel</button>${id ? `<button class="btn ghost" id="tdel" style="margin-left:auto;color:#B42318;border-color:#B42318">Delete</button>` : ""}</div></div>`;
+}
+async function territoryDetail(id) {
+  const r = await api("/api/send-territory?view=detail&id=" + encodeURIComponent(id)); const t = r.territory, f = r.figures;
+  setTimeout(() => { $("#tback").onclick = () => { sessionStorage.removeItem("to"); show(); }; }, 0);
+  return `<div class="row"><button class="btn ghost" id="tback">All territories</button><b>${esc(t.name)}</b></div>
+  <div class="grid" style="margin-bottom:14px"><div class="stat"><b>${f.schools.toLocaleString()}</b><span>Schools in scope</span></div><div class="stat"><b>${f.live_vacancies}</b><span>Live vacancies seen</span></div><div class="stat"><b>${f.new_7d}</b><span>New in the last 7 days</span></div><div class="stat"><b>${f.sen_ehcp.toLocaleString()}</b><span>Pupils with an EHC plan</span></div><div class="stat"><b>${f.coverage_pct == null ? "—" : f.coverage_pct + "%"}</b><span>Coverage</span></div></div>
+  <div class="card"><b>Live vacancies</b><table><tr><th>Role</th><th>School</th><th>Council</th><th>Pay</th><th>Closes</th><th></th></tr>
+  ${f.vacancies.map((x) => `<tr><td><b>${esc(x.original_title)}</b><br><span class="tag">${esc(FAM[x.profession_family] || x.profession_family)}</span></td><td>${esc(x.school)}</td><td>${esc(x.la_name)}</td><td>${esc(x.salary_text || "")}</td><td>${date(x.closing_at)}</td><td><a href="${esc(x.source_url)}" target="_blank" rel="noopener">Advert</a><br><button class="btn ghost" ${pipeAttrs(x.school, x.original_title, x.source_url, "From SEND Intelligence territory")}>Pipeline</button><br><button class="btn ghost" data-draft="${esc(x.id)}" data-kind="v" style="margin-top:4px">Draft email</button></td></tr>`).join("") || `<tr><td colspan=6 class="muted">No live vacancies seen in this territory yet.</td></tr>`}</table></div>
+  <div class="card"><b>Opening soon</b> <span class="muted">Schools the official record lists as proposed to open.</span><table><tr><th>School</th><th>Council</th><th>Opens</th></tr>${f.opening_soon.map((o) => `<tr><td>${esc(o.name)}</td><td>${esc(o.la_name)}</td><td>${date(o.open_date)}</td></tr>`).join("") || `<tr><td colspan=3 class="muted">None in this territory.</td></tr>`}</table></div>
+  <div class="card"><b>Coverage by council</b><table><tr><th>Council</th><th>Schools</th><th>Monitored</th><th>Coverage</th></tr>${f.areas.map((a) => `<tr><td>${esc(a.area_name)}</td><td>${a.schools}</td><td>${a.sources_monitored}</td><td>${a.coverage_pct}%</td></tr>`).join("") || `<tr><td colspan=4 class="muted">Calculated hourly once jobs pages have been found.</td></tr>`}</table></div>`;
+}
+const VIEWS = { overview, vacancies, territories, schools, map, coverage, insights };
 async function show() { $("#app").innerHTML = `<div class="center muted">Loading…</div>`; try { $("#app").innerHTML = await (VIEWS[tab] || overview)(); } catch (e) { $("#app").innerHTML = `<div class="center"><p>${esc(e.message)}</p><p class="muted">SEND Intelligence is in pilot. Ask the Qura team to switch it on for your account.</p></div>`; } }
 const { data } = await sb.auth.getSession();
 if (!data || !data.session) { $("#tabs").innerHTML = ""; $("#app").innerHTML = `<div class="center"><h2>Sign in to Qura first</h2><p class="muted">SEND Intelligence uses your Qura account.</p><p><a class="btn" style="padding:10px 18px;text-decoration:none" href="/">Go to Qura and sign in</a></p></div>`; }
