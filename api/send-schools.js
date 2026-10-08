@@ -10,7 +10,7 @@ export const config = { maxDuration: 300 };
 //   2. keeps open, opening-soon and closing-soon special schools, alternative
 //      provision and PRUs, and mainstream schools with an SEN unit or resourced provision,
 //   3. upserts schools, academy trusts, local authorities and independent proprietors,
-//      and links each school to them,
+//      and links each school to them, recording new schools, trust moves and status changes,
 //   4. registers each school website in the source register for careers-page discovery,
 //   5. marks schools that dropped out of scope (closed or no longer SEN) as out of scope.
 // Vercel Cron or a signed-in founder only (api/_cron.js).
@@ -75,10 +75,36 @@ export default async function handler(req, res) {
     const pn = (r.PropsName || "").trim();
     if (pn && !personName(pn) && /independent|non-maintained/i.test(r["TypeOfEstablishment (name)"])) parents.set("proprietor:" + slug(pn), { nation: "england", org_kind: "proprietor", official_id: slug(pn), name: pn, status: "Open", in_scope: true, setting_group: "proprietor", source: "gias", last_seen_at: runAt, last_verified_at: runAt });
   }
+  // Before writing, remember each school's trust and status so changes can be recorded (idea 9)
+  const before = new Map();
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from("send_organisations").select("id,official_id,trust_code,trust_name,status").eq("nation", "england").eq("org_kind", "school").range(from, from + 999);
+    if (error) { log.errors.push("before: " + error.message); break; }
+    for (const d of data || []) before.set(d.official_id, d);
+    if (!data || data.length < 1000) break;
+  }
   const pIds = await upsertOrgs(sb, [...parents.values()], log);
   const schools = rows.map((r) => schoolRecord(r, runAt));
   const sIds = pIds && await upsertOrgs(sb, schools, log);
   if (!pIds || !sIds) { await kvSet("shared", "send_schools_state", { ...state, lastRun: runAt, lastLog: log }); return res.status(500).json({ error: "Upsert failed", log }); }
+
+  // Changes since the last sync: new schools, trust moves, status changes (skipped on the very first sync)
+  log.events = 0;
+  if (before.size > 100) {
+    const events = [];
+    for (const sc of schools) {
+      const id = sIds.get("school:" + sc.official_id); if (!id) continue;
+      const b = before.get(sc.official_id);
+      if (!b) { events.push({ organisation_id: id, event: "new_in_scope", detail: { status: sc.status, setting: sc.setting_group } }); continue; }
+      if ((b.trust_code || null) !== (sc.trust_code || null)) events.push({ organisation_id: id, event: "trust_change", detail: { from: b.trust_name || null, to: sc.trust_name || null } });
+      if ((b.status || null) !== (sc.status || null)) events.push({ organisation_id: id, event: "status_change", detail: { from: b.status || null, to: sc.status || null } });
+    }
+    for (let i = 0; i < events.length; i += 500) {
+      const { error } = await sb.from("send_org_events").insert(events.slice(i, i + 500));
+      if (error) { log.errors.push("events: " + error.message); break; }
+      log.events += events.slice(i, i + 500).length;
+    }
+  }
 
   // Links
   const links = [];
@@ -94,7 +120,7 @@ export default async function handler(req, res) {
     log.links += links.slice(i, i + 1000).length;
   }
 
-  // 4. Source register: one school_website row per school with a site (discovery fills careers pages in week 2)
+  // 4. Source register: one school_website row per school with a site (discovery fills careers pages)
   const srcs = schools.filter((s) => s.website).map((s) => ({ organisation_id: sIds.get("school:" + s.official_id), kind: "school_website", url: s.website, status: "to_discover", priority: s.setting_group === "mainstream_unit" ? 6 : 4 }));
   for (let i = 0; i < srcs.length; i += 1000) {
     const { error } = await sb.from("send_sources").upsert(srcs.slice(i, i + 1000), { onConflict: "kind,url", ignoreDuplicates: true });

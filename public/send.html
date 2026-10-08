@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SEND Intelligence (pilot) | Qura</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--navy:#0A1730;--teal:#00C2B8;--teal2:#0E8C7E;--ink:#12263F;--muted:#5A6783;--line:#E3E8F2;--bg:#F5F7FB;--amber:#B7791F}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--navy);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header .mark{width:34px;height:34px;border-radius:10px;background:#fff1;display:grid;place-items:center;color:var(--teal);font-weight:800}
+header h1{font-size:17px;margin:0}header .pill{font-size:11px;background:var(--teal);color:#04231F;border-radius:999px;padding:3px 9px;font-weight:700}
+header .who{margin-left:auto;font-size:12.5px;opacity:.8}
+nav{display:flex;gap:6px;padding:12px 20px;flex-wrap:wrap;background:#fff;border-bottom:1px solid var(--line)}
+nav button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-weight:600;font-size:13px;cursor:pointer;color:var(--ink)}
+nav button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+main{padding:18px 20px;max-width:1200px;margin:0 auto}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}.stat b{display:block;font-size:24px}.stat span{font-size:12px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.muted{color:var(--muted);font-size:12.5px}.note{background:#FFF8E6;border:1px solid #F3DFB0;color:#6B4E12;border-radius:10px;padding:10px 12px;font-size:12.5px;margin-bottom:12px}
+input,select{border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-size:13px;background:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.btn{border:none;background:var(--teal2);color:#fff;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer}.btn.ghost{background:#fff;color:var(--teal2);border:1px solid var(--teal2)}
+a{color:var(--teal2)}#map{height:560px;border-radius:14px;border:1px solid var(--line)}
+.tag{display:inline-block;font-size:11px;border-radius:999px;padding:2px 8px;background:#EEF3FA;color:var(--ink);margin:1px 2px 1px 0}
+footer{padding:20px;color:var(--muted);font-size:11.5px;text-align:center;line-height:1.6}
+.center{text-align:center;padding:60px 20px}
+</style></head><body>
+<header><div class="mark">Q</div><h1>SEND Intelligence</h1><span class="pill">Pilot</span><span class="who" id="who"></span></header>
+<nav id="tabs"></nav>
+<main id="app"><div class="center muted">Loading…</div></main>
+<footer>Schools data: Get Information about Schools, Department for Education. Contains public sector information licensed under the Open Government Licence v3.0.<br>Vacancies come only from school, trust and council pages Qura is allowed to check. Coverage is partial and shown for every area. Estimates and AI inferences are labelled.<br>Qura holds no data about pupils, families or EHC plans. Qura Ltd, company number 17310951.</footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+const sb = createClient("https://jggvouhtmzciptqltjum.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpnZ3ZvdWh0bXpjaXB0cWx0anVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MjUxNDgsImV4cCI6MjA5ODUwMTE0OH0.tob2XD5bJtwzu9v79iw0S2-Z5LDVcIYV8i1m9uobq3o");
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v == null ? "" : v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const SETTING = { special: "Special school", ap: "Alternative provision", mainstream_unit: "Mainstream with SEN unit" };
+const FAM = { speech_language: "Speech and language", occupational_therapy: "Occupational therapy", physiotherapy: "Physiotherapy", therapies: "Therapies leadership", psychology: "Psychology", send_teaching: "SEND teaching", teaching_support: "Teaching support", send_leadership: "SEND leadership", mental_health: "Mental health", nursing_care: "Nursing and care", send_admin: "SEND administration", other_specialist: "Other specialists" };
+const date = (d) => d ? new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Europe/London" }) : "";
+let token = null;
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { "Content-Type": "application/json", Authorization: "Bearer " + token, ...(opts.headers || {}) } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ("Error " + r.status));
+  return j;
+}
+async function addToPipeline(org, role, url, note) {
+  try { const j = await api("/api/pipeline", { method: "POST", body: JSON.stringify({ org, role, source: "SEND Intelligence", notice_url: url, note }) }); alert(j.alreadyThere ? "Already in your pipeline." : "Added to your pipeline."); }
+  catch (e) { alert(e.message); }
+}
+const pipeAttrs = (org, role, url, note) => `data-org="${esc(org)}" data-role="${esc(role)}" data-url="${esc(url)}" data-note="${esc(note)}"`;
+document.addEventListener("click", (e) => { const b = e.target.closest("[data-org]"); if (b) addToPipeline(b.dataset.org, b.dataset.role, b.dataset.url, b.dataset.note); });
+const TABS = [["overview", "Overview"], ["vacancies", "Vacancies"], ["schools", "Schools"], ["map", "Map"], ["coverage", "Coverage"], ["insights", "Insights"]];
+let tab = (location.hash || "#overview").slice(1);
+function renderTabs() { $("#tabs").innerHTML = TABS.map(([k, l]) => `<button class="${k === tab ? "on" : ""}" data-t="${k}">${l}</button>`).join(""); $("#tabs").onclick = (e) => { const t = e.target.dataset.t; if (t) { tab = t; location.hash = t; renderTabs(); show(); } }; }
+
+async function overview() {
+  const s = await api("/api/send?view=summary"); const e = s.england;
+  return `<div class="grid">
+    <div class="stat"><b>${e.schools.toLocaleString()}</b><span>schools in scope, England</span></div>
+    <div class="stat"><b>${e.special.toLocaleString()}</b><span>special schools</span></div>
+    <div class="stat"><b>${e.ap.toLocaleString()}</b><span>alternative provision and PRUs</span></div>
+    <div class="stat"><b>${e.mainstream_units.toLocaleString()}</b><span>mainstream with SEN units</span></div>
+    <div class="stat"><b>${e.trusts.toLocaleString()}</b><span>academy trusts</span></div>
+    <div class="stat"><b>${e.local_authorities}</b><span>councils</span></div></div>
+    <div class="card" style="margin-top:14px"><b>Opening soon</b> <span class="muted">Schools recorded as "proposed to open". New schools recruit a whole staff before they open.</span>
+    <table><tr><th>School</th><th>Type</th><th>Council</th><th>Opens</th><th></th></tr>${(s.opening_soon || []).map((o) => `<tr><td>${esc(o.name)}</td><td>${esc(o.establishment_type)}</td><td>${esc(o.la_name)}</td><td>${date(o.open_date)}</td><td><button class="btn ghost" ${pipeAttrs((o.name),"New school: staffing",(o.website || ""),"Proposed to open")}>Add to pipeline</button></td></tr>`).join("") || `<tr><td colspan=5 class="muted">None at the moment.</td></tr>`}</table></div>
+    <div class="card"><b>Monitoring</b><p class="muted">${s.sources.registered.toLocaleString()} school websites registered; ${s.sources.discovered.toLocaleString()} checked for a jobs page so far. ${esc(s.sources.coverage_note)}</p><p class="muted">School list last updated from the official file: ${date(s.last_sync.at) || "pending"}.</p></div>`;
+}
+async function vacancies() {
+  const fam = sessionStorage.getItem("vf") || ""; const page = Number(sessionStorage.getItem("vp") || 1);
+  const v = await api("/api/send?view=vacancies&page=" + page + (fam ? "&family=" + encodeURIComponent(fam) : ""));
+  const opts = `<option value="">All professions</option>` + Object.entries(FAM).map(([k, l]) => `<option value="${k}" ${k === fam ? "selected" : ""}>${l}</option>`).join("");
+  setTimeout(() => { $("#vf").onchange = (e) => { sessionStorage.setItem("vf", e.target.value); sessionStorage.setItem("vp", 1); show(); }; }, 0);
+  return `<div class="note">${esc(v.note)}</div><div class="row"><select id="vf">${opts}</select><span class="muted">${v.total.toLocaleString()} live vacancies</span></div>
+  <div class="card"><table><tr><th>Role</th><th>School</th><th>Council</th><th>Pay</th><th>Closes</th><th>Checked</th><th></th></tr>
+  ${v.items.map((x) => { const o = x.send_organisations || {}; return `<tr><td><b>${esc(x.original_title)}</b><br><span class="tag">${esc(FAM[x.profession_family] || x.profession_family)}</span></td><td>${esc(o.name)}<br><span class="muted">${esc(SETTING[o.setting_group] || "")}</span></td><td>${esc(o.la_name)}</td><td>${esc(x.salary_text || "")}</td><td>${date(x.closing_at)}</td><td class="muted">${date(x.last_verified_at)}</td><td><a href="${esc(x.source_url)}" target="_blank" rel="noopener">Advert</a><br><button class="btn ghost" ${pipeAttrs((o.name || ""),(x.original_title),(x.source_url),"From SEND Intelligence")}>Pipeline</button></td></tr>`; }).join("") || `<tr><td colspan=7 class="muted">No live vacancies yet. Daily checks started on 9 October 2026 and fill in over the first days.</td></tr>`}</table>
+  ${pager(v.total, v.page, v.pageSize, "vp")}</div>`;
+}
+async function schools() {
+  const q = sessionStorage.getItem("sq") || "", st = sessionStorage.getItem("ss") || "", page = Number(sessionStorage.getItem("sp") || 1);
+  const r = await api("/api/send?view=organisations&page=" + page + (q ? "&q=" + encodeURIComponent(q) : "") + (st ? "&setting=" + st : ""));
+  setTimeout(() => { $("#sq").onchange = (e) => { sessionStorage.setItem("sq", e.target.value); sessionStorage.setItem("sp", 1); show(); }; $("#ss").onchange = (e) => { sessionStorage.setItem("ss", e.target.value); sessionStorage.setItem("sp", 1); show(); }; }, 0);
+  return `<div class="row"><input id="sq" placeholder="Search school name" value="${esc(q)}"><select id="ss"><option value="">All settings</option>${Object.entries(SETTING).map(([k, l]) => `<option value="${k}" ${k === st ? "selected" : ""}>${l}</option>`).join("")}</select><span class="muted">${r.total.toLocaleString()} schools</span></div>
+  <div class="card"><table><tr><th>School</th><th>Council</th><th>Pupils</th><th>With EHC plan</th><th>SEN provision</th><th></th></tr>
+  ${r.items.map((o) => `<tr><td><b>${esc(o.name)}</b><br><span class="muted">${esc(o.establishment_type)}${o.status !== "Open" ? " · " + esc(o.status) : ""}</span>${o.trust_name ? `<br><span class="muted">${esc(o.trust_name)}</span>` : ""}</td><td>${esc(o.la_name)}<br><span class="muted">${esc(o.postcode)}</span></td><td>${o.pupils ?? ""}</td><td>${o.sen_ehcp ?? ""}</td><td>${(o.sen_provision || []).map((p) => `<span class="tag">${esc(p.split(" - ")[0])}</span>`).join("")}${o.resourced_provision_type ? `<span class="tag">${esc(o.resourced_provision_type)}</span>` : ""}</td><td>${o.website ? `<a href="${esc(o.website)}" target="_blank" rel="noopener">Website</a><br>` : ""}<a href="${esc(o.source_ref)}" target="_blank" rel="noopener">Official record</a><br><button class="btn ghost" ${pipeAttrs((o.name),"SEND staffing",(o.website || o.source_ref),"From SEND Intelligence")}>Pipeline</button></td></tr>`).join("")}</table>
+  ${pager(r.total, r.page, r.pageSize, "sp")}</div>`;
+}
+function pager(total, page, size, key) {
+  const pages = Math.max(1, Math.ceil(total / size));
+  setTimeout(() => { document.querySelectorAll("[data-pg]").forEach((b) => b.onclick = () => { sessionStorage.setItem(key, b.dataset.pg); show(); }); }, 0);
+  return `<div class="row" style="margin-top:10px">${page > 1 ? `<button class="btn ghost" data-pg="${page - 1}">Previous</button>` : ""}<span class="muted">Page ${page} of ${pages}</span>${page < pages ? `<button class="btn ghost" data-pg="${page + 1}">Next</button>` : ""}</div>`;
+}
+async function map() {
+  const r = await api("/api/send?view=map");
+  setTimeout(() => {
+    const m = L.map("map").setView([52.8, -1.6], 6);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap contributors" }).addTo(m);
+    const col = { special: "#0E8C7E", ap: "#B7791F", mainstream_unit: "#4A6FA5" };
+    for (const p of r.points) L.circleMarker([p.lat, p.lng], { radius: p.live ? 7 : 4, color: col[p.setting_group] || "#555", weight: 1, fillOpacity: p.live ? .9 : .5 }).addTo(m)
+      .bindPopup(`<b>${esc(p.name)}</b><br>${esc(SETTING[p.setting_group] || "")}<br>${esc(p.la_name)}<br>${p.live ? p.live + " live SEND vacancies" : "No live vacancies seen"}${p.sen_ehcp ? "<br>" + p.sen_ehcp + " pupils with an EHC plan" : ""}`);
+  }, 0);
+  return `<div class="row"><span class="tag" style="background:#0E8C7E;color:#fff">Special</span><span class="tag" style="background:#B7791F;color:#fff">Alternative provision</span><span class="tag" style="background:#4A6FA5;color:#fff">Mainstream with SEN unit</span><span class="muted">Larger dots have live vacancies. ${r.points.length.toLocaleString()} schools.</span></div><div id="map"></div>`;
+}
+async function coverage() {
+  const c = await api("/api/send?view=coverage");
+  const rows = (c.areas || []).sort((a, b) => (b.schools || 0) - (a.schools || 0));
+  return `<div class="note">Coverage is the share of a council's in-scope schools whose own jobs page Qura checks daily. A low figure means Qura cannot see that area well; it does not mean there is no demand.</div>
+  <div class="card"><table><tr><th>Council</th><th>Schools</th><th>Special</th><th>AP</th><th>SEN units</th><th>Monitored</th><th>Coverage</th></tr>
+  ${rows.map((a) => `<tr><td>${esc(a.area_name)}</td><td>${a.schools}</td><td>${a.special}</td><td>${a.ap}</td><td>${a.mainstream_units}</td><td>${a.sources_monitored}</td><td><b>${a.coverage_pct}%</b></td></tr>`).join("") || `<tr><td colspan=7 class="muted">Coverage is calculated hourly once jobs pages have been found.</td></tr>`}</table></div>`;
+}
+async function insights() {
+  const i = await api("/api/send?view=insights");
+  return `<div class="card"><b>Repeat hiring</b> <span class="muted">${esc(i.notes.repeat_hiring)}</span><table><tr><th>School</th><th>Council</th><th>Role</th><th>Adverts</th></tr>${i.repeat_hiring.map((r) => `<tr><td>${esc(r.school)}</td><td>${esc(r.la)}</td><td>${esc(r.role)}</td><td>${r.adverts}</td></tr>`).join("") || `<tr><td colspan=4 class="muted">Builds up as Qura sees adverts over time.</td></tr>`}</table></div>
+  <div class="card"><b>Pay benchmarks</b> <span class="muted">${esc(i.notes.pay_benchmarks)}</span><table><tr><th>Role</th><th>Region</th><th>Adverts</th><th>Median low</th><th>Median high</th></tr>${i.pay_benchmarks.map((p) => `<tr><td>${esc(p.role)}</td><td>${esc(p.region)}</td><td>${p.adverts}</td><td>£${(p.median_low || 0).toLocaleString()}</td><td>£${(p.median_high || 0).toLocaleString()}</td></tr>`).join("") || `<tr><td colspan=5 class="muted">Needs at least 3 adverts with pay for a role and region.</td></tr>`}</table></div>
+  <div class="card"><b>School changes</b> <span class="muted">New schools in scope, trust moves and status changes from the weekly official file.</span><table><tr><th>When</th><th>School</th><th>Change</th></tr>${i.school_changes.map((e) => `<tr><td>${date(e.at)}</td><td>${esc(e.send_organisations && e.send_organisations.name)}</td><td>${esc(e.event.replace(/_/g, " "))}${e.detail && (e.detail.from || e.detail.to) ? ": " + esc(e.detail.from || "none") + " to " + esc(e.detail.to || "none") : ""}</td></tr>`).join("") || `<tr><td colspan=3 class="muted">Changes appear after the second weekly update.</td></tr>`}</table></div>`;
+}
+const VIEWS = { overview, vacancies, schools, map, coverage, insights };
+async function show() { $("#app").innerHTML = `<div class="center muted">Loading…</div>`; try { $("#app").innerHTML = await (VIEWS[tab] || overview)(); } catch (e) { $("#app").innerHTML = `<div class="center"><p>${esc(e.message)}</p><p class="muted">SEND Intelligence is in pilot. Ask the Qura team to switch it on for your account.</p></div>`; } }
+const { data } = await sb.auth.getSession();
+if (!data || !data.session) { $("#tabs").innerHTML = ""; $("#app").innerHTML = `<div class="center"><h2>Sign in to Qura first</h2><p class="muted">SEND Intelligence uses your Qura account.</p><p><a class="btn" style="padding:10px 18px;text-decoration:none" href="/">Go to Qura and sign in</a></p></div>`; }
+else { token = data.session.access_token; $("#who").textContent = data.session.user.email || ""; renderTabs(); show(); sb.auth.onAuthStateChange((_e, s) => { if (s) token = s.access_token; }); }
+</script></body></html>
