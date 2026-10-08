@@ -3,7 +3,7 @@
 // never bypass logins, paywalls or anti-bot controls, identify ourselves, keep
 // request rates low, and never use commercial job boards unless licensed.
 
-export const UA = "QuraBot/1.0 (SEND Intelligence; +https://www.qurahealth.org; privacy@qurahealth.org)";
+export const UA = "QuraBot/1.0 (SEND Intelligence; +https://www.qurahealth.org/send-data.html; privacy@qurahealth.org)";
 
 export async function politeFetch(url, { timeoutMs = 8000, maxBytes = 1500000 } = {}) {
   const ctl = new AbortController();
