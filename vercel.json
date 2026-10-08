@@ -39,6 +39,10 @@
     {
       "path": "/api/send-vacancies",
       "schedule": "5-59/10 * * * *"
+    },
+    {
+      "path": "/api/send-alerts",
+      "schedule": "20 7 * * *"
     }
   ],
   "rewrites": [
@@ -93,6 +97,14 @@
     {
       "source": "/founding-partner",
       "destination": "/founding-partner.html"
+    },
+    {
+      "source": "/send-intelligence",
+      "destination": "/send.html"
+    },
+    {
+      "source": "/send-data",
+      "destination": "/send-data.html"
     }
   ],
   "headers": [
