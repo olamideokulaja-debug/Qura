@@ -24,7 +24,7 @@ async function mail(to, subject, html, unsub) {
 async function push(userId, title, body) {
   const reg = await kvGet(userId, "push_registration");
   if (!shouldPush(reg, "tenders")) return false;
-  const r = await fetch("https://exp.host/--/api/v2/push/send", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify([{ to: reg.token, title, body, data: { url: SITE + "/?open=send&tab=vacancies" } }]) }).catch(() => null);
+  const r = await fetch("https://exp.host/--/api/v2/push/send", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify([{ to: reg.token, title, body, data: { type: "send", tab: "vacancies", url: SITE + "/?open=send&tab=vacancies" } }]) }).catch(() => null);
   return Boolean(r && r.ok);
 }
 const shell = (title, inner, unsub) => '<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#12263F"><div style="background:#0A1730;color:#fff;padding:16px 20px;border-radius:12px 12px 0 0"><b>Qura SEND Intelligence</b></div><div style="border:1px solid #E3E8F2;border-top:none;padding:20px;border-radius:0 0 12px 12px"><h2 style="font-size:18px;margin:0 0 12px">' + esc(title) + '</h2>' + inner + '<p style="font-size:12px;color:#8494AD;margin-top:24px">Vacancies come from school, trust and council pages Qura is allowed to check, so coverage is partial. <a href="' + esc(unsub) + '" style="color:#8494AD">Stop SEND alerts and briefings</a>. Qura Ltd, company number 17310951.</p></div></div>';
