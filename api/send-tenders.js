@@ -123,8 +123,11 @@ export async function runMonthly(sb, key, st, log, match) {
     if (r.error) {
       st.fails = (st.fails || 0) + 1;
       log.errors.push(src.name + " " + st.month + " type " + type + ": " + r.error);
-      // Persistent failure on one item: skip it after 5 tries rather than stall for ever.
-      if (st.fails >= 5) { st.fails = 0; st.typeIdx++; }
+      // A server error on one month and type is a fault in that service's data (Sell2Wales
+      // answers some types and fails on others), so note it and move on; it is retried once the
+      // backfill is complete. Network errors and 429s pause the source instead. Any item that
+      // keeps failing is skipped after 5 tries rather than stalling for ever.
+      if (/^HTTP 5\d\d$/.test(r.error) || st.fails >= 5) { st.skipped = [...(st.skipped || []), st.month + ":" + type].slice(-300); st.fails = 0; st.typeIdx++; }
       else { st.pausedUntil = new Date(Date.now() + (r.error === "HTTP 429" ? Math.max(PAUSE_MS, (r.retryAfter || 0) * 1000) : MONTH_PAUSE_MS)).toISOString(); }
     } else {
       st.fails = 0;
@@ -142,7 +145,17 @@ export async function runMonthly(sb, key, st, log, match) {
     if (st.typeIdx >= SITE_TYPES.length) {
       st.typeIdx = 0; st.doneTo = st.month;
       // The current month stays open and is read again on later runs; the month before it too.
-      if (st.month >= thisMonth) { st.month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString().slice(0, 7); break; }
+      if (st.month >= thisMonth) {
+        st.month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
+        // Backfill done: give earlier server-error skips one more try, a few per run.
+        const retry = (st.skipped || []).splice(0, 2); st.skipped = st.skipped || [];
+        for (const item of retry) {
+          const [m, t] = item.split(":"); const r2 = await getJsonMonthly(src.base + "?dateFrom=" + mm(new Date(m + "-01T00:00:00Z")) + "&noticeType=" + t + "&outputType=0" + src.extra);
+          if (r2.data) { const rows = ((r2.data.releases) || []).map((rel) => tenderRow(rel, src.name, match)).filter(Boolean); if (rows.length) await sb.from("send_tenders").upsert([...new Map(rows.map((x) => [x.id, x])).values()], { onConflict: "id" }); log[key + "Retried"] = (log[key + "Retried"] || 0) + 1; }
+          await sleep(3000);
+        }
+        break;
+      }
       const nx = new Date(st.month + "-01T00:00:00Z"); nx.setUTCMonth(nx.getUTCMonth() + 1); st.month = nx.toISOString().slice(0, 7);
     }
     if (st.pausedUntil && Date.now() < Date.parse(st.pausedUntil)) break;
