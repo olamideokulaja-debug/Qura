@@ -362,6 +362,8 @@ import SupplierRating from "./SupplierRating.jsx";
 // A supplier's own standing. The rating belongs here, not on the private
 // clinics directory, which lists customers rather than suppliers.
 import SupplierStanding from "./SupplierStanding.jsx";
+// Screens added without editing this file (SEND Intelligence first). See src/extraScreens.jsx.
+import { extraScreen } from "./extraScreens.jsx";
 import AuthPanel from "./AuthPanel.jsx";
 import ClinicianRegistration from "./ClinicianRegistration.jsx";
 import { CLIN_TAGLINES, CLIN_UNIVERSAL, CLIN_TABS, CLIN_COUNTRIES, ClinicianSection } from "./pages/clinician.jsx";
@@ -4745,7 +4747,7 @@ function Shell({ role, onLogout, onHome, onSwitch, trial, onSignup, plan, onPlan
       case "myopps": return <MyOpportunities />;
       case "network": return <NetworkScreen />;
       case "messages": return <MessagesScreen />;
-      default: return <Dashboard go={go} name={firstName} />;
+      default: return extraScreen(active, { role, onToast: (m) => { setToast(m); setTimeout(() => setToast(null), 2800); } }) || <Dashboard go={go} name={firstName} />;
     }
   };
   const Side = (
