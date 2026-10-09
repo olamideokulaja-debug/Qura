@@ -113,6 +113,24 @@ export default async function handler(req, res) {
     await sb.from("send_sources").update({ content_hash: hash, last_checked_at: now, last_changed_at: now, last_http_status: page.status, consecutive_failures: 0 }).eq("id", s.id);
   });
 
+  // Re-classify hidden roles when the job types change (taxonomy rows or classify() rules),
+  // so a fix reaches roles already stored, not only new ones. Hourly at most; up to 2,000 rows.
+  const rcState = (await kvGet("shared", "send_reclassify")) || {};
+  const taxSig = sha(JSON.stringify((tax || []).map((r) => [r.code, r.synonyms])) + "|v2").slice(0, 16);
+  if (rcState.sig !== taxSig || !rcState.at || Date.now() - Date.parse(rcState.at) > 24 * 3600000) {
+    let promoted = 0;
+    const { data: hid } = await sb.from("send_vacancies").select("id,original_title,closing_at,organisation_id,send_organisations(setting_group)").eq("status", "HIDDEN").limit(2000);
+    for (const v of hid || []) {
+      const cls = classify(v.original_title, tax || [], (v.send_organisations || {}).setting_group);
+      if (!cls.taxonomy_code) continue;
+      const closed = v.closing_at && new Date(v.closing_at) < new Date();
+      await sb.from("send_vacancies").update({ ...cls, status: closed ? "CLOSED" : "LIVE", updated_at: new Date().toISOString() }).eq("id", v.id).eq("status", "HIDDEN");
+      promoted++;
+    }
+    log.reclassified = promoted;
+    await kvSet("shared", "send_reclassify", { sig: taxSig, at: new Date().toISOString(), promoted });
+  }
+
   // Closing dates passed
   const { data: closedRows } = await sb.from("send_vacancies").update({ status: "CLOSED", updated_at: new Date().toISOString() }).eq("status", "LIVE").lt("closing_at", new Date().toISOString()).select("id");
   log.closed = (closedRows || []).length;

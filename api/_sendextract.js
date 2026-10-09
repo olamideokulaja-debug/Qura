@@ -73,14 +73,14 @@ function parseJsonArray(text) {
 // spend cut-off, and should be checked against the Anthropic bill in week 2.
 // If the chosen model is not available to this API key, it falls back once to the model the
 // rest of Qura already uses (claude-sonnet-4-6), priced at its higher estimated rates.
-export async function aiExtract(text, links, pageUrl, fallback = false) {
+export async function aiExtract(text, links, pageUrl, fallback = false, today = null) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return { ok: false, error: "AI not configured" };
   const model = fallback ? "claude-sonnet-4-6" : (process.env.SEND_AI_MODEL || "claude-haiku-4-5");
   const inP = fallback ? 240 : Number(process.env.SEND_AI_IN_PPM || 80), outP = fallback ? 1200 : Number(process.env.SEND_AI_OUT_PPM || 400);
   const system = "You extract job vacancies from a UK school's careers web page. Return ONLY a JSON array. Each item: {\"title\":string,\"closing_date\":\"YYYY-MM-DD\"|null,\"salary_text\":string|null,\"contract_type\":\"permanent\"|\"fixed_term\"|\"temporary\"|\"supply\"|null,\"working_pattern\":\"full_time\"|\"part_time\"|\"term_time\"|null,\"location\":string|null,\"detail_url\":string|null}. Include only vacancies the page actually advertises now. Never invent details: use null when the page does not say. detail_url must be one of the listed links or null. If there are no vacancies, return [].";
   const linkList = links.slice(0, 80).map((l) => "- " + l.text + " -> " + l.url).join("\n");
-  const user = "Page: " + pageUrl + "\nToday: " + new Date().toISOString().slice(0, 10) + "\n\nPAGE TEXT:\n" + text.slice(0, 14000) + "\n\nLINKS:\n" + linkList;
+  const user = "Page: " + pageUrl + "\nToday: " + (today || new Date().toISOString().slice(0, 10)) + "\n\nPAGE TEXT:\n" + text.slice(0, 14000) + "\n\nLINKS:\n" + linkList;
   try {
     const r = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -90,7 +90,7 @@ export async function aiExtract(text, links, pageUrl, fallback = false) {
     const data = await r.json();
     if (!r.ok) {
       const msg = (data.error && data.error.message) || "AI request failed";
-      if (!fallback && (r.status === 404 || /model/i.test(msg))) return aiExtract(text, links, pageUrl, true);
+      if (!fallback && (r.status === 404 || /model/i.test(msg))) return aiExtract(text, links, pageUrl, true, today);
       return { ok: false, error: msg, status: r.status };
     }
     const out = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("");

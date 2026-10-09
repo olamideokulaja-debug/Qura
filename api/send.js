@@ -90,6 +90,12 @@ export default async function handler(req, res) {
     if (error) return res.status(500).json({ error: error.message });
     return res.status(200).json({ total: count || 0, page, pageSize: PAGE, items: data || [], note: "Vacancies come from school careers pages Qura is allowed to check. Coverage is partial; see the Coverage tab." });
   }
+  if (view === "accuracy") {
+    // Weekly accuracy check (api/send-accuracy.js): latest run plus the trend.
+    const st = (await kvGet("shared", "send_accuracy")) || {};
+    const runs = st.runs || [];
+    return res.status(200).json({ golden: st.golden || null, latest: runs[runs.length - 1] || null, trend: runs.map((r) => ({ at: r.at, jobs_found_pct: r.extractor && r.extractor.jobs_found_pct, send_recall_pct: r.classifier && r.classifier.send_recall_pct, still_advertised_pct: r.live && r.live.still_advertised_pct })) });
+  }
   if (view === "coverage") {
     const { data, error } = await sb.from("send_area_metrics").select("*").eq("nation", "england").eq("area_kind", "local_authority").order("area_name");
     if (error) return res.status(500).json({ error: error.message });

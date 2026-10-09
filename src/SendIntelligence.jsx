@@ -399,11 +399,27 @@ function MapView() {
   </div>);
 }
 
+function Accuracy() {
+  const { data: a } = useLoad("/api/send?view=accuracy");
+  const r = a && a.latest;
+  if (!r) return <div className="card muted" style={{ padding: 14, marginBottom: 14, fontSize: 13 }}><b>Accuracy check</b><br />Every Monday Qura tests itself against {a && a.golden ? a.golden.pages : 36} school jobs pages whose vacancies were checked by hand, and re-checks 20 live vacancies on the schools' own sites. The first results appear after the next Monday run.</div>;
+  const v = (x) => (x == null ? "n/a" : x + "%");
+  return (<div className="card" style={{ padding: 14, marginBottom: 14 }}>
+    <b>Accuracy check</b> <span className="muted" style={{ fontSize: 12.5 }}>Weekly, last run {date(r.at)}. Tested against {a.golden ? a.golden.pages : ""} school jobs pages with a reference answer, plus 20 live vacancies re-checked on the schools' own sites.</span>
+    <Grid>
+      <Stat value={v(r.extractor && r.extractor.jobs_found_pct)} label="of advertised jobs found" />
+      <Stat value={v(r.classifier && r.classifier.send_recall_pct)} label="of SEND roles recognised as SEND" />
+      <Stat value={v(r.extractor && r.extractor.closing_dates_right_pct)} label="closing dates read correctly" />
+      <Stat value={v(r.live && r.live.still_advertised_pct)} label="of live vacancies still on the school's page" />
+    </Grid>
+  </div>);
+}
+
 function Coverage() {
   const { data: c, err, loading } = useLoad("/api/send?view=coverage");
   if (loading) return <Loading />; if (err) return <Err e={err} />;
   const rows = [...(c.areas || [])].sort((a, b) => (b.schools || 0) - (a.schools || 0));
-  return (<div><div style={NOTE}>Coverage is the share of a council's in-scope schools whose own jobs page Qura checks daily. A low figure means Qura cannot see that area well; it does not mean there is no demand.</div>
+  return (<div><Accuracy /><div style={NOTE}>Coverage is the share of a council's in-scope schools whose own jobs page Qura checks daily. A low figure means Qura cannot see that area well; it does not mean there is no demand.</div>
     <div className="card" style={{ padding: 12 }}><Table head={["Council", "Schools", "Special", "AP", "SEN units", "Monitored", "Coverage"]} empty="Coverage is calculated hourly once jobs pages have been found.">{rows.map((a, i) => <tr key={i}><td style={TD}>{a.area_name}</td><td style={TD}>{a.schools}</td><td style={TD}>{a.special}</td><td style={TD}>{a.ap}</td><td style={TD}>{a.mainstream_units}</td><td style={TD}>{a.sources_monitored}</td><td style={TD}><b>{a.coverage_pct}%</b></td></tr>)}</Table></div></div>);
 }
 
