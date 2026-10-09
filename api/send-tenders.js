@@ -12,18 +12,22 @@ export const config = { maxDuration: 300 };
 //   planning  pipeline, preliminary market engagement and planned procurement notices: early signals
 //   tender    open opportunities, including frameworks and dynamic purchasing systems
 //   award     contracts let, with their end dates, which drive the renewal forecast
-// The first runs work back through 3 years of notices (about a day of runs); after that each run
-// only reads what changed since the last one. One request every 1.5 to 3 seconds (Find a Tender
-// throttles at about 30 a minute), never in parallel; a 429 (slow down) ends that source's run.
+// The first runs work back through 3 years of notices (about 3 days of runs); after that each run
+// only reads what changed since the last one. At most 12 Find a Tender and 20 Contracts Finder
+// pages a run, one request every 1.5 to 3 seconds, never in parallel; a 429 (slow down) pauses
+// that source for 20 minutes or as long as the service asks, whichever is longer.
 
 const FTS = "https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages";
 const CF = "https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Search";
 const UA = "QuraBot/1.0 (SEND Intelligence; +https://www.qurahealth.org/send-data.html; privacy@qurahealth.org)";
 const BACKFILL_DAYS = 3 * 365, BUDGET_MS = 230000, DAY = 86400000;
+// Pages per run and the pause after a 429, tuned on 9 October 2026: Find a Tender answered 429
+// after 19 pages at one every 3 seconds, and Contracts Finder on its first page.
+const MAX_PAGES = { fts: 12, cf: 20 }, PAUSE_MS = 20 * 60000;
 
 async function getJson(url) {
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 30000);
-  try { const r = await fetch(url, { signal: ctl.signal, headers: { "User-Agent": UA, Accept: "application/json" } }); if (!r.ok) return { error: "HTTP " + r.status }; return { data: await r.json() }; }
+  try { const r = await fetch(url, { signal: ctl.signal, headers: { "User-Agent": UA, Accept: "application/json" } }); if (!r.ok) return { error: "HTTP " + r.status, retryAfter: Number(r.headers.get("retry-after")) || 0 }; return { data: await r.json() }; }
   catch (e) { return { error: String((e && e.name === "AbortError") ? "timeout" : (e && e.message) || e) }; }
   finally { clearTimeout(t); }
 }
@@ -41,11 +45,12 @@ async function runSource(sb, src, st, log, deadline, match) {
   const today = isoDay(Date.now());
   if (!st.cursorDay) st.cursorDay = isoDay(Date.now() - BACKFILL_DAYS * DAY);
   let pages = 0;
-  while (Date.now() < deadline) {
+  if (st.pausedUntil && Date.now() < Date.parse(st.pausedUntil)) { log[src + "Paused"] = st.pausedUntil; return; }
+  while (Date.now() < deadline && pages < MAX_PAGES[src]) {
     if (st.cursorDay > today) { st.cursorDay = today; st.next = null; break; }
     const url = st.next || firstUrl(src, st.cursorDay);
     const r = await getJson(url); pages++;
-    if (r.error === "HTTP 429") { log.errors.push(name + ": asked to slow down (429); stopping this run"); log[src + "Throttled"] = true; break; }
+    if (r.error === "HTTP 429") { const wait = Math.max(PAUSE_MS, (r.retryAfter || 0) * 1000); st.pausedUntil = new Date(Date.now() + wait).toISOString(); log.errors.push(name + ": asked to slow down (429); pausing until " + st.pausedUntil); log[src + "Throttled"] = true; break; }
     if (r.error) { log.errors.push(name + " " + st.cursorDay + ": " + r.error); st.fails = (st.fails || 0) + 1; if (st.fails >= 3) { st.fails = 0; st.next = null; st.cursorDay = isoDay(Date.parse(st.cursorDay) + DAY); } break; }
     st.fails = 0;
     const rels = (r.data && r.data.releases) || [];
