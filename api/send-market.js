@@ -57,15 +57,19 @@ export default async function handler(req, res) {
         note: kind === "renewals" ? "Contracts whose published end date falls in the next 18 months. A forecast: buyers may extend, re-procure early or stop buying." : kind === "signals" ? "Pipeline, market engagement and planned procurement notices from the last 12 months. Early signals; not every one becomes a tender." : "From Find a Tender and Contracts Finder (Open Government Licence). Always read the original notice." });
     }
 
-    const stats = await pageAll(() => sb.from("send_council_stats").select("*").order("la_name"));
+    // Only councils that exist today: the DfE series still carries councils since merged
+    // (Northamptonshire, Bournemouth, Poole and others), whose last figures would look current.
+    const { data: current } = await sb.from("send_organisations").select("la_code").eq("org_kind", "local_authority").eq("in_scope", true);
+    const live = new Set((current || []).map((c) => c.la_code));
+    const stats = (await pageAll(() => sb.from("send_council_stats").select("*").order("la_name"))).filter((s) => !live.size || live.has(s.la_code));
     if (view === "councils") {
       const schools = await pageAll(() => sb.from("send_organisations").select("id,official_id,la_code").eq("org_kind", "school").eq("in_scope", true));
       const urnLa = new Map(schools.map((s) => [String(s.official_id), s.la_code]));
       const insp = await pageAll(() => sb.from("send_inspections").select("urn,la_code,inclusion,recent_concern").or("inclusion.in.(\"Needs attention\",\"Urgent improvement\"),recent_concern.in.(SM,SWK)"));
       const concerns = new Map(); for (const i of insp) { if (!urnLa.has(i.urn)) continue; const la = urnLa.get(i.urn); concerns.set(la, (concerns.get(la) || 0) + 1); }
-      const live = await pageAll(() => sb.from("send_vacancies").select("organisation_id").eq("status", "LIVE"));
+      const liveVac = await pageAll(() => sb.from("send_vacancies").select("organisation_id").eq("status", "LIVE"));
       const orgLa = new Map(schools.map((s) => [s.id, s.la_code])); const vac = new Map();
-      for (const v of live) { const la = orgLa.get(v.organisation_id); if (la) vac.set(la, (vac.get(la) || 0) + 1); }
+      for (const v of liveVac) { const la = orgLa.get(v.organisation_id); if (la) vac.set(la, (vac.get(la) || 0) + 1); }
       const today = iso(Date.now());
       const tend = await pageAll(() => sb.from("send_tenders").select("la_code,stage,closing_at,contract_end,published_at,category").not("la_code", "is", null).neq("category", "transport"));
       const t = new Map(); const bump = (la, k) => { const o = t.get(la) || { open: 0, signals: 0, renewals: 0 }; o[k]++; t.set(la, o); };
