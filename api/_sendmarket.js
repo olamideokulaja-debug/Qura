@@ -98,6 +98,10 @@ export function sendCategory(title, description, cpv) {
   if (/^796/.test(String(cpv || ""))) return "staffing";
   for (const [k, re] of CATS) if (re.test(t)) return k;
   for (const [k, re] of CATS) if (re.test(all)) return k;
+  // Transport services CPV (60xxxxxx). Surrey publishes each SEND home-to-school
+  // route award as its own notice titled just "SEND" (856 of them from October 2023
+  // to September 2024, all to taxi and car firms), which otherwise land in "Other".
+  if (/^60/.test(String(cpv || ""))) return "transport";
   return "other";
 }
 
