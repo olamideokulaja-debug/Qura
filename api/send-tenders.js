@@ -1,6 +1,9 @@
 import { cronAllowed } from "./_cron.js";
 import { sbAdmin, kvGet, kvSet } from "./_send.js";
 import { laMatcher, tenderRow } from "./_sendmarket.js";
+import https from "node:https";
+import tls from "node:tls";
+import { SECTIGO_DV_R36 } from "./_sectigo.js";
 
 export const config = { maxDuration: 300 };
 
@@ -39,6 +42,22 @@ const MONTHLY = {
 };
 const SITE_TYPES = [101, 102, 103, 104], MONTH_REQ = 2, MONTH_PAUSE_MS = 6 * 3600000;
 const mm = (d) => String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + d.getUTCFullYear();
+
+// Scotland and Wales: their servers omit an intermediate certificate (see _sectigo.js).
+const MONTHLY_AGENT = new https.Agent({ ca: [...tls.rootCertificates, SECTIGO_DV_R36], keepAlive: false });
+function getJsonMonthly(url) {
+  return new Promise((resolve) => {
+    const rq = https.get(url, { agent: MONTHLY_AGENT, headers: { "User-Agent": UA, Accept: "application/json" }, timeout: 45000 }, (res) => {
+      const chunks = []; res.on("data", (c) => chunks.push(c));
+      res.on("end", () => {
+        if (res.statusCode !== 200) return resolve({ error: "HTTP " + res.statusCode, retryAfter: Number(res.headers["retry-after"]) || 0 });
+        try { resolve({ data: JSON.parse(Buffer.concat(chunks).toString("utf8").replace(/^﻿/, "")) }); } catch (e) { resolve({ error: "not JSON" }); }
+      });
+    });
+    rq.on("timeout", () => rq.destroy(new Error("timeout")));
+    rq.on("error", (e) => resolve({ error: String(e.code || e.message || e) }));
+  });
+}
 
 async function getJson(url) {
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 30000);
@@ -99,7 +118,7 @@ export async function runMonthly(sb, key, st, log, match) {
   st.typeIdx = st.typeIdx || 0;
   for (let n = 0; n < MONTH_REQ; n++) {
     const d = new Date(st.month + "-01T00:00:00Z"), type = SITE_TYPES[st.typeIdx];
-    const r = await getJson(src.base + "?dateFrom=" + mm(d) + "&noticeType=" + type + "&outputType=0" + src.extra);
+    const r = await getJsonMonthly(src.base + "?dateFrom=" + mm(d) + "&noticeType=" + type + "&outputType=0" + src.extra);
     log[key + "Requests"] = (log[key + "Requests"] || 0) + 1;
     if (r.error) {
       st.fails = (st.fails || 0) + 1;
