@@ -82,7 +82,7 @@ export default async function handler(req, res) {
       const cov = new Map((areas || []).map((a) => [a.area_code, a.coverage_pct]));
       const st = (await kvGet("shared", "send_council_state")) || {};
       return res.status(200).json({
-        councils: stats.map((s) => ({ code: s.la_code, name: s.la_name, ehcp: s.ehcp_latest, ehcp_growth_1y: s.ehcp_growth_1y, ehcp_growth_5y: s.ehcp_growth_5y, ehcp_special: s.ehcp_special, ehcp_indep_special: s.ehcp_indep_special,
+        councils: stats.map((s) => ({ code: s.la_code, name: s.la_name, ehcp: s.ehcp_latest, ehcp_growth_1y: s.ehcp_growth_1y, ehcp_growth_5y: s.ehcp_growth_5y, ehcp_special: s.ehcp_special, ehcp_indep_special: s.ehcp_indep_special, ehcp_note: s.ehcp_note,
           requests: s.requests_latest, requests_growth_1y: s.requests_growth_1y, pct_20wk: s.pct_20wk, hn_now: s.hn_now, hn_growth: s.hn_growth, safety_valve: s.safety_valve, sv_year: s.sv_year, dbv: s.dbv,
           inclusion_concerns: concerns.get(s.la_code) || 0, live_vacancies: vac.get(s.la_code) || 0, coverage_pct: cov.get(s.la_code) ?? null, tenders: t.get(s.la_code) || { open: 0, signals: 0, renewals: 0 } })),
         sources: { ehcp: "DfE, Education, health and care plans (June 2026 release)", ofsted: st.ofstedAsAt ? "Ofsted management information, latest inspections as at " + st.ofstedAsAt : "Ofsted management information", high_needs: "ESFA dedicated schools grant 2026 to 2027 (provisional), compared with 2025 to 2026, both before import and export adjustments and deductions", safety_valve: "GOV.UK list of Safety Valve agreements (councils that have had one; not proof of a current agreement)", dbv: "DfE Delivering Better Value in SEND grant letter, November 2023 (tranches 1 and 2)" },
