@@ -55,8 +55,12 @@ function Table({ head, children, empty, cols }) {
     </div>
   );
 }
-function Stat({ value, label }) {
-  return <div className="card" style={{ padding: 12 }}><div style={{ fontSize: 24, fontWeight: 800 }}>{value}</div><div className="muted" style={{ fontSize: 12 }}>{label}</div></div>;
+// A figure. With onClick it is also a shortcut to the page behind it (Olamide, 9 October 2026:
+// "for lazy people"), alongside the tabs.
+function Stat({ value, label, onClick }) {
+  const inner = <><div style={{ fontSize: 24, fontWeight: 800 }}>{value}</div><div className="muted" style={{ fontSize: 12 }}>{label}{onClick ? " ›" : ""}</div></>;
+  if (!onClick) return <div className="card" style={{ padding: 12 }}>{inner}</div>;
+  return <button type="button" className="card" onClick={onClick} title={"Open: " + label} style={{ padding: 12, textAlign: "left", cursor: "pointer", font: "inherit", color: "inherit", width: "100%" }}>{inner}</button>;
 }
 function Grid({ children }) { return <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10, marginBottom: 14 }}>{children}</div>; }
 function Pager({ total, page, size, onPage }) {
@@ -171,21 +175,23 @@ function FounderSales({ offer, onToast, reload }) {
 }
 
 // ---------------- Views ----------------
-function Overview() {
+function Overview({ go }) {
   const { data: s, err, loading } = useLoad("/api/send?view=summary");
   if (loading) return <Loading />; if (err) return <Err e={err} />;
-  const e = s.england || {};
+  const e = s.england || {}, live = s.live || {};
   return (<div>
     <Grid>
-      <Stat value={(e.schools || 0).toLocaleString()} label="schools in scope, England" />
-      <Stat value={(e.special || 0).toLocaleString()} label="special schools" />
-      <Stat value={(e.ap || 0).toLocaleString()} label="alternative provision and PRUs" />
-      <Stat value={(e.mainstream_units || 0).toLocaleString()} label="mainstream with SEN units" />
+      {live.vacancies != null && <Stat value={live.vacancies.toLocaleString()} label="live SEND vacancies" onClick={() => go("vacancies")} />}
+      {live.open_tenders != null && <Stat value={live.open_tenders.toLocaleString()} label="open SEND tenders" onClick={() => go("tenders")} />}
+      <Stat value={(e.schools || 0).toLocaleString()} label="schools in scope, England" onClick={() => go("schools")} />
+      <Stat value={(e.special || 0).toLocaleString()} label="special schools" onClick={() => go("schools", { setting: "special" })} />
+      <Stat value={(e.ap || 0).toLocaleString()} label="alternative provision and PRUs" onClick={() => go("schools", { setting: "ap" })} />
+      <Stat value={(e.mainstream_units || 0).toLocaleString()} label="mainstream with SEN units" onClick={() => go("schools", { setting: "mainstream_unit" })} />
       <Stat value={(e.trusts || 0).toLocaleString()} label="academy trusts" />
-      <Stat value={e.local_authorities || 0} label="councils" />
+      <Stat value={e.local_authorities || 0} label="councils" onClick={() => go("councils")} />
     </Grid>
     <div className="card" style={{ padding: 16, marginBottom: 14 }}><b>Opening soon</b> <span className="muted" style={{ fontSize: 12.5 }}>Schools recorded as "proposed to open". New schools recruit a whole staff before they open.</span>
-      <Table head={["School", "Type", "Council", "Opens"]} empty="None at the moment.">{(s.opening_soon || []).map((o, i) => <tr key={i}><td style={TD}>{o.name}</td><td style={TD}>{o.establishment_type}</td><td style={TD}>{o.la_name}</td><td style={TD}>{date(o.open_date)}</td></tr>)}</Table>
+      <Table head={["School", "Type", "Council", "Opens"]} empty="None at the moment.">{(s.opening_soon || []).map((o, i) => <tr key={i}><td style={TD}><button type="button" onClick={() => go("schools", { q: o.name })} style={{ background: "none", border: 0, padding: 0, color: "var(--teal, #0E8C7E)", fontWeight: 600, cursor: "pointer", font: "inherit", textAlign: "left" }}>{o.name}</button></td><td style={TD}>{o.establishment_type}</td><td style={TD}>{o.la_name}</td><td style={TD}>{date(o.open_date)}</td></tr>)}</Table>
     </div>
     <div className="card" style={{ padding: 16 }}><b>Monitoring</b><p className="muted" style={{ fontSize: 13 }}>{(s.sources && s.sources.registered || 0).toLocaleString()} school websites registered; {(s.sources && s.sources.discovered || 0).toLocaleString()} checked for a jobs page so far. {s.sources && s.sources.coverage_note}</p><p className="muted" style={{ fontSize: 13 }}>School list last updated from the official file: {date(s.last_sync && s.last_sync.at) || "pending"}.</p></div>
   </div>);
@@ -208,8 +214,9 @@ function Vacancies({ onToast, setModal }) {
   </div>);
 }
 
-function Schools({ onToast, setModal }) {
-  const [q, setQ] = useState(""); const [qq, setQQ] = useState(""); const [st, setSt] = useState(""); const [page, setPage] = useState(1);
+function Schools({ onToast, setModal, preset }) {
+  const p0 = preset || {};
+  const [q, setQ] = useState(p0.q || ""); const [qq, setQQ] = useState(p0.q || ""); const [st, setSt] = useState(p0.setting || ""); const [page, setPage] = useState(1);
   const { data: r, err, loading } = useLoad("/api/send?view=organisations&page=" + page + (qq ? "&q=" + encodeURIComponent(qq) : "") + (st ? "&setting=" + st : ""));
   return (<div>
     <form className="row" style={{ gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }} onSubmit={(e) => { e.preventDefault(); setQQ(q); setPage(1); }}>
@@ -268,8 +275,8 @@ function TerritoryDetail({ id, onBack, onToast, setModal }) {
   const t = r.territory, f = r.figures;
   return (<div>
     <div className="row" style={{ gap: 8, marginBottom: 12, alignItems: "center" }}><button className="btn btn-light" onClick={onBack}>All territories</button><b>{t.name}</b><button className="btn btn-light" style={{ marginLeft: "auto" }} onClick={() => download("/api/send-export?what=vacancies&la=" + t.la_codes.join(","), onToast)}>Download vacancies</button></div>
-    <Grid><Stat value={f.schools.toLocaleString()} label="Schools in scope" /><Stat value={f.live_vacancies} label="Live vacancies seen" /><Stat value={f.new_7d} label="New in the last 7 days" /><Stat value={f.sen_ehcp.toLocaleString()} label="Pupils with an EHC plan" /><Stat value={f.coverage_pct == null ? "—" : f.coverage_pct + "%"} label="Coverage" /></Grid>
-    <div className="card" style={{ padding: 12, marginBottom: 14 }}><b>Live vacancies</b>
+    <Grid><Stat value={f.schools.toLocaleString()} label="Schools in scope" /><Stat value={f.live_vacancies} label="Live vacancies seen" onClick={() => { const el = document.getElementById("send-terr-vac"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }} /><Stat value={f.new_7d} label="New in the last 7 days" /><Stat value={f.sen_ehcp.toLocaleString()} label="Pupils with an EHC plan" /><Stat value={f.coverage_pct == null ? "—" : f.coverage_pct + "%"} label="Coverage" /></Grid>
+    <div id="send-terr-vac" className="card" style={{ padding: 12, marginBottom: 14 }}><b>Live vacancies</b>
       <Table head={["Role", "School", "Council", "Pay", "Closes", ""]} empty="No live vacancies seen in this territory yet.">{f.vacancies.map((x) => <tr key={x.id}><td style={TD}><b>{x.original_title}</b><br /><span style={TAG}>{FAM[x.profession_family] || x.profession_family}</span></td><td style={TD}>{x.school}</td><td style={TD}>{x.la_name}</td><td style={TD}>{x.salary_text}</td><td style={TD}>{date(x.closing_at)}</td><td style={TD}><Actions org={x.school} role={x.original_title} url={x.source_url} note="From SEND Intelligence territory" draft={{ vacancy_id: x.id }} onToast={onToast} setModal={setModal} /></td></tr>)}</Table></div>
     <div className="card" style={{ padding: 12, marginBottom: 14 }}><b>Opening soon</b><Table head={["School", "Council", "Opens"]} empty="None in this territory.">{f.opening_soon.map((o, i) => <tr key={i}><td style={TD}>{o.name}</td><td style={TD}>{o.la_name}</td><td style={TD}>{date(o.open_date)}</td></tr>)}</Table></div>
     <div className="card" style={{ padding: 12 }}><b>Coverage by council</b><Table head={["Council", "Schools", "Monitored", "Coverage"]} empty="Calculated hourly once jobs pages have been found.">{f.areas.map((a, i) => <tr key={i}><td style={TD}>{a.area_name}</td><td style={TD}>{a.schools}</td><td style={TD}>{a.sources_monitored}</td><td style={TD}>{a.coverage_pct}%</td></tr>)}</Table></div>
@@ -422,7 +429,8 @@ export default function SendIntelligence({ onToast }) {
   const [tab, setTab] = useState(() => { try { return sessionStorage.getItem("qura_send_tab") || "overview"; } catch (e) { return "overview"; } });
   const [modal, setModal] = useState(null);
   const offer = useLoad("/api/send-offer");
-  const pick = (k) => { setTab(k); try { sessionStorage.setItem("qura_send_tab", k); } catch (e) {} };
+  const [preset, setPreset] = useState(null);
+  const pick = (k, p) => { setPreset(p || null); setTab(k); try { sessionStorage.setItem("qura_send_tab", k); } catch (e) {} };
   const views = { overview: Overview, vacancies: Vacancies, territories: Territories, councils: Councils, tenders: Tenders, schools: Schools, map: MapView, coverage: Coverage, insights: Insights };
   const View = views[tab] || Overview;
   return (
@@ -434,7 +442,7 @@ export default function SendIntelligence({ onToast }) {
       <p className="muted" style={{ marginTop: 0, fontSize: 13.5 }}>Special schools, alternative provision and SEN units in England: vacancies, councils, tenders and territories.</p>
       {offer.loading ? <Loading /> : offer.err ? <Err e={offer.err} /> : !offer.data.hasAccess ? <Offer offer={offer.data} onToast={toast} reload={offer.reload} /> : <>
         <div className="row" style={{ gap: 6, flexWrap: "wrap", marginBottom: 14 }}>{TABS.map(([k, l]) => <button key={k} className={"btn " + (k === tab ? "btn-primary" : "btn-light")} style={{ fontSize: 13, padding: "6px 12px" }} onClick={() => pick(k)}>{l}</button>)}</div>
-        <View onToast={toast} setModal={setModal} />
+        <View key={tab + JSON.stringify(preset || {})} onToast={toast} setModal={setModal} go={(k, p) => { pick(k, p); try { window.scrollTo(0, 0); } catch (e) {} }} preset={preset} />
         {offer.data.founder && <FounderSales offer={offer.data} onToast={toast} reload={offer.reload} />}
         <p className="muted" style={{ fontSize: 11.5, marginTop: 18, lineHeight: 1.6 }}>Schools data: Get Information about Schools, Department for Education. Contains public sector information licensed under the Open Government Licence v3.0. Vacancies come only from school, trust and council pages Qura is allowed to check; coverage is partial. Qura holds no data about pupils, families or EHC plans. <a href="/send-data.html" target="_blank" rel="noopener noreferrer">How Qura uses data</a>.</p>
       </>}

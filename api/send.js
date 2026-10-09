@@ -50,11 +50,18 @@ export default async function handler(req, res) {
       count(sb.from("send_sources").select("id", { count: "exact", head: true }).eq("kind", "school_website")),
       count(sb.from("send_sources").select("id", { count: "exact", head: true }).eq("kind", "school_website").neq("status", "to_discover")),
     ]);
+    // Shortcut figures for the Overview: live vacancies and open SEND tenders (same rules as the
+    // Vacancies and Tenders tabs: open tenders exclude transport, published in the last 120 days).
+    const [liveVac, openTenders] = await Promise.all([
+      count(sb.from("send_vacancies").select("id", { count: "exact", head: true }).eq("status", "LIVE")),
+      count(sb.from("send_tenders").select("id", { count: "exact", head: true }).eq("stage", "tender").neq("category", "transport").or("closing_at.is.null,closing_at.gte." + new Date().toISOString()).gte("published_at", new Date(Date.now() - 120 * 86400000).toISOString())),
+    ]);
     const { data: soon } = await sb.from("send_organisations").select("name,establishment_type,la_name,open_date,website").eq("status", "Proposed to open").eq("in_scope", true).order("open_date", { ascending: true }).limit(20);
     const state = (await kvGet("shared", "send_schools_state")) || {};
     const budget = access.founder ? await budgetLeft(sb) : undefined;
     return res.status(200).json({
       england: { special, ap, mainstream_units: units, schools: special + ap + units, trusts, local_authorities: las, independent_proprietors: proprietors, proposed_to_open: opening },
+      live: { vacancies: liveVac, open_tenders: openTenders },
       opening_soon: soon || [],
       sources: { registered: sources, discovered, coverage_note: "Daily vacancy checks started on 9 October 2026 and fill in over the first days." },
       last_sync: { at: state.lastSuccess || null, file: state.lastLog && state.lastLog.file },
