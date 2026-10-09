@@ -74,9 +74,17 @@ async function stepEhcp(sb, log) {
     const years = Object.keys(r.ehcp).sort(); const last = years[years.length - 1];
     const ry = Object.keys(r.requests).sort(); const ty = Object.keys(r.timeliness).sort(); const tl = r.timeliness[ty[ty.length - 1]] || {};
     const latest = last ? r.ehcp[last] : {};
+    // A published year that drops by more than 20% and then rebounds by more than 50% is a break in
+    // the source series (Newham, January 2025: 2,705 then 1,199 then 3,639). Growth measured from a
+    // broken year is not shown, and the council is labelled.
+    const tot = years.map((y) => (r.ehcp[y] || {}).total || 0); const breaks = [];
+    for (let i = 1; i < tot.length - 1; i++) if (tot[i - 1] && tot[i] < 0.8 * tot[i - 1] && tot[i + 1] > 1.5 * tot[i]) breaks.push(years[i]);
+    const g1 = breaks.includes(years[years.length - 2]) ? null : pct(latest.total, (r.ehcp[years[years.length - 2]] || {}).total);
+    const g5 = breaks.includes(years[years.length - 6]) ? null : pct(latest.total, (r.ehcp[years[years.length - 6]] || {}).total);
     rows.push({
       la_code: r.la_code, la_name: r.la_name, ehcp: r.ehcp, requests: r.requests, timeliness: r.timeliness,
-      ehcp_latest: latest.total ?? null, ehcp_growth_1y: pct(latest.total, (r.ehcp[years[years.length - 2]] || {}).total), ehcp_growth_5y: pct(latest.total, (r.ehcp[years[years.length - 6]] || {}).total),
+      ehcp_latest: latest.total ?? null, ehcp_growth_1y: g1, ehcp_growth_5y: g5,
+      ehcp_note: breaks.length ? "The published figure for " + breaks.join(" and ") + " breaks the series, so growth from it is not shown." : null,
       ehcp_special: latest.special ?? null, ehcp_mainstream: latest.mainstream ?? null, ehcp_ap: latest.ap ?? null, ehcp_indep_special: latest.indep_special ?? null,
       requests_latest: r.requests[ry[ry.length - 1]] ?? null, requests_growth_1y: pct(r.requests[ry[ry.length - 1]], r.requests[ry[ry.length - 2]]),
       pct_20wk: tl.total ? Math.round((tl.within20 / tl.total) * 1000) / 10 : null,
