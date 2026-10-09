@@ -35,17 +35,28 @@ export function looksLikeJobs(text) {
 
 // Taxonomy: synonyms from send_job_taxonomy; special and AP settings turn a plain
 // "teacher" or "teaching assistant" into the SEN version.
+// Accuracy test set, 9 October 2026 (36 frozen careers pages, reference labels): extraction
+// found 98% of jobs, but classification hid 40% of SEND jobs. Fixes: plurals match
+// ("Teaching Assistants", "Learning Support Assistants"); care and residential support roles
+// count in special schools and AP only (taxonomy care_worker); SRB, ARB and resource-base roles
+// count as unit roles (taxonomy unit_teacher, and as SEN wording for assistants).
+const SINGULAR = (s) => s.replace(/\b([a-z]{3,}[^s\s])s\b/g, "$1");
+const SPECIAL_ONLY = new Set(["care_worker"]);
+const SEN_WORDS = /(\bsen\b|\bsend\b|1:1|one to one|learning support|\blsa\b|pupil support|\barb\b|\bsrb\b|resource base|resourced|enhanced provision|specialist provision|\bunit\b|\bbase\b)/;
 export function classify(title, taxonomy, settingGroup) {
-  const t = " " + String(title || "").toLowerCase().replace(/[^a-z0-9:&+ ]/g, " ").replace(/\s+/g, " ") + " ";
+  const t = " " + SINGULAR(String(title || "").toLowerCase().replace(/[^a-z0-9:&+ ]/g, " ").replace(/\s+/g, " ")) + " ";
+  const specialish = settingGroup === "special" || settingGroup === "ap";
   let best = null;
   for (const row of taxonomy) {
+    if (SPECIAL_ONLY.has(row.code) && !specialish) continue;
     for (const syn of row.synonyms || []) {
-      const s = " " + syn.toLowerCase().replace(/[^a-z0-9:&+ ]/g, " ").replace(/\s+/g, " ").trim() + " ";
+      const s = " " + SINGULAR(syn.toLowerCase().replace(/[^a-z0-9:&+ ]/g, " ").replace(/\s+/g, " ").trim()) + " ";
       if (s.trim().length >= 2 && t.includes(s) && (!best || s.length > best.len)) best = { code: row.code, family: row.family, len: s.length };
     }
   }
-  if (!best && /\bteacher\b/.test(t) && (settingGroup === "special" || settingGroup === "ap")) best = { code: "sen_teacher", family: "send_teaching" };
-  if (best && best.code === "sen_ta" && !/(sen|send|1:1|one to one|learning support|lsa|pupil support)/.test(t) && !(settingGroup === "special" || settingGroup === "ap" || settingGroup === "mainstream_unit")) best = null;
+  if (!best && /\bteacher\b/.test(t) && specialish) best = { code: "sen_teacher", family: "send_teaching" };
+  if (!best && /\bteacher\b/.test(t) && /\b(arb|srb|resource base|resourced provision|enhanced provision)\b/.test(t)) best = { code: "unit_teacher", family: "send_teaching" };
+  if (best && best.code === "sen_ta" && !SEN_WORDS.test(t) && !(specialish || settingGroup === "mainstream_unit")) best = null;
   return best ? { taxonomy_code: best.code, profession_family: best.family } : { taxonomy_code: null, profession_family: "other" };
 }
 
