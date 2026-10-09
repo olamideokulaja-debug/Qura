@@ -12,9 +12,9 @@ export const config = { maxDuration: 300 };
 //   planning  pipeline, preliminary market engagement and planned procurement notices: early signals
 //   tender    open opportunities, including frameworks and dynamic purchasing systems
 //   award     contracts let, with their end dates, which drive the renewal forecast
-// The first runs work back through 3 years of notices (about 3 days of runs); after that each run
-// only reads what changed since the last one. At most 12 Find a Tender and 20 Contracts Finder
-// pages a run, one request every 1.5 to 3 seconds, never in parallel; a 429 (slow down) pauses
+// The first runs work back through 3 years of notices (about 2 days of runs); after that each run
+// only reads what changed since the last one. At most 12 Find a Tender and 10 Contracts Finder
+// pages a run, one request every 3 seconds, never in parallel; a 429 (slow down) pauses
 // that source for 20 minutes or as long as the service asks, whichever is longer.
 
 const FTS = "https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages";
@@ -22,8 +22,8 @@ const CF = "https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Se
 const UA = "QuraBot/1.0 (SEND Intelligence; +https://www.qurahealth.org/send-data.html; privacy@qurahealth.org)";
 const BACKFILL_DAYS = 3 * 365, BUDGET_MS = 230000, DAY = 86400000;
 // Pages per run and the pause after a 429, tuned on 9 October 2026: Find a Tender answered 429
-// after 19 pages at one every 3 seconds, and Contracts Finder on its first page.
-const MAX_PAGES = { fts: 12, cf: 20 }, PAUSE_MS = 20 * 60000;
+// after 19 pages at one every 3 seconds, and Contracts Finder after about 12 at one every 1.5 seconds.
+const MAX_PAGES = { fts: 12, cf: 10 }, PAUSE_MS = 20 * 60000;
 
 async function getJson(url) {
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 30000);
@@ -70,7 +70,7 @@ async function runSource(sb, src, st, log, deadline, match) {
       if (st.cursorDay >= today) { st.cursorDay = isoDay(Date.now() - DAY); break; }
       st.cursorDay = isoDay(Date.parse(st.cursorDay) + DAY);
     }
-    await sleep(src === "fts" ? 3000 : 1500);
+    await sleep(3000);
   }
   log[src + "Pages"] = pages; log[src + "Day"] = st.cursorDay;
 }
