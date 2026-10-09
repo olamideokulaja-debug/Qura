@@ -1,7 +1,9 @@
 import { sbAdmin } from "./_send.js";
 import { verify } from "./_waitlist.js";
+import { kvGet, kvSet } from "./_auth.js";
 
 // One-click unsubscribe for SEND alerts and weekly briefings (signed link; no sign-in needed).
+// k=therapist is the weekly school-roles email to verified therapists (week 6).
 // GET shows a button (mail scanners open links on their own); POST turns them off, which is
 // also what Gmail and Outlook send for the List-Unsubscribe-Post header.
 
@@ -10,6 +12,17 @@ const page = (res, status, title, body) => { res.setHeader("Content-Type", "text
 
 export default async function handler(req, res) {
   const u = String((req.query && req.query.u) || ""), t = String((req.query && req.query.t) || "");
+  if (String((req.query && req.query.k) || "") === "therapist") {
+    if (!u || !verify(u, "send_therapist_unsub", t)) return page(res, 400, "This link has not worked", "<p>The link is incomplete or has been changed. Email privacy@qurahealth.org and we will stop these emails for you.</p>");
+    if (req.method === "GET") {
+      const action = "/api/send-unsub?k=therapist&u=" + encodeURIComponent(u) + "&t=" + encodeURIComponent(t);
+      return page(res, 200, "Stop school role emails?", '<p>You will get no more weekly emails about school therapy roles. Everything else in your Qura account stays as it is.</p><form method="post" action="' + action + '"><button type="submit" style="background:#00C2B8;color:#04231F;font-weight:700;padding:12px 24px;border-radius:999px;border:none;font-size:15px;cursor:pointer">Stop school role emails</button></form>');
+    }
+    if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+    const cur = (await kvGet(u, "send_role_alerts")) || {};
+    await kvSet(u, "send_role_alerts", { ...cur, off: true, offAt: new Date().toISOString() });
+    return page(res, 200, "You are unsubscribed", "<p>School role emails are off. Email support@qurahealth.org if you want them back.</p>");
+  }
   if (!u || !verify(u, "send_unsub", t)) return page(res, 400, "This link has not worked", "<p>The link is incomplete or has been changed. Email privacy@qurahealth.org and we will turn alerts off for you.</p>");
   if (req.method === "GET") {
     const action = "/api/send-unsub?u=" + encodeURIComponent(u) + "&t=" + encodeURIComponent(t);

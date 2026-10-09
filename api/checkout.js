@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import { getUser } from "./_auth.js";
 import { foundingState } from "./founding.js";
 import { bump } from "./_metrics.js";
+import { SEND_PLANS, salesState } from "./_sendbilling.js";
 
 const ONE_OFF_GROUPS = ["SESSION", "WORKSHOP"];
 
@@ -53,6 +54,19 @@ export default async function handler(req, res) {
   const userId = (signedIn && signedIn.id) || String(body.userId || "");
   const email = (signedIn && signedIn.email) || String(body.email || "");
 
+  // SEND Intelligence (week 6, 9 October 2026): the add-on and the Growth + SEND bundle.
+  // Sold only to a signed-in account, and only once a founder has opened SEND sales
+  // (Social Personnel's head start comes first). Founders can always buy, for testing.
+  const sendPlan = Boolean(SEND_PLANS[plan]);
+  let sendFounding = false;
+  if (sendPlan) {
+    if (!signedIn) return res.status(401).json({ error: "Please sign in to Qura first." });
+    const sales = await salesState();
+    const isFounder = (process.env.OWNER_EMAILS || "").toLowerCase().split(",").map((x) => x.trim()).includes(String(signedIn.email || "").toLowerCase());
+    if (!sales.open && !isFounder) return res.status(403).json({ error: "SEND Intelligence is not open to new suppliers yet. Ask us to tell you when it opens." });
+    sendFounding = sales.founding.active && sales.founding.left > 0 && Boolean(process.env.STRIPE_COUPON_SEND_FOUNDING);
+  }
+
   const price = priceFor(plan, annual);
   if (!price) return res.status(400).json({ error: "No Stripe price configured for plan: " + plan });
   const mode = modeFor(plan);
@@ -75,6 +89,12 @@ export default async function handler(req, res) {
     // Starter price for 12 months. Applied automatically; otherwise a customer
     // can type a promotion code the founders have given them.
     let founding = false;
+    if (sendPlan && sendFounding) {
+      // Founding SEND Partner: 50% off for 12 months for the first 5 (the coupon holds the terms).
+      params.discounts = [{ coupon: process.env.STRIPE_COUPON_SEND_FOUNDING }];
+      params.metadata.founding_send = "1";
+      founding = true;
+    }
     if (plan === "agency:growth" && mode === "subscription") {
       const f = await foundingState();
       const coupon = annual ? process.env.STRIPE_COUPON_FOUNDING_ANNUAL : process.env.STRIPE_COUPON_FOUNDING_MONTHLY;
@@ -87,7 +107,7 @@ export default async function handler(req, res) {
     if (!founding) params.allow_promotion_codes = true;
 
     if (mode === "subscription") {
-      params.subscription_data = { metadata: { userId: userId || "", plan, founding: founding ? "1" : "" } };
+      params.subscription_data = { metadata: { userId: userId || "", plan, founding: founding && !sendPlan ? "1" : "", founding_send: sendPlan && founding ? "1" : "" } };
     }
     const session = await stripe.checkout.sessions.create(params);
     await bump("checkout_started");
