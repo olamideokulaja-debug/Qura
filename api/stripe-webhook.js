@@ -18,6 +18,7 @@ import { sendMailEach, owners, adminClient } from "./_waitlist.js";
 import { bump } from "./_metrics.js";
 import { kvGet, kvSet } from "./_auth.js";
 import { handleAgencyCheckout } from "./_agency.js";
+import { SEND_PLANS, setSendEntitlement, recordFounding } from "./_sendbilling.js";
 
 // When a customer paid without being signed in, the payment carries no account
 // id and the plan was never applied. Fall back to the account with the same
@@ -117,9 +118,20 @@ export default async function handler(req, res) {
       } else {
         const plan = (s.metadata && s.metadata.plan) || null;
         const uid = s.client_reference_id || (s.metadata && s.metadata.userId) || (await userIdForEmail(who));
+        // SEND Intelligence (week 6): the add-on switches SEND on and leaves the healthcare plan
+        // alone; the bundle also sets Supplier Growth. Writing "send:addon" into qura_plan would
+        // have taken a paying supplier off Growth.
+        const isSend = Boolean(plan && SEND_PLANS[plan]);
+        if (isSend && uid && s.mode === "subscription") {
+          const sb = sbUrl && sbService ? createClient(sbUrl, sbService) : null;
+          await setSendEntitlement(sb, uid, plan, "active", "Stripe " + s.id);
+          if (plan === "send:bundle") await setPlan(uid, "supplier:growth");
+          try { await markPaid(uid); } catch (e) {}
+          if (s.metadata && s.metadata.founding_send === "1") await recordFounding(s.id, uid);
+        }
         // One-off purchases (a session or workshop) are not plans, and must
         // never overwrite a subscriber's plan.
-        if (plan && uid && s.mode === "subscription") { await setPlan(uid, plan); try { await markPaid(uid); } catch (e) {} }
+        if (!isSend && plan && uid && s.mode === "subscription") { await setPlan(uid, plan); try { await markPaid(uid); } catch (e) {} }
         await bump("paid");
         if (s.metadata && s.metadata.founding === "1") {
           const taken = (await kvGet("metrics", "founding_taken")) || [];
@@ -135,7 +147,7 @@ export default async function handler(req, res) {
             action: "Ask them which email they use for Qura, then set the plan in Admin.",
           });
         }
-        await tellFounders("New subscription: " + (plan || "plan not recorded") + (paid ? " (" + paid + ")" : "") + (s.metadata && s.metadata.founding === "1" ? ", founding customer" : ""), [
+        await tellFounders("New subscription: " + (plan || "plan not recorded") + (paid ? " (" + paid + ")" : "") + (s.metadata && s.metadata.founding === "1" ? ", founding customer" : "") + (s.metadata && s.metadata.founding_send === "1" ? ", Founding SEND Partner" : ""), [
           who + " has started a paid subscription." + (s.metadata && s.metadata.founding === "1" ? " They took a founding-customer place." : ""),
           "Plan: " + (plan || "not recorded on the payment. Set it by hand in Admin."),
           paid ? "First payment: " + paid + (s.mode === "subscription" ? ", then recurring." : ".") : "",
@@ -143,7 +155,15 @@ export default async function handler(req, res) {
       }
     } else if (event.type === "customer.subscription.updated") {
       const sub = event.data.object;
-      if (sub.status === "active" || sub.status === "trialing") { await setPlan(sub.metadata?.userId, sub.metadata?.plan); try { if (sub.metadata?.userId) await markPaid(sub.metadata.userId); } catch (e) {} }
+      const subSend = Boolean(SEND_PLANS[sub.metadata?.plan]);
+      if (sub.status === "active" || sub.status === "trialing") {
+        if (subSend) {
+          const sb = sbUrl && sbService ? createClient(sbUrl, sbService) : null;
+          await setSendEntitlement(sb, sub.metadata?.userId, sub.metadata?.plan, "active", "Stripe subscription " + sub.id);
+          if (sub.metadata?.plan === "send:bundle") await setPlan(sub.metadata?.userId, "supplier:growth");
+        } else await setPlan(sub.metadata?.userId, sub.metadata?.plan);
+        try { if (sub.metadata?.userId) await markPaid(sub.metadata.userId); } catch (e) {}
+      }
       const prev = (event.data.previous_attributes || {});
       if (sub.cancel_at_period_end && prev.cancel_at_period_end === false) {
         await tellFounders("Subscription set to cancel: " + (sub.metadata?.plan || "plan"), [
@@ -153,9 +173,16 @@ export default async function handler(req, res) {
       }
     } else if (event.type === "customer.subscription.deleted") {
       const sub = event.data.object;
-      await setPlan(sub.metadata?.userId, null); // subscription ended -> free tier
+      if (SEND_PLANS[sub.metadata?.plan]) {
+        // SEND ends; the healthcare plan is only cleared when it came from the bundle.
+        const sb = sbUrl && sbService ? createClient(sbUrl, sbService) : null;
+        await setSendEntitlement(sb, sub.metadata?.userId, sub.metadata?.plan, "ended", "Stripe subscription ended " + sub.id);
+        if (sub.metadata?.plan === "send:bundle") await setPlan(sub.metadata?.userId, null);
+      } else await setPlan(sub.metadata?.userId, null); // subscription ended -> free tier
       await tellFounders("Subscription ended: " + (sub.metadata?.plan || "plan"), [
-        "A " + (sub.metadata?.plan || "") + " subscription has ended and the account is back on the free plan.",
+        SEND_PLANS[sub.metadata?.plan]
+          ? "A " + sub.metadata.plan + " subscription has ended. SEND Intelligence is switched off for that account" + (sub.metadata.plan === "send:bundle" ? " and it is back on the free healthcare plan." : "; its healthcare plan is unchanged.")
+          : "A " + (sub.metadata?.plan || "") + " subscription has ended and the account is back on the free plan.",
       ]);
     } else if (event.type === "invoice.payment_failed") {
       const inv = event.data.object;
