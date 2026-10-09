@@ -75,7 +75,7 @@ export const LENS_NAV = {
     },
     {
       key: "intelligence", label: "Market intelligence", icon: "Radar", category: "intelligence", k: "intel",
-      children: ["intel", "psintel", "marketmap", "decisionMakers", "execs", "clients", "analytics", "leaderboard"],
+      children: ["intel", "send", "psintel", "marketmap", "decisionMakers", "execs", "clients", "analytics", "leaderboard"],
     },
     {
       key: "talent", label: "Talent", icon: "Users", category: "workforce", k: "talentpool",
@@ -130,7 +130,7 @@ export const LENS_NAV = {
     },
     {
       key: "intelligence", label: "Market intelligence", icon: "Radar", category: "intelligence", k: "intel",
-      children: ["intel", "psintel", "marketmap", "decisionMakers", "execs", "clients"],
+      children: ["intel", "send", "psintel", "marketmap", "decisionMakers", "execs", "clients"],
     },
     {
       key: "talent", label: "Talent", icon: "Users", category: "workforce", k: "talentpool",
