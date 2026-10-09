@@ -51,7 +51,7 @@ function getJsonMonthly(url) {
       const chunks = []; res.on("data", (c) => chunks.push(c));
       res.on("end", () => {
         if (res.statusCode !== 200) return resolve({ error: "HTTP " + res.statusCode, retryAfter: Number(res.headers["retry-after"]) || 0 });
-        try { resolve({ data: JSON.parse(Buffer.concat(chunks).toString("utf8").replace(/^﻿/, "")) }); } catch (e) { resolve({ error: "not JSON" }); }
+        try { resolve({ data: JSON.parse(Buffer.concat(chunks).toString("utf8").replace(/^\uFEFF/, "")) }); } catch (e) { resolve({ error: "not JSON" }); }
       });
     });
     rq.on("timeout", () => rq.destroy(new Error("timeout")));
