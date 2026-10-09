@@ -24,7 +24,7 @@ async function mail(to, subject, html, unsub) {
 async function push(userId, title, body) {
   const reg = await kvGet(userId, "push_registration");
   if (!shouldPush(reg, "tenders")) return false;
-  const r = await fetch("https://exp.host/--/api/v2/push/send", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify([{ to: reg.token, title, body, data: { url: SITE + "/send.html#vacancies" } }]) }).catch(() => null);
+  const r = await fetch("https://exp.host/--/api/v2/push/send", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify([{ to: reg.token, title, body, data: { url: SITE + "/?open=send&tab=vacancies" } }]) }).catch(() => null);
   return Boolean(r && r.ok);
 }
 const shell = (title, inner, unsub) => '<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#12263F"><div style="background:#0A1730;color:#fff;padding:16px 20px;border-radius:12px 12px 0 0"><b>Qura SEND Intelligence</b></div><div style="border:1px solid #E3E8F2;border-top:none;padding:20px;border-radius:0 0 12px 12px"><h2 style="font-size:18px;margin:0 0 12px">' + esc(title) + '</h2>' + inner + '<p style="font-size:12px;color:#8494AD;margin-top:24px">Vacancies come from school, trust and council pages Qura is allowed to check, so coverage is partial. <a href="' + esc(unsub) + '" style="color:#8494AD">Stop SEND alerts and briefings</a>. Qura Ltd, company number 17310951.</p></div></div>';
@@ -64,7 +64,7 @@ export default async function handler(req, res) {
       for (const v of data || []) { const o = byId.get(v.organisation_id) || {}; const row = { ...v, school: o.name, la_name: o.la_name }; week.push(row); if (v.first_seen_at > since) fresh.push(row); }
     }
     if (t.alerts && fresh.length && t.email) {
-      const ok = await mail(t.email, fresh.length + " new SEND vacanc" + (fresh.length === 1 ? "y" : "ies") + " in " + t.name, shell("New in " + t.name, vacRows(fresh.slice(0, 40)) + (fresh.length > 40 ? "<p>And " + (fresh.length - 40) + " more in Qura.</p>" : "") + '<p><a href="' + SITE + '/send.html#territories" style="color:#0E8C7E">Open your territory in Qura</a></p>', unsub), unsub);
+      const ok = await mail(t.email, fresh.length + " new SEND vacanc" + (fresh.length === 1 ? "y" : "ies") + " in " + t.name, shell("New in " + t.name, vacRows(fresh.slice(0, 40)) + (fresh.length > 40 ? "<p>And " + (fresh.length - 40) + " more in Qura.</p>" : "") + '<p><a href="' + SITE + '/?open=send&amp;tab=territories" style="color:#0E8C7E">Open your territory in Qura</a></p>', unsub), unsub);
       if (ok) log.alertEmails++;
       if (await push(t.user_id, "New SEND vacancies in " + t.name, fresh.length + " new since your last alert")) log.pushes++;
     }
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
         (Object.keys(fam).length ? "<p>" + Object.entries(fam).sort((a, b) => b[1] - a[1]).map(([k, n]) => esc(k.replace(/_/g, " ")) + ": " + n).join(" &middot; ") + "</p>" : "") +
         (opening.length ? "<p><b>Opening soon:</b> " + opening.map((s) => esc(s.name) + (s.open_date ? " (" + esc(s.open_date) + ")" : "")).join("; ") + "</p>" : "") +
         (week.length ? "<h3 style=\"font-size:15px\">Latest</h3>" + vacRows(week.slice(0, 15)) : "") +
-        '<p><a href="' + SITE + '/send.html#territories" style="color:#0E8C7E">See the full picture in Qura</a></p>';
+        '<p><a href="' + SITE + '/?open=send&amp;tab=territories" style="color:#0E8C7E">See the full picture in Qura</a></p>';
       if (await mail(t.email, "Your weekly SEND briefing: " + t.name, shell("Weekly SEND briefing: " + t.name, inner, unsub), unsub)) log.briefings++;
     }
   }

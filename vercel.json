@@ -57,6 +57,18 @@
       "schedule": "40 8 * * 1"
     }
   ],
+  "redirects": [
+    {
+      "source": "/send-intelligence",
+      "destination": "/?open=send",
+      "permanent": false
+    },
+    {
+      "source": "/send.html",
+      "destination": "/?open=send",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/for-clinicians",
@@ -109,10 +121,6 @@
     {
       "source": "/founding-partner",
       "destination": "/founding-partner.html"
-    },
-    {
-      "source": "/send-intelligence",
-      "destination": "/send.html"
     },
     {
       "source": "/send-data",

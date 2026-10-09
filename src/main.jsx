@@ -17,10 +17,30 @@ try {
   }
 } catch (e) {}
 
-createRoot(document.getElementById("root")).render(
+// Deep links into a workspace screen: /?open=send&tab=territories opens SEND
+// Intelligence on that tab (used by SEND alert emails and app notifications).
+// The app remembers the open screen per role in window.storage, so the link
+// writes that value for the supplier and operator workspaces before the app
+// starts, then tidies the address bar. Only screens listed here can be opened.
+const OPENABLE = { send: ["overview", "vacancies", "territories", "councils", "tenders", "schools", "map", "coverage", "insights"] };
+async function applyDeepLink() {
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const open = p.get("open");
+    if (!open || !OPENABLE[open]) return;
+    const tab = p.get("tab");
+    if (tab && OPENABLE[open].includes(tab)) { try { sessionStorage.setItem("qura_send_tab", tab); } catch (e) {} }
+    await Promise.all(["agency", "operator"].map((r) => window.storage.set("cura_active_" + r, JSON.stringify(open)).catch(() => null)));
+    p.delete("open"); p.delete("tab");
+    const q = p.toString();
+    window.history.replaceState({}, "", window.location.pathname + (q ? "?" + q : "") + window.location.hash);
+  } catch (e) {}
+}
+
+applyDeepLink().finally(() => createRoot(document.getElementById("root")).render(
   <ErrorBoundary>
     <FoundingBanner />
     <CompensationPanel />
     <App />
   </ErrorBoundary>
-);
+));
