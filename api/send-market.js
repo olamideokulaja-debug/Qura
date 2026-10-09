@@ -6,6 +6,7 @@ import { CATEGORY_LABEL } from "./_sendmarket.js";
 //                                                         high needs, Safety Valve, DBV, Ofsted, vacancies, tenders
 //   GET /api/send-market?view=council&code=936            one council in detail
 //   GET /api/send-market?view=tenders&kind=open|signals|renewals|frameworks&category=therapy&page=1
+//   GET /api/send-market?view=therapy                     therapy adverts by region: health feed beside schools
 // Founders, or suppliers with an active SEND entitlement.
 
 const PAGE = 50, DAY = 86400000;
@@ -55,6 +56,27 @@ export default async function handler(req, res) {
       return res.status(200).json({ kind, items: data || [], total: count || 0, page, pageSize: PAGE, categories: CATEGORY_LABEL,
         progress: { find_a_tender_read_to: st.fts && st.fts.doneTo || null, contracts_finder_read_to: st.cf && st.cf.doneTo || null },
         note: kind === "renewals" ? "Contracts whose published end date falls in the next 18 months. A forecast: buyers may extend, re-procure early or stop buying." : kind === "signals" ? "Pipeline, market engagement and planned procurement notices from the last 12 months. Early signals; not every one becomes a tender." : "From Find a Tender and Contracts Finder (Open Government Licence). Always read the original notice." });
+    }
+
+    if (view === "therapy") {
+      // Cross-sector therapy demand (idea 23): live adverts in Qura's healthcare feed (NHS and
+      // other health employers) beside live school SEND adverts, by English region. Health adverts
+      // are placed by postcode area, using the regions of schools that share that area.
+      const FAM = { psycholog: "psychology", "occupational therap": "occupational_therapy", physiotherap: "physiotherapy", speech: "speech_language" };
+      const area = (pc) => (String(pc || "").trim().toUpperCase().match(/^[A-Z]{1,2}/) || [""])[0];
+      const schools = await pageAll(() => sb.from("send_organisations").select("postcode,region").eq("org_kind", "school").not("region", "is", null));
+      const votes = new Map();
+      // GIAS files a few English-run border schools under "Wales (pseudo)"; those are left out.
+      for (const x of schools) { const a = area(x.postcode); if (!a || /pseudo/i.test(x.region)) continue; const m = votes.get(a) || {}; m[x.region] = (m[x.region] || 0) + 1; votes.set(a, m); }
+      const areaRegion = new Map([...votes].map(([a, m]) => [a, Object.entries(m).sort((p, q) => q[1] - p[1])[0][0]]));
+      const health = await pageAll(() => sb.from("opportunities").select("family,postcode").eq("status", "LIVE").in("family", Object.keys(FAM)));
+      const school = await pageAll(() => sb.from("send_vacancies").select("profession_family,send_organisations(region)").eq("status", "LIVE").in("profession_family", Object.values(FAM)));
+      const grid = new Map(); const cellOf = (r) => { if (!grid.has(r)) grid.set(r, { region: r, health: {}, school: {} }); return grid.get(r); };
+      let unplaced = 0;
+      for (const h of health) { const r = areaRegion.get(area(h.postcode)); const f = FAM[h.family]; if (!r) { unplaced++; continue; } const c = cellOf(r); c.health[f] = (c.health[f] || 0) + 1; }
+      for (const v of school) { const r = (v.send_organisations || {}).region; if (!r || /pseudo/i.test(r)) continue; const c = cellOf(r); c.school[v.profession_family] = (c.school[v.profession_family] || 0) + 1; }
+      return res.status(200).json({ regions: [...grid.values()].sort((a, b) => a.region.localeCompare(b.region)), professions: Object.values(FAM), totals: { health: health.length, school: school.length, unplaced },
+        note: "Health adverts come from Qura's live healthcare feed; school adverts from schools' own websites Qura can check. Both are partial counts of what Qura has seen. Health adverts outside England, or in postcode areas with no English school, are not placed (" + unplaced + ")." });
     }
 
     // Only councils that exist today: the DfE series still carries councils since merged

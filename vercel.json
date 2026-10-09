@@ -51,6 +51,10 @@
     {
       "path": "/api/send-tenders",
       "schedule": "2-59/10 * * * *"
+    },
+    {
+      "path": "/api/send-therapists",
+      "schedule": "40 8 * * 1"
     }
   ],
   "rewrites": [
