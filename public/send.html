@@ -33,6 +33,9 @@ textarea{width:100%;min-height:280px;border:1px solid var(--line);border-radius:
 .chips{display:flex;flex-wrap:wrap;gap:6px;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px}
 .chips label{font-size:12.5px;border:1px solid var(--line);border-radius:999px;padding:4px 9px;cursor:pointer;white-space:nowrap}
 .chips input{margin:0 5px 0 0;padding:0}
+.flag{display:inline-block;font-size:11px;border-radius:999px;padding:2px 8px;margin:1px 2px 1px 0;font-weight:700}.flag.sv{background:#FDECEC;color:#9B1C1C}.flag.dbv{background:#FFF4E0;color:#8A5300}.flag.fw{background:#E8F1FF;color:#1D4ED8}
+.up{color:#B42318;font-weight:700}.down{color:#0E8C7E;font-weight:700}.bar{display:inline-block;height:9px;background:var(--teal2);border-radius:4px;vertical-align:middle}
+.scroll{overflow-x:auto}
 @media (max-width:600px){main{padding:14px 16px}#map{height:420px}td,th{padding:6px 4px}}
 </style></head><body>
 <header><div class="mark">Q</div><h1>SEND Intelligence</h1><span class="pill">Pilot</span><span class="who" id="who"></span></header>
@@ -72,9 +75,9 @@ async function draftOutreach(id, kind) {
     m.querySelector("#cp").onclick = async () => { try { await navigator.clipboard.writeText(m.querySelector("#dr").value); m.querySelector("#cp").textContent = "Copied"; } catch (e) { m.querySelector("#dr").select(); } };
   } catch (e) { m.querySelector(".box").innerHTML = `<b>Outreach draft</b><p>${esc(e.message)}</p><button class="btn ghost" data-close>Close</button>`; }
 }
-const TABS = [["overview", "Overview"], ["vacancies", "Vacancies"], ["territories", "Territories"], ["schools", "Schools"], ["map", "Map"], ["coverage", "Coverage"], ["insights", "Insights"]];
+const TABS = [["overview", "Overview"], ["vacancies", "Vacancies"], ["territories", "Territories"], ["councils", "Councils"], ["tenders", "Tenders"], ["schools", "Schools"], ["map", "Map"], ["coverage", "Coverage"], ["insights", "Insights"]];
 let tab = (location.hash || "#overview").slice(1);
-function renderTabs() { $("#tabs").innerHTML = TABS.map(([k, l]) => `<button class="${k === tab ? "on" : ""}" data-t="${k}">${l}</button>`).join(""); $("#tabs").onclick = (e) => { const t = e.target.dataset.t; if (t) { if (t === "territories") { sessionStorage.removeItem("te"); sessionStorage.removeItem("to"); } tab = t; location.hash = t; renderTabs(); show(); } }; }
+function renderTabs() { $("#tabs").innerHTML = TABS.map(([k, l]) => `<button class="${k === tab ? "on" : ""}" data-t="${k}">${l}</button>`).join(""); $("#tabs").onclick = (e) => { const t = e.target.dataset.t; if (t) { if (t === "territories") { sessionStorage.removeItem("te"); sessionStorage.removeItem("to"); } if (t === "councils") sessionStorage.removeItem("cc"); tab = t; location.hash = t; renderTabs(); show(); } }; }
 
 async function overview() {
   const s = await api("/api/send?view=summary"); const e = s.england;
@@ -150,6 +153,68 @@ async function insights() {
   <div class="card"><b>Pay benchmarks</b> <span class="muted">${esc(i.notes.pay_benchmarks)}</span><table><tr><th>Role</th><th>Region</th><th>Adverts</th><th>Median low</th><th>Median high</th></tr>${i.pay_benchmarks.map((p) => `<tr><td>${esc(p.role)}</td><td>${esc(p.region)}</td><td>${p.adverts}</td><td>£${(p.median_low || 0).toLocaleString()}</td><td>£${(p.median_high || 0).toLocaleString()}</td></tr>`).join("") || `<tr><td colspan=5 class="muted">Needs at least 3 adverts with pay for a role and region.</td></tr>`}</table></div>
   <div class="card"><b>School changes</b> <span class="muted">New schools in scope, trust moves and status changes from the weekly official file.</span><table><tr><th>When</th><th>School</th><th>Change</th></tr>${i.school_changes.map((e) => `<tr><td>${date(e.at)}</td><td>${esc(e.send_organisations && e.send_organisations.name)}</td><td>${esc(e.event.replace(/_/g, " "))}${e.detail && (e.detail.from || e.detail.to) ? ": " + esc(e.detail.from || "none") + " to " + esc(e.detail.to || "none") : ""}</td></tr>`).join("") || `<tr><td colspan=3 class="muted">Changes appear after the second weekly update.</td></tr>`}</table></div>`;
 }
+
+const pctTxt = (v) => v == null ? "—" : (v > 0 ? "+" : "") + v + "%";
+const growth = (v) => v == null ? "—" : `<span class="${v > 0 ? "up" : "down"}">${pctTxt(v)}</span>`;
+const money = (v) => v == null ? "—" : v >= 1e6 ? "£" + (v / 1e6).toFixed(1) + "m" : v >= 1e3 ? "£" + Math.round(v / 1e3) + "k" : "£" + Math.round(v);
+const COUNCIL_SORT = { ehcp_growth_1y: "EHC plans, 1-year growth", ehcp_growth_5y: "EHC plans, 5-year growth", ehcp: "EHC plans, total", requests_growth_1y: "Assessment requests, 1-year growth", pct_20wk_low: "Plans issued within 20 weeks (lowest first)", hn_growth: "High needs funding growth", inclusion_concerns: "Ofsted inclusion concerns", renewals: "Contracts ending in 18 months", open: "Open SEND tenders", live_vacancies: "Live vacancies seen" };
+async function councils() {
+  const open = sessionStorage.getItem("cc"); if (open) return councilDetail(open);
+  const r = await api("/api/send-market?view=councils");
+  const sort = sessionStorage.getItem("cs") || "ehcp_growth_1y", flt = sessionStorage.getItem("cf") || "";
+  let list = r.councils.filter((c) => c.ehcp != null);
+  if (flt === "sv") list = list.filter((c) => c.safety_valve); if (flt === "dbv") list = list.filter((c) => c.dbv);
+  const key = (c) => sort === "pct_20wk_low" ? -(c.pct_20wk ?? 999) : sort === "renewals" || sort === "open" ? c.tenders[sort] : (c[sort] ?? -1e9);
+  list.sort((a, b) => key(b) - key(a));
+  setTimeout(() => {
+    $("#cs").onchange = (e) => { sessionStorage.setItem("cs", e.target.value); show(); };
+    $("#cf").onchange = (e) => { sessionStorage.setItem("cf", e.target.value); show(); };
+    document.querySelectorAll("[data-cc]").forEach((b) => b.onclick = () => { sessionStorage.setItem("cc", b.dataset.cc); show(); });
+  }, 0);
+  return `<div class="note">Where SEND demand is growing and money is under pressure. Figures come from official sources (listed below the table); Qura's own figures are vacancies and tenders it has seen. Read them together: a fast-growing council with low coverage may still be under-reported here.</div>
+  <div class="row"><select id="cs">${Object.entries(COUNCIL_SORT).map(([k, l]) => `<option value="${k}" ${k === sort ? "selected" : ""}>Sort: ${l}</option>`).join("")}</select>
+  <select id="cf"><option value="">All councils</option><option value="sv" ${flt === "sv" ? "selected" : ""}>Have had a Safety Valve agreement</option><option value="dbv" ${flt === "dbv" ? "selected" : ""}>Delivering Better Value councils</option></select><span class="muted">${list.length} councils</span></div>
+  <div class="card scroll"><table><tr><th>Council</th><th>EHC plans</th><th>1 year</th><th>5 years</th><th>Requests, 1 year</th><th>Within 20 weeks</th><th>High needs 2026-27</th><th>Ofsted concerns</th><th>Tenders</th><th>Vacancies</th><th></th></tr>
+  ${list.map((c) => `<tr><td><b>${esc(c.name)}</b><br>${c.safety_valve ? `<span class="flag sv">Safety Valve ${esc(c.sv_year || "")}</span>` : ""}${c.dbv ? `<span class="flag dbv">DBV</span>` : ""}</td><td>${(c.ehcp || 0).toLocaleString()}</td><td>${growth(c.ehcp_growth_1y)}</td><td>${growth(c.ehcp_growth_5y)}</td><td>${growth(c.requests_growth_1y)}</td><td>${c.pct_20wk == null ? "—" : c.pct_20wk + "%"}</td><td>${money(c.hn_now)}<br><span class="muted">${pctTxt(c.hn_growth)}</span></td><td>${c.inclusion_concerns || ""}</td><td class="muted">${c.tenders.open ? c.tenders.open + " open<br>" : ""}${c.tenders.signals ? c.tenders.signals + " early<br>" : ""}${c.tenders.renewals ? c.tenders.renewals + " ending" : ""}</td><td>${c.live_vacancies || ""}${c.coverage_pct != null ? `<br><span class="muted">${c.coverage_pct}% coverage</span>` : ""}</td><td><button class="btn" data-cc="${esc(c.code)}">Open</button></td></tr>`).join("") || `<tr><td colspan=11 class="muted">Council figures load from the first data run.</td></tr>`}</table></div>
+  <div class="card muted"><b>Sources</b> (Open Government Licence v3.0)<br>${Object.values(r.sources).map(esc).join("<br>")}<br>Ofsted concerns count the council's in-scope schools graded "Needs attention" or "Urgent improvement" for inclusion, or in special measures or serious weaknesses. High needs growth compares 2026 to 2027 allocations with 2025 to 2026 on the same basis.</div>`;
+}
+function tenderRows(items, showCouncil) {
+  return items.map((t) => `<tr><td><a href="${esc(t.url)}" target="_blank" rel="noopener"><b>${esc(t.title)}</b></a><br><span class="tag">${esc(CAT[t.category] || t.category)}</span>${t.is_framework ? `<span class="flag fw">Framework</span>` : ""}${t.is_dps ? `<span class="flag fw">DPS</span>` : ""}<span class="muted"> ${esc(t.source)}</span></td><td>${esc(t.buyer)}</td><td>${t.value_amount ? money(Number(t.value_amount)) : "—"}</td><td class="muted">${t.stage === "tender" && t.closing_at ? "Closes " + date(t.closing_at) : "Published " + date(t.published_at)}${t.contract_end ? "<br>Ends " + date(t.contract_end) : ""}${t.max_extent && t.max_extent !== t.contract_end ? "<br>Up to " + date(t.max_extent) : ""}</td><td class="muted">${(t.suppliers || []).slice(0, 3).map(esc).join("<br>")}</td><td><button class="btn ghost" ${pipeAttrs(t.buyer, t.title, t.url, "SEND tender")}>Pipeline</button></td></tr>`).join("");
+}
+let CAT = {};
+const TKINDS = { open: "Open tenders", signals: "Early signals", renewals: "Contracts ending soon", frameworks: "Frameworks and DPS" };
+async function tenders() {
+  const kind = sessionStorage.getItem("tk") || "open", cat = sessionStorage.getItem("tc") ?? "no_transport", page = Number(sessionStorage.getItem("tp") || 1);
+  const r = await api("/api/send-market?view=tenders&kind=" + kind + "&page=" + page + (cat ? "&category=" + cat : ""));
+  CAT = r.categories || {};
+  setTimeout(() => {
+    document.querySelectorAll("[data-tk]").forEach((b) => b.onclick = () => { sessionStorage.setItem("tk", b.dataset.tk); sessionStorage.setItem("tp", 1); show(); });
+    $("#tc").onchange = (e) => { sessionStorage.setItem("tc", e.target.value); sessionStorage.setItem("tp", 1); show(); };
+  }, 0);
+  const prog = r.progress || {};
+  return `<div class="row">${Object.entries(TKINDS).map(([k, l]) => `<button class="btn ${k === kind ? "" : "ghost"}" data-tk="${k}">${l}</button>`).join("")}</div>
+  <div class="row"><select id="tc"><option value="no_transport" ${cat === "no_transport" ? "selected" : ""}>All except transport</option><option value="" ${cat === "" ? "selected" : ""}>Everything</option>${Object.entries(CAT).map(([k, l]) => `<option value="${k}" ${k === cat ? "selected" : ""}>${esc(l)}</option>`).join("")}</select><span class="muted">${r.total.toLocaleString()} notices</span></div>
+  <div class="note">${esc(r.note)}${prog.find_a_tender_read_to ? ` Notices read so far: Find a Tender to ${date(prog.find_a_tender_read_to)}, Contracts Finder to ${date(prog.contracts_finder_read_to)}.` : ""}</div>
+  <div class="card scroll"><table><tr><th>Notice</th><th>Buyer</th><th>Value</th><th>Dates</th><th>${kind === "renewals" ? "Current supplier" : "Suppliers"}</th><th></th></tr>${tenderRows(r.items) || `<tr><td colspan=6 class="muted">Nothing here yet. The first runs work back through 3 years of notices, which takes about a day.</td></tr>`}</table>
+  ${pager(r.total, r.page, r.pageSize, "tp")}</div>`;
+}
+async function councilDetail(code) {
+  const r = await api("/api/send-market?view=council&code=" + encodeURIComponent(code)); const c = r.council; CAT = r.categories || CAT;
+  setTimeout(() => { $("#cback").onclick = () => { sessionStorage.removeItem("cc"); show(); }; }, 0);
+  const years = Object.keys(c.ehcp || {}).sort(); const max = Math.max(1, ...years.map((y) => (c.ehcp[y] || {}).total || 0));
+  const tl = Object.keys(c.timeliness || {}).sort();
+  const section = (title, list, empty) => `<div class="card scroll"><b>${title}</b><table><tr><th>Notice</th><th>Buyer</th><th>Value</th><th>Dates</th><th>Suppliers</th><th></th></tr>${tenderRows(list) || `<tr><td colspan=6 class="muted">${empty}</td></tr>`}</table></div>`;
+  return `<div class="row"><button class="btn ghost" id="cback">All councils</button><b>${esc(c.la_name)}</b>${c.safety_valve ? `<a class="flag sv" href="${esc(c.sv_url)}" target="_blank" rel="noopener">Safety Valve agreement ${esc(c.sv_year || "")}</a>` : ""}${c.dbv ? `<span class="flag dbv">Delivering Better Value, tranche ${esc(c.dbv_tranche)}</span>` : ""}</div>
+  <div class="grid" style="margin-bottom:14px"><div class="stat"><b>${(c.ehcp_latest || 0).toLocaleString()}</b><span>EHC plans, January 2026</span></div><div class="stat"><b>${pctTxt(c.ehcp_growth_1y)}</b><span>in 1 year (${pctTxt(c.ehcp_growth_5y)} in 5)</span></div><div class="stat"><b>${(c.requests_latest || 0).toLocaleString()}</b><span>assessment requests in 2025 (${pctTxt(c.requests_growth_1y)})</span></div><div class="stat"><b>${c.pct_20wk == null ? "—" : c.pct_20wk + "%"}</b><span>new plans issued within 20 weeks</span></div><div class="stat"><b>${money(c.hn_now)}</b><span>high needs 2026-27 (${pctTxt(c.hn_growth)} on 2025-26)</span></div></div>
+  <div class="card scroll"><b>EHC plans by year</b> <span class="muted">Where plans name a setting, January 2026: special ${(c.ehcp_special || 0).toLocaleString()}, mainstream ${(c.ehcp_mainstream || 0).toLocaleString()}, alternative provision ${(c.ehcp_ap || 0).toLocaleString()}, independent special ${(c.ehcp_indep_special || 0).toLocaleString()}.</span>
+  <table><tr><th>Year</th><th>Plans</th><th></th><th>Requests</th><th>Within 20 weeks</th></tr>${years.map((y) => { const n = (c.ehcp[y] || {}).total || 0; const cy = y.slice(0, 4); const t = (c.timeliness || {})[cy] || {}; return `<tr><td>${esc(y)}</td><td>${n.toLocaleString()}</td><td><span class="bar" style="width:${Math.round((n / max) * 160)}px"></span></td><td>${((c.requests || {})[cy] ?? "")}</td><td>${t.total ? Math.round((t.within20 / t.total) * 1000) / 10 + "%" : ""}</td></tr>`; }).reverse().join("")}</table>
+  ${c.hn_url ? `<p class="muted">High needs figures: <a href="${esc(c.hn_url)}" target="_blank" rel="noopener">ESFA allocation page</a>.</p>` : ""}</div>
+  <div class="card scroll"><b>Schools with Ofsted inclusion or quality concerns</b> <span class="muted">In-scope schools graded "Needs attention" or "Urgent improvement" for inclusion, or in special measures or serious weaknesses. These schools are often under pressure to improve SEND support.</span><table><tr><th>School</th><th>Inspected</th><th>Inclusion</th><th>Concern</th><th></th></tr>${r.concerns.map((i) => `<tr><td>${esc(i.school)}</td><td>${date(i.inspected_at)}</td><td>${esc(i.inclusion || "—")}</td><td>${esc(i.recent_concern === "SM" ? "Special measures" : i.recent_concern === "SWK" ? "Serious weaknesses" : "")}</td><td><a href="${esc(i.report_url)}" target="_blank" rel="noopener">Report</a></td></tr>`).join("") || `<tr><td colspan=5 class="muted">None among this council's in-scope schools in the latest file.</td></tr>`}</table></div>
+  ${section("Early signals", r.tenders.signals, "No pipeline or market engagement notices seen in the last 12 months.")}
+  ${section("Open tenders", r.tenders.open, "No open SEND tenders seen.")}
+  ${section("Contracts ending in the next 18 months", r.tenders.renewals, "None seen yet. This fills as Qura reads back through past award notices.")}
+  ${section("Frameworks and dynamic purchasing systems", r.tenders.frameworks, "None seen.")}`;
+}
 let LAS = null;
 async function territories() {
   const edit = sessionStorage.getItem("te"); const open = sessionStorage.getItem("to");
@@ -203,7 +268,7 @@ async function territoryDetail(id) {
   <div class="card"><b>Opening soon</b> <span class="muted">Schools the official record lists as proposed to open.</span><table><tr><th>School</th><th>Council</th><th>Opens</th></tr>${f.opening_soon.map((o) => `<tr><td>${esc(o.name)}</td><td>${esc(o.la_name)}</td><td>${date(o.open_date)}</td></tr>`).join("") || `<tr><td colspan=3 class="muted">None in this territory.</td></tr>`}</table></div>
   <div class="card"><b>Coverage by council</b><table><tr><th>Council</th><th>Schools</th><th>Monitored</th><th>Coverage</th></tr>${f.areas.map((a) => `<tr><td>${esc(a.area_name)}</td><td>${a.schools}</td><td>${a.sources_monitored}</td><td>${a.coverage_pct}%</td></tr>`).join("") || `<tr><td colspan=4 class="muted">Calculated hourly once jobs pages have been found.</td></tr>`}</table></div>`;
 }
-const VIEWS = { overview, vacancies, territories, schools, map, coverage, insights };
+const VIEWS = { overview, vacancies, territories, councils, tenders, schools, map, coverage, insights };
 async function show() { $("#app").innerHTML = `<div class="center muted">Loading…</div>`; try { $("#app").innerHTML = await (VIEWS[tab] || overview)(); } catch (e) { $("#app").innerHTML = `<div class="center"><p>${esc(e.message)}</p><p class="muted">SEND Intelligence is in pilot. Ask the Qura team to switch it on for your account.</p></div>`; } }
 const { data } = await sb.auth.getSession();
 if (!data || !data.session) { $("#tabs").innerHTML = ""; $("#app").innerHTML = `<div class="center"><h2>Sign in to Qura first</h2><p class="muted">SEND Intelligence uses your Qura account.</p><p><a class="btn" style="padding:10px 18px;text-decoration:none" href="/">Go to Qura and sign in</a></p></div>`; }

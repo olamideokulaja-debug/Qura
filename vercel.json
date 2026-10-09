@@ -43,6 +43,14 @@
     {
       "path": "/api/send-alerts",
       "schedule": "20 7 * * *"
+    },
+    {
+      "path": "/api/send-councils",
+      "schedule": "35 * * * *"
+    },
+    {
+      "path": "/api/send-tenders",
+      "schedule": "2-59/10 * * * *"
     }
   ],
   "rewrites": [
