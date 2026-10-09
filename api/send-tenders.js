@@ -16,6 +16,14 @@ export const config = { maxDuration: 300 };
 // only reads what changed since the last one. At most 12 Find a Tender and 10 Contracts Finder
 // pages a run, one request every 3 seconds, never in parallel; a 429 (slow down) pauses
 // that source for 20 minutes or as long as the service asks, whichever is longer.
+//
+// Scotland and Wales (9 October 2026): Public Contracts Scotland and Sell2Wales publish OCDS
+// (Open Government Licence) one month and notice type per request. Their above-threshold
+// notices already reach Find a Tender, so only their own below-threshold "site notices"
+// (types 101 to 104: prior information, contract, award, quick quote award) are read here,
+// 2 requests per source per run, 3 seconds apart. The API hosts have no robots.txt. On 9 October
+// the Sell2Wales API answered every request with a server error; a failing source pauses for
+// 6 hours and tries again, so Welsh notices start arriving once Sell2Wales fixes it.
 
 const FTS = "https://www.find-tender.service.gov.uk/api/1.0/ocdsReleasePackages";
 const CF = "https://www.contractsfinder.service.gov.uk/Published/Notices/OCDS/Search";
@@ -24,6 +32,13 @@ const BACKFILL_DAYS = 3 * 365, BUDGET_MS = 230000, DAY = 86400000;
 // Pages per run and the pause after a 429, tuned on 9 October 2026: Find a Tender answered 429
 // after 19 pages at one every 3 seconds, and Contracts Finder after about 12 at one every 1.5 seconds.
 const MAX_PAGES = { fts: 12, cf: 10 }, PAUSE_MS = 20 * 60000;
+
+const MONTHLY = {
+  pcs: { name: "Public Contracts Scotland", base: "https://api.publiccontractsscotland.gov.uk/v1/Notices", extra: "" },
+  s2w: { name: "Sell2Wales", base: "https://api.sell2wales.gov.wales/v1/Notices", extra: "&locale=2057" },
+};
+const SITE_TYPES = [101, 102, 103, 104], MONTH_REQ = 2, MONTH_PAUSE_MS = 6 * 3600000;
+const mm = (d) => String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + d.getUTCFullYear();
 
 async function getJson(url) {
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 30000);
@@ -75,6 +90,48 @@ async function runSource(sb, src, st, log, deadline, match) {
   log[src + "Pages"] = pages; log[src + "Day"] = st.cursorDay;
 }
 
+// State: { month: "YYYY-MM" being read, typeIdx, doneTo: last month fully read, fails, pausedUntil }
+export async function runMonthly(sb, key, st, log, match) {
+  const src = MONTHLY[key];
+  if (st.pausedUntil && Date.now() < Date.parse(st.pausedUntil)) { log[key + "Paused"] = st.pausedUntil; return; }
+  const now = new Date(), thisMonth = now.toISOString().slice(0, 7);
+  if (!st.month) st.month = new Date(Date.now() - BACKFILL_DAYS * DAY).toISOString().slice(0, 7);
+  st.typeIdx = st.typeIdx || 0;
+  for (let n = 0; n < MONTH_REQ; n++) {
+    const d = new Date(st.month + "-01T00:00:00Z"), type = SITE_TYPES[st.typeIdx];
+    const r = await getJson(src.base + "?dateFrom=" + mm(d) + "&noticeType=" + type + "&outputType=0" + src.extra);
+    log[key + "Requests"] = (log[key + "Requests"] || 0) + 1;
+    if (r.error) {
+      st.fails = (st.fails || 0) + 1;
+      log.errors.push(src.name + " " + st.month + " type " + type + ": " + r.error);
+      // Persistent failure on one item: skip it after 5 tries rather than stall for ever.
+      if (st.fails >= 5) { st.fails = 0; st.typeIdx++; }
+      else { st.pausedUntil = new Date(Date.now() + (r.error === "HTTP 429" ? Math.max(PAUSE_MS, (r.retryAfter || 0) * 1000) : MONTH_PAUSE_MS)).toISOString(); }
+    } else {
+      st.fails = 0;
+      const rels = (r.data && r.data.releases) || [];
+      const rows = []; for (const rel of rels) { const row = tenderRow(rel, src.name, match); if (row) rows.push(row); }
+      if (rows.length) {
+        const uniq = [...new Map(rows.map((x) => [x.id, x])).values()];
+        const { error } = await sb.from("send_tenders").upsert(uniq, { onConflict: "id" });
+        if (error) { log.errors.push(src.name + " save: " + error.message); break; }
+        log[key + "Kept"] = (log[key + "Kept"] || 0) + uniq.length;
+      }
+      log[key + "Read"] = (log[key + "Read"] || 0) + rels.length;
+      st.typeIdx++;
+    }
+    if (st.typeIdx >= SITE_TYPES.length) {
+      st.typeIdx = 0; st.doneTo = st.month;
+      // The current month stays open and is read again on later runs; the month before it too.
+      if (st.month >= thisMonth) { st.month = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString().slice(0, 7); break; }
+      const nx = new Date(st.month + "-01T00:00:00Z"); nx.setUTCMonth(nx.getUTCMonth() + 1); st.month = nx.toISOString().slice(0, 7);
+    }
+    if (st.pausedUntil && Date.now() < Date.parse(st.pausedUntil)) break;
+    await sleep(3000);
+  }
+  log[key + "Month"] = st.month;
+}
+
 export default async function handler(req, res) {
   if (!(await cronAllowed(req))) return res.status(401).json({ error: "Not allowed" });
   const sb = sbAdmin(); if (!sb) return res.status(500).json({ error: "Supabase not configured" });
@@ -88,7 +145,9 @@ export default async function handler(req, res) {
   const log = { at: new Date().toISOString(), errors: [] };
   st.fts = st.fts || {}; st.cf = st.cf || {};
   await runSource(sb, "fts", st.fts, log, started + BUDGET_MS * 0.55, match);
-  await runSource(sb, "cf", st.cf, log, started + BUDGET_MS, match);
+  await runSource(sb, "cf", st.cf, log, started + BUDGET_MS * 0.8, match);
+  st.pcs = st.pcs || {}; st.s2w = st.s2w || {};
+  for (const k of ["pcs", "s2w"]) { if (Date.now() < started + BUDGET_MS) { try { await runMonthly(sb, k, st[k], log, match); } catch (e) { log.errors.push(MONTHLY[k].name + ": " + String(e.message || e)); } } }
   // Buyers that did not match a council when first stored (council list not loaded yet)
   if (las && las.length && st.matchedWith !== las.length) {
     st.matchedWith = las.length;

@@ -309,7 +309,7 @@ function Councils({ onToast }) {
   </div>);
 }
 function TenderRows({ items }) {
-  return items.map((t) => <tr key={t.id}><td style={TD}><a href={t.url} target="_blank" rel="noopener noreferrer"><b>{t.title}</b></a><br /><span style={TAG}>{CATS[t.category] || t.category}</span>{t.is_framework && <span style={FLAG("#E8F1FF", "#1D4ED8")}>Framework</span>}{t.is_dps && <span style={FLAG("#E8F1FF", "#1D4ED8")}>DPS</span>}<span className="muted" style={{ fontSize: 12 }}> {t.source}</span></td><td style={TD}>{t.buyer}</td><td style={TD}>{t.value_amount ? money(Number(t.value_amount)) : "—"}</td><td style={TD} className="muted">{t.stage === "tender" && t.closing_at ? "Closes " + date(t.closing_at) : "Published " + date(t.published_at)}{t.contract_end && <><br />Ends {date(t.contract_end)}</>}{t.max_extent && t.max_extent !== t.contract_end && <><br />Up to {date(t.max_extent)}</>}</td><td style={TD} className="muted">{(t.suppliers || []).slice(0, 3).map((s, i) => <div key={i}>{s}</div>)}</td></tr>);
+  return items.map((t) => <tr key={t.id}><td style={TD}><a href={t.url} target="_blank" rel="noopener noreferrer"><b>{t.title}</b></a><br /><span style={TAG}>{CATS[t.category] || t.category}</span>{t.is_framework && <span style={FLAG("#E8F1FF", "#1D4ED8")}>Framework</span>}{t.is_dps && <span style={FLAG("#E8F1FF", "#1D4ED8")}>DPS</span>}<span className="muted" style={{ fontSize: 12 }}> {t.source}{t.nation && t.nation !== "England" ? " · " + t.nation : ""}</span></td><td style={TD}>{t.buyer}</td><td style={TD}>{t.value_amount ? money(Number(t.value_amount)) : "—"}</td><td style={TD} className="muted">{t.stage === "tender" && t.closing_at ? "Closes " + date(t.closing_at) : "Published " + date(t.published_at)}{t.contract_end && <><br />Ends {date(t.contract_end)}</>}{t.max_extent && t.max_extent !== t.contract_end && <><br />Up to {date(t.max_extent)}</>}</td><td style={TD} className="muted">{(t.suppliers || []).slice(0, 3).map((s, i) => <div key={i}>{s}</div>)}</td></tr>);
 }
 function CouncilDetail({ code, onBack, onToast }) {
   const { data: r, err, loading } = useLoad("/api/send-market?view=council&code=" + code);
@@ -331,18 +331,20 @@ function CouncilDetail({ code, onBack, onToast }) {
   </div>);
 }
 
+const NATIONS = { england: "England", scotland: "Scotland", wales: "Wales", northern_ireland: "Northern Ireland" };
 const TKINDS = { open: "Open tenders", signals: "Early signals", renewals: "Contracts ending soon", frameworks: "Frameworks and DPS" };
 function Tenders({ onToast }) {
-  const [kind, setKind] = useState("open"); const [cat, setCat] = useState("no_transport"); const [page, setPage] = useState(1);
-  const { data: r, err, loading } = useLoad("/api/send-market?view=tenders&kind=" + kind + "&page=" + page + (cat ? "&category=" + cat : ""));
+  const [kind, setKind] = useState("open"); const [cat, setCat] = useState("no_transport"); const [nation, setNation] = useState(""); const [page, setPage] = useState(1);
+  const { data: r, err, loading } = useLoad("/api/send-market?view=tenders&kind=" + kind + "&page=" + page + (cat ? "&category=" + cat : "") + (nation ? "&nation=" + nation : ""));
   return (<div>
     <div className="row" style={{ gap: 8, marginBottom: 10, flexWrap: "wrap" }}>{Object.entries(TKINDS).map(([k, l]) => <button key={k} className={"btn " + (k === kind ? "btn-primary" : "btn-light")} onClick={() => { setKind(k); setPage(1); }}>{l}</button>)}</div>
     <div className="row" style={{ gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
       <select className="in" value={cat} onChange={(e) => { setCat(e.target.value); setPage(1); }}><option value="no_transport">All except transport</option><option value="">Everything</option>{Object.entries(CATS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+      <select className="in" value={nation} onChange={(e) => { setNation(e.target.value); setPage(1); }}><option value="">All UK</option>{Object.entries(NATIONS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
       {r && <span className="muted" style={{ fontSize: 12.5 }}>{(r.total || 0).toLocaleString()} notices</span>}
-      <button className="btn btn-light" onClick={() => download("/api/send-export?what=tenders&kind=" + kind, onToast)}>Download CSV</button>
+      <button className="btn btn-light" onClick={() => download("/api/send-export?what=tenders&kind=" + kind + (nation ? "&nation=" + nation : ""), onToast)}>Download CSV</button>
     </div>
-    {r && <div style={NOTE}>{r.note}{r.progress && r.progress.find_a_tender_read_to ? " Notices read so far: Find a Tender to " + date(r.progress.find_a_tender_read_to) + ", Contracts Finder to " + date(r.progress.contracts_finder_read_to) + "." : ""}</div>}
+    {r && <div style={NOTE}>{r.note}{r.progress && r.progress.find_a_tender_read_to ? " Notices read so far: Find a Tender to " + date(r.progress.find_a_tender_read_to) + ", Contracts Finder to " + date(r.progress.contracts_finder_read_to) + (r.progress.scotland_read_to ? ", Public Contracts Scotland to " + r.progress.scotland_read_to : "") + "." : ""}</div>}
     {loading ? <Loading /> : err ? <Err e={err} /> : <div className="card" style={{ padding: 12 }}>
       <Table head={["Notice", "Buyer", "Value", "Dates", kind === "renewals" ? "Current supplier" : "Suppliers"]} empty="Nothing here yet. The first runs work back through 3 years of notices."><TenderRows items={r.items} /></Table>
       <Pager total={r.total} page={r.page} size={r.pageSize} onPage={setPage} />

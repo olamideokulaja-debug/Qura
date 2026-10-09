@@ -5,7 +5,7 @@ import { limited } from "./_ratelimit.js";
 // wording in the first lines of every file.
 //   GET /api/send-export?what=vacancies&family=speech_language&la=341,340
 //   GET /api/send-export?what=schools&setting=special&la=341
-//   GET /api/send-export?what=tenders&kind=open|signals|renewals|frameworks
+//   GET /api/send-export?what=tenders&kind=open|signals|renewals|frameworks&nation=scotland
 //   GET /api/send-export?what=councils
 // Founders, or suppliers with SEND switched on. 20 exports an hour, 5,000 rows each.
 
@@ -71,16 +71,18 @@ export default async function handler(req, res) {
     } else if (what === "tenders") {
       const kind = ["open", "signals", "renewals", "frameworks"].includes(req.query.kind) ? req.query.kind : "open";
       rows = await pageAll(() => {
-        let q = sb.from("send_tenders").select("source,stage,title,buyer,category,value_amount,currency,published_at,closing_at,contract_start,contract_end,max_extent,is_framework,is_dps,suppliers,url");
+        let q = sb.from("send_tenders").select("source,nation,stage,title,buyer,category,value_amount,currency,published_at,closing_at,contract_start,contract_end,max_extent,is_framework,is_dps,suppliers,url");
         if (kind === "signals") q = q.eq("stage", "planning").gte("published_at", new Date(Date.now() - 365 * DAY).toISOString());
         else if (kind === "renewals") q = q.eq("stage", "award").gte("contract_end", today).lte("contract_end", iso(Date.now() + 548 * DAY));
         else if (kind === "frameworks") q = q.neq("stage", "planning").or(["is_framework", "is_dps"].flatMap((f) => ["and(" + f + ".eq.true,contract_end.is.null)", "and(" + f + ".eq.true,contract_end.gte." + today + ")"]).join(","));
         else q = q.eq("stage", "tender").or("closing_at.is.null,closing_at.gte." + new Date().toISOString()).gte("published_at", new Date(Date.now() - 120 * DAY).toISOString());
         if (las.length) q = q.in("la_code", las);
+        const nation = { england: "England", scotland: "Scotland", wales: "Wales", northern_ireland: "Northern Ireland" }[String(req.query.nation || "")];
+        if (nation) q = q.eq("nation", nation);
         return q.order("published_at", { ascending: false });
       }, MAX);
-      lines = [LICENCE.qura, "Source: Find a Tender and Contracts Finder (Cabinet Office). " + LICENCE.ogl, kind === "renewals" ? "Contracts ending in the next 18 months: a forecast, since buyers may extend, re-procure early or stop buying." : "Always read the original notice before acting.", "Exported " + today + "."];
-      cols = [["Notice", (r) => r.title], ["Stage", (r) => r.stage], ["Buyer", (r) => r.buyer], ["Category", (r) => r.category], ["Value", (r) => r.value_amount], ["Currency", (r) => r.currency], ["Published", (r) => r.published_at && r.published_at.slice(0, 10)], ["Closes", (r) => r.closing_at && r.closing_at.slice(0, 10)], ["Contract start", (r) => r.contract_start], ["Contract end", (r) => r.contract_end], ["Latest end with extensions", (r) => r.max_extent], ["Framework", (r) => (r.is_framework ? "Yes" : "")], ["DPS", (r) => (r.is_dps ? "Yes" : "")], ["Suppliers", (r) => r.suppliers], ["Source", (r) => r.source], ["Link", (r) => r.url]];
+      lines = [LICENCE.qura, "Source: Find a Tender and Contracts Finder (Cabinet Office); Public Contracts Scotland (Scottish Government); Sell2Wales (Welsh Government). " + LICENCE.ogl, kind === "renewals" ? "Contracts ending in the next 18 months: a forecast, since buyers may extend, re-procure early or stop buying." : "Always read the original notice before acting.", "Exported " + today + "."];
+      cols = [["Notice", (r) => r.title], ["Stage", (r) => r.stage], ["Buyer", (r) => r.buyer], ["Nation", (r) => r.nation], ["Category", (r) => r.category], ["Value", (r) => r.value_amount], ["Currency", (r) => r.currency], ["Published", (r) => r.published_at && r.published_at.slice(0, 10)], ["Closes", (r) => r.closing_at && r.closing_at.slice(0, 10)], ["Contract start", (r) => r.contract_start], ["Contract end", (r) => r.contract_end], ["Latest end with extensions", (r) => r.max_extent], ["Framework", (r) => (r.is_framework ? "Yes" : "")], ["DPS", (r) => (r.is_dps ? "Yes" : "")], ["Suppliers", (r) => r.suppliers], ["Source", (r) => r.source], ["Link", (r) => r.url]];
     } else if (what === "councils") {
       const { data: current } = await sb.from("send_organisations").select("la_code").eq("org_kind", "local_authority").eq("in_scope", true);
       const live = new Set((current || []).map((c) => c.la_code));

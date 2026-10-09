@@ -5,7 +5,7 @@ import { CATEGORY_LABEL } from "./_sendmarket.js";
 //   GET /api/send-market?view=councils                    every council: EHC plans, requests, timeliness,
 //                                                         high needs, Safety Valve, DBV, Ofsted, vacancies, tenders
 //   GET /api/send-market?view=council&code=936            one council in detail
-//   GET /api/send-market?view=tenders&kind=open|signals|renewals|frameworks&category=therapy&page=1
+//   GET /api/send-market?view=tenders&kind=open|signals|renewals|frameworks&category=therapy&nation=scotland&page=1
 //   GET /api/send-market?view=therapy                     therapy adverts by region: health feed beside schools
 // Founders, or suppliers with an active SEND entitlement.
 
@@ -23,9 +23,10 @@ async function pageAll(build) {
   return out;
 }
 
-function tenderQuery(sb, kind, category, la) {
+export const NATIONS = { england: "England", scotland: "Scotland", wales: "Wales", northern_ireland: "Northern Ireland" };
+function tenderQuery(sb, kind, category, la, nation) {
   const today = iso(Date.now());
-  let q = sb.from("send_tenders").select("id,source,stage,title,buyer,la_code,category,value_amount,currency,published_at,closing_at,contract_start,contract_end,max_extent,is_framework,is_dps,suppliers,url", { count: "exact" });
+  let q = sb.from("send_tenders").select("id,source,nation,stage,title,buyer,la_code,category,value_amount,currency,published_at,closing_at,contract_start,contract_end,max_extent,is_framework,is_dps,suppliers,url", { count: "exact" });
   if (kind === "signals") q = q.eq("stage", "planning").gte("published_at", new Date(Date.now() - 365 * DAY).toISOString()).order("published_at", { ascending: false });
   else if (kind === "renewals") q = q.eq("stage", "award").gte("contract_end", today).lte("contract_end", iso(Date.now() + 548 * DAY)).order("contract_end", { ascending: true });
   else if (kind === "frameworks") q = q.neq("stage", "planning").or(["is_framework", "is_dps"].flatMap((f) => ["and(" + f + ".eq.true,contract_end.is.null)", "and(" + f + ".eq.true,contract_end.gte." + today + ")"]).join(",")).order("published_at", { ascending: false });
@@ -33,6 +34,7 @@ function tenderQuery(sb, kind, category, la) {
   if (category === "no_transport") q = q.neq("category", "transport");
   else if (category) q = q.eq("category", category);
   if (la) q = q.eq("la_code", la);
+  if (nation && NATIONS[nation]) q = q.eq("nation", NATIONS[nation]);
   return q;
 }
 
@@ -50,12 +52,12 @@ export default async function handler(req, res) {
     if (view === "tenders") {
       const kind = ["open", "signals", "renewals", "frameworks"].includes(req.query.kind) ? req.query.kind : "open";
       const page = Math.max(1, Math.min(200, Number(req.query.page) || 1));
-      const { data, count, error } = await tenderQuery(sb, kind, category, null).range((page - 1) * PAGE, page * PAGE - 1);
+      const { data, count, error } = await tenderQuery(sb, kind, category, null, String(req.query.nation || "")).range((page - 1) * PAGE, page * PAGE - 1);
       if (error) throw new Error(error.message);
       const st = (await kvGet("shared", "send_tender_state")) || {};
       return res.status(200).json({ kind, items: data || [], total: count || 0, page, pageSize: PAGE, categories: CATEGORY_LABEL,
-        progress: { find_a_tender_read_to: st.fts && st.fts.doneTo || null, contracts_finder_read_to: st.cf && st.cf.doneTo || null },
-        note: kind === "renewals" ? "Contracts whose published end date falls in the next 18 months. A forecast: buyers may extend, re-procure early or stop buying." : kind === "signals" ? "Pipeline, market engagement and planned procurement notices from the last 12 months. Early signals; not every one becomes a tender." : "From Find a Tender and Contracts Finder (Open Government Licence). Always read the original notice." });
+        progress: { find_a_tender_read_to: st.fts && st.fts.doneTo || null, contracts_finder_read_to: st.cf && st.cf.doneTo || null, scotland_read_to: st.pcs && st.pcs.doneTo || null, wales_read_to: st.s2w && st.s2w.doneTo || null }, nations: NATIONS,
+        note: kind === "renewals" ? "Contracts whose published end date falls in the next 18 months. A forecast: buyers may extend, re-procure early or stop buying." : kind === "signals" ? "Pipeline, market engagement and planned procurement notices from the last 12 months. Early signals; not every one becomes a tender." : "From Find a Tender, Contracts Finder and Public Contracts Scotland (Open Government Licence). Sell2Wales is added when its data service is working again. Always read the original notice." });
     }
 
     if (view === "therapy") {

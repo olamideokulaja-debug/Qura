@@ -21,6 +21,7 @@ const ALIAS = {
   "bournemouth christchurch poole": "bournemouth christchurch poole", "bcp": "bournemouth christchurch poole",
   "windsor maidenhead": "windsor maidenhead", "westmoreland furness": "westmorland furness", "westmorland furness": "westmorland furness",
   "herefordshire": "herefordshire", "durham": "county durham", "county durham": "county durham",
+  "newcastle": "newcastle on tyne", "newcastle tyne": "newcastle on tyne",
   "stoke": "stoke on trent", "southend": "southend on sea", "telford": "telford wrekin", "telford wrekin": "telford wrekin",
 };
 export function laMatcher(las) {
@@ -105,13 +106,54 @@ export function sendCategory(title, description, cpv) {
   return "other";
 }
 
+// Which UK nation a notice belongs to. Public Contracts Scotland and Sell2Wales notices are
+// Scottish and Welsh by definition; for Find a Tender and Contracts Finder it comes from the
+// buyer's NUTS region (UKM Scotland, UKL Wales, UKN Northern Ireland, other UK England), then
+// from the buyer's name for the councils and bodies that leave the region out.
+const SCOT = /\b(aberdeen(shire)?|angus council|argyll|clackmannanshire|dumfries and galloway|dundee|east ayrshire|east dunbartonshire|east lothian|east renfrewshire|edinburgh|falkirk|fife|glasgow|highland council|inverclyde|midlothian|moray|eilean siar|eileanan siar|north ayrshire|north lanarkshire|orkney|perth and kinross|renfrewshire|scottish borders|shetland|south ayrshire|south lanarkshire|stirling|west dunbartonshire|west lothian|scotland|scottish)\b/i;
+const WALES = /\b(blaenau gwent|bridgend|caerphilly|cardiff|carmarthenshire|ceredigion|conwy|denbighshire|flintshire|gwynedd|anglesey|merthyr tydfil|monmouthshire|neath port talbot|newport city|pembrokeshire|powys|rhondda cynon taf|swansea|torfaen|vale of glamorgan|wrexham|wales|welsh|cymru)\b/i;
+const NI = /\b(northern ireland|belfast|education authority|health and social care|hsc|ni\b)/i;
+export function nationFromName(name) {
+  const n = String(name || "");
+  if (!n) return null;
+  if (SCOT.test(n)) return "Scotland";
+  if (WALES.test(n)) return "Wales";
+  if (NI.test(n)) return "Northern Ireland";
+  return null;
+}
+export function nationOf(rel, source, buyer) {
+  if (source === "Public Contracts Scotland") return "Scotland";
+  if (source === "Sell2Wales") return "Wales";
+  const parties = Array.isArray(rel.parties) ? rel.parties : [];
+  const bid = rel.buyer && rel.buyer.id;
+  const p = parties.find((x) => bid && x.id === bid) || parties.find((x) => (x.roles || []).includes("buyer")) || {};
+  const a = p.address || {};
+  const reg = String(a.region || "").toUpperCase(), pc = String(a.postalCode || "").toUpperCase();
+  if (/^UKM/.test(reg)) return "Scotland";
+  if (/^UKL/.test(reg)) return "Wales";
+  if (/^UKN/.test(reg) || /^BT\d/.test(pc)) return "Northern Ireland";
+  const byName = nationFromName(buyer);
+  if (byName) return byName;
+  if (/^UK[C-K]/.test(reg)) return "England";
+  return null;
+}
+const firstCpv = (t) => {
+  const c = (t.classification || {}).id;
+  if (c) return String(c);
+  for (const it of Array.isArray(t.items) ? t.items : []) {
+    const x = (it.classification || {}).id || ((it.additionalClassifications || [])[0] || {}).id;
+    if (x) return String(x);
+  }
+  return "";
+};
+
 const d10 = (v) => { if (!v) return null; const s = String(v).slice(0, 10); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null; };
 const num = (v) => (typeof v === "number" && isFinite(v) && v > 0 ? v : null);
 
 // One OCDS release (Find a Tender or Contracts Finder) to one send_tenders row, or null.
 export function tenderRow(rel, source, matchLa) {
   const t = rel.tender || {};
-  const cpv = String(((t.classification || {}).id) || "");
+  const cpv = firstCpv(t);
   const why = sendRelevant(t.title, t.description, cpv);
   if (!why) return null;
   const tags = (Array.isArray(rel.tag) ? rel.tag : []).map((x) => String(x));
@@ -130,13 +172,18 @@ export function tenderRow(rel, source, matchLa) {
   let url = null;
   if (source === "Find a Tender" && rel.id) url = "https://www.find-tender.service.gov.uk/Notice/" + String(rel.id).trim();
   if (source === "Contracts Finder") { const m = String(rel.ocid || "").match(/^ocds-[a-z0-9]+-(.+)$/i); if (m) url = "https://www.contractsfinder.service.gov.uk/notice/" + m[1]; }
+  if (source === "Public Contracts Scotland" || source === "Sell2Wales") {
+    const n = String(rel.ocid || "").match(/-0*(\d+)$/);
+    if (n) url = (source === "Sell2Wales" ? "https://www.sell2wales.gov.wales" : "https://www.publiccontractsscotland.gov.uk") + "/Search/Search_Switch.aspx?ID=" + n[1];
+  }
   const suppliers = [...new Set(awards.flatMap((a) => (a.suppliers || []).map((s) => String(s.name || "").trim())).filter(Boolean))].slice(0, 10);
   const closing = (t.tenderPeriod || {}).endDate || null;
   return {
-    id: (source === "Find a Tender" ? "fts:" : "cf:") + (rel.ocid || rel.id) + ":" + stage,
+    id: ({ "Find a Tender": "fts:", "Contracts Finder": "cf:", "Public Contracts Scotland": "pcs:", "Sell2Wales": "s2w:" }[source] || "x:") + (rel.ocid || rel.id) + ":" + stage,
+    nation: nationOf(rel, source, buyer),
     source, ocid: rel.ocid || null, release_id: rel.id || null, stage, notice_tags: tags,
     title: String(t.title || "Untitled notice").slice(0, 300), description: String(t.description || "").replace(/\s+/g, " ").slice(0, 1500),
-    buyer: buyer.slice(0, 200) || null, la_code: matchLa ? matchLa(buyer) : null,
+    buyer: buyer.slice(0, 200) || null, la_code: matchLa && !/^(Public Contracts Scotland|Sell2Wales)$/.test(source) ? matchLa(buyer) : null,
     category: sendCategory(t.title, t.description, cpv), cpv: cpv || null,
     value_amount: value, currency: ((t.value || {}).currency) || "GBP",
     published_at: rel.date || null, closing_at: closing && !isNaN(Date.parse(closing)) ? closing : null,
