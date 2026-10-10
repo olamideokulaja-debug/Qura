@@ -3,6 +3,11 @@ import { Check } from "lucide-react";
 import { StoreBadges } from "../components/store.jsx";
 
 // Extracted from App.jsx on 27 July 2026. Behaviour unchanged.
+// 10 October 2026: the top half is 2 columns on wide screens (text left, film right), as on /send.
+
+export const HERO2_CSS = ".hero2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:48px;align-items:center;max-width:1240px;margin:0 auto 36px}"
+  + ".hero2 .hero2-copy h1,.hero2 .hero2-copy p{text-align:left}.hero2 .hero2-row{justify-content:flex-start}"
+  + "@media(max-width:960px){.hero2{grid-template-columns:1fr;gap:28px}.hero2 .hero2-copy{text-align:center}.hero2 .hero2-copy h1,.hero2 .hero2-copy p{text-align:center}.hero2 .hero2-row{justify-content:center}}";
 
 export const CLIN_TAGLINES = [
   "Take your career into your own hands and see exactly where every application stands.",
@@ -29,7 +34,7 @@ export const CLIN_COUNTRIES = {
 // until 22 September, clinicians can join today, which is exactly what the
 // film argues. The context line goes ABOVE the player, so a clinician knows
 // what they are about to watch before deciding whether to press play.
-function ClinicianFilm({ onEnter }) {
+function ClinicianFilm({ onEnter, cta = true }) {
   const goFull = (ev) => {
     const v = ev.currentTarget;
     if (document.fullscreenElement || document.webkitFullscreenElement) return;
@@ -43,7 +48,7 @@ function ClinicianFilm({ onEnter }) {
     } catch (e) {}
   };
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto 34px" }}>
+    <div style={{ maxWidth: 760, margin: cta ? "0 auto 34px" : "0 auto" }}>
       <div style={{ textAlign: "center", color: "#AEBED6", fontSize: 13.5, marginBottom: 12 }}>
         70 seconds on why clinicians join Qura.
       </div>
@@ -59,12 +64,12 @@ function ClinicianFilm({ onEnter }) {
         <source src="/qura-clinician-film.mp4" type="video/mp4" />
         <track kind="captions" srcLang="en" label="English" default src="/qura-clinician-film-subtitles.vtt" />
       </video>
-      <div style={{ textAlign: "center", marginTop: 16 }}>
+      {cta && <div style={{ textAlign: "center", marginTop: 16 }}>
         <button onClick={onEnter} className="btn lift" style={{ background: "var(--cyan)", color: "var(--navy)", fontWeight: 800, padding: "12px 24px" }}>
           Create your free account
         </button>
         <div style={{ color: "#AEBED6", fontSize: 12.5, marginTop: 9 }}>Free to join. Verified by the Qura team.</div>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -74,20 +79,22 @@ export function ClinicianSection({ onEnter }) {
   const c = CLIN_COUNTRIES[country];
   return (
     <div id="clinicians" className="sec clinicians" style={{ background: "var(--navy)", color: "#fff", padding: "56px 24px 60px" }}>
+      <style>{HERO2_CSS}</style>
       <div className="wrap">
-        <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 10px" }}>
+        <div className="hero2">
+        <div className="hero2-copy">
           <span className="chip chip-cyan" style={{ background: "rgba(0,194,184,.15)", color: "var(--cyan)" }}>For clinicians</span>
           {/* h1, not h2. This was an h2 because the design system picks heading
               level by font size, so the page had no h1 at all and Google had
               nothing to read as its subject. The rendered size is unchanged. */}
-          <h1 className="disp" style={{ fontSize: "clamp(26px,4vw,40px)", fontWeight: 700, margin: "16px 0 8px", lineHeight: 1.1 }}>Get verified once. Be seen everywhere.</h1>
-          <p style={{ fontSize: 16.5, lineHeight: 1.6, color: "#C6D4E8", margin: "0 auto", maxWidth: 640 }}>
+          <h1 className="disp" style={{ fontSize: "clamp(30px,4.2vw,50px)", fontWeight: 700, margin: "16px 0 12px", lineHeight: 1.08 }}>Get verified once. Be seen everywhere.</h1>
+          <p style={{ fontSize: 17, lineHeight: 1.6, color: "#C6D4E8", margin: 0 }}>
             One healthcare profile connecting you with opportunities across the NHS,
             private healthcare and internationally.
           </p>
           {/* The journey, so a clinician can see at a glance that this is not a
               jobs board they have to keep checking. */}
-          <div className="row" style={{ gap: 8, justifyContent: "center", flexWrap: "wrap", marginTop: 16 }}>
+          <div className="row hero2-row" style={{ gap: 8, flexWrap: "wrap", marginTop: 16 }}>
             {["Search", "Match", "Be discovered", "Apply", "Follow it"].map((step, i) => (
               <span key={step} className="row" style={{ gap: 8, fontSize: 13, color: "#AEBED6" }}>
                 {i ? <span style={{ color: "var(--cyan)" }}>&rsaquo;</span> : null}
@@ -95,9 +102,15 @@ export function ClinicianSection({ onEnter }) {
               </span>
             ))}
           </div>
+          <div className="hero2-cta" style={{ marginTop: 22 }}>
+            <button onClick={onEnter} className="btn lift" style={{ background: "var(--cyan)", color: "var(--navy)", fontWeight: 800, padding: "12px 24px" }}>
+              Create your free account
+            </button>
+            <div style={{ color: "#AEBED6", fontSize: 12.5, marginTop: 9 }}>Free to join. Verified by the Qura team.</div>
+          </div>
         </div>
-
-        <ClinicianFilm onEnter={onEnter} />
+        <div><ClinicianFilm onEnter={onEnter} cta={false} /></div>
+        </div>
 
         <div style={{ display: "grid", gap: 12, maxWidth: 1080, margin: "0 auto 20px", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))" }}>
           {CLIN_TAGLINES.map((t, i) => (

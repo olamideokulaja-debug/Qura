@@ -24,9 +24,9 @@ const PLAYER = { width: "100%", display: "block", borderRadius: 16, background: 
 // most of this audience will meet it muted. The call to action is the
 // Founding Partner offer, which is exactly what the film ends on.
 // 10 October 2026: the 66s cut, with a SEND Intelligence beat before the offer.
-export function AgencyFilm() {
+export function AgencyFilm({ cta = true }) {
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto 34px" }}>
+    <div style={{ maxWidth: 760, margin: cta ? "0 auto 34px" : "0 auto" }}>
       <div style={{ textAlign: "center", color: "#AEBED6", fontSize: 13.5, marginBottom: 12 }}>
         66 seconds on what Qura does for agencies.
       </div>
@@ -42,13 +42,13 @@ export function AgencyFilm() {
         <source src="/qura-agency-film-66s.mp4" type="video/mp4" />
         <track kind="captions" srcLang="en" label="English" default src="/qura-agency-film-66s-subtitles.vtt" />
       </video>
-      <div style={{ textAlign: "center", marginTop: 16 }}>
+      {cta && <div style={{ textAlign: "center", marginTop: 16 }}>
         <a href="/founding-partner.html" onClick={() => track("supplier_film_cta")} className="btn lift"
           style={{ background: "var(--cyan)", color: "var(--navy)", fontWeight: 800, padding: "12px 24px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>
           Join as a Founding Partner <ArrowRight size={16} />
         </a>
         <div style={{ color: "#AEBED6", fontSize: 12.5, marginTop: 9 }}>12 months of Qura Growth, free. Join by 31 December 2026.</div>
-      </div>
+      </div>}
     </div>
   );
 }
