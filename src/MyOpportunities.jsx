@@ -207,7 +207,14 @@ function LiveRoles() {
     try { const j = await post({ action: "alert_add", q: term }); setData({ ...data, alerts: j.alerts }); setNote(j.already ? "You already have that alert." : "Alert set. We will tell you when a new \"" + term + "\" role appears."); } catch (e) { setNote(e.message); }
   };
   const removeAlert = async (a) => { try { const j = await post({ action: "alert_remove", id: a.id }); setData({ ...data, alerts: j.alerts }); } catch (e) { setNote(e.message); } };
-  const openSource = (o) => { post({ action: "click", id: o.id }).catch(() => {}); window.open(o.sourceUrl, "_blank", "noopener"); };
+  // The advert opens straight away; the click is saved against the clinician so
+  // Qura can ask later whether they applied (application outcome tracking).
+  const openSource = (o) => {
+    window.open(o.sourceUrl, "_blank", "noopener");
+    post({ action: "click", id: o.id, platform: "web" }).then((j) => {
+      if (j && j.trackingId) setNote("Added to My applications as opened on " + (o.sourceName || "the original site") + ". In about 2 days we will ask whether you applied.");
+    }).catch(() => {});
+  };
   const express = async (o) => {
     try {
       const h = await authHeaders();
