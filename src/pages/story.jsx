@@ -10,10 +10,11 @@ import React from "react";
 import { ArrowRight, Award, ShieldCheck, Sparkles, Globe, Star, TrendingUp, MapPin } from "lucide-react";
 import { imgOlamide } from "./photoOlamide.js";
 import { imgOla } from "./photoOla.js";
+import { FollowQura } from "../components/socials.jsx";
 
 const FOUNDERS = [
   {
-    name: "Ola Folawiyo", role: "Co-Founder and Chief Executive Officer", place: "United Kingdom", img: imgOla,
+    name: "Ola Folawiyo", role: "Co-Founder and Chief Executive Officer", place: "London, United Kingdom", img: imgOla,
     alt: "Ola Folawiyo, Co-Founder and Chief Executive Officer of Qura",
     bio: [
       "Ola spent more than a decade in senior healthcare business development across the UK, helping healthcare organisations and staffing agencies win high-value partnerships.",
@@ -111,6 +112,9 @@ export default function OurStory({ appName = "Qura", onEnter }) {
                 </div>
               </article>
             ))}
+          </div>
+          <div style={{ marginTop: 36, padding: "28px 20px", borderRadius: 22, background: "#fff", border: "1px solid var(--line)" }}>
+            <FollowQura title="Follow our journey" line={"News, launches and the stories behind " + appName + ", as they happen."} />
           </div>
         </div>
       </div>
