@@ -109,6 +109,41 @@ async function runSource(sb, src, st, log, deadline, match) {
   log[src + "Pages"] = pages; log[src + "Day"] = st.cursorDay;
 }
 
+// Recent pass (10 October 2026): the backfill reads forward from 3 years ago, so until it catches
+// up nothing published in the last few months is shown (the Overview read 0 open tenders while the
+// backfill was at December 2025). Each run now first reads the last 2 days, a few pages at a time,
+// so new notices appear within hours; the backfill fills the months in between.
+const RECENT_PAGES = { fts: 3, cf: 2 }, RECENT_DAYS = 2, RECENT_EVERY_MS = 30 * 60000;
+function recentUrl(src) {
+  const from = isoDay(Date.now() - RECENT_DAYS * DAY);
+  if (src === "fts") return FTS + "?updatedFrom=" + from + "T00:00:00Z&limit=100";
+  return CF + "?publishedFrom=" + from + "&size=100";
+}
+async function runRecent(sb, src, st, log, match) {
+  const name = src === "fts" ? "Find a Tender" : "Contracts Finder";
+  if (st.pausedUntil && Date.now() < Date.parse(st.pausedUntil)) return;
+  if (st.doneTo && st.doneTo >= isoDay(Date.now() - RECENT_DAYS * DAY)) return;     // backfill has caught up
+  const rc = st.recent = st.recent || {};
+  if (!rc.next && rc.finishedAt && Date.now() - Date.parse(rc.finishedAt) < RECENT_EVERY_MS) return;
+  for (let pages = 0; pages < RECENT_PAGES[src]; pages++) {
+    const r = await getJson(rc.next || recentUrl(src));
+    if (r.error === "HTTP 429") { st.pausedUntil = new Date(Date.now() + Math.max(PAUSE_MS, (r.retryAfter || 0) * 1000)).toISOString(); log.errors.push(name + " recent: 429; pausing until " + st.pausedUntil); return; }
+    if (r.error) { log.errors.push(name + " recent: " + r.error); rc.next = null; return; }
+    const rels = (r.data && r.data.releases) || [];
+    const rows = []; for (const rel of rels) { const row = tenderRow(rel, name, match); if (row) rows.push(row); }
+    if (rows.length) {
+      const uniq = [...new Map(rows.map((x) => [x.id, x])).values()];
+      const { error } = await sb.from("send_tenders").upsert(uniq, { onConflict: "id" });
+      if (error) { log.errors.push(name + " recent save: " + error.message); return; }
+      log[src + "RecentKept"] = (log[src + "RecentKept"] || 0) + uniq.length;
+    }
+    log[src + "RecentRead"] = (log[src + "RecentRead"] || 0) + rels.length;
+    const next = r.data && r.data.links && r.data.links.next;
+    if (next && rels.length) rc.next = next; else { rc.next = null; rc.finishedAt = new Date().toISOString(); return; }
+    await sleep(3000);
+  }
+}
+
 // State: { month: "YYYY-MM" being read, typeIdx, doneTo: last month fully read, fails, pausedUntil }
 export async function runMonthly(sb, key, st, log, match) {
   const src = MONTHLY[key];
@@ -127,7 +162,13 @@ export async function runMonthly(sb, key, st, log, match) {
       // answers some types and fails on others), so note it and move on; it is retried once the
       // backfill is complete. Network errors and 429s pause the source instead. Any item that
       // keeps failing is skipped after 5 tries rather than stalling for ever.
-      if (/^HTTP 5\d\d$/.test(r.error) || st.fails >= 5) { st.skipped = [...(st.skipped || []), st.month + ":" + type].slice(-300); st.fails = 0; st.typeIdx++; }
+      // The current and previous month are read again anyway, so they are not added to the retry list,
+      // and an item is listed once (the list had grown with repeats of the same months).
+      if (/^HTTP 5\d\d$/.test(r.error) || st.fails >= 5) {
+        const item = st.month + ":" + type, prevMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1)).toISOString().slice(0, 7);
+        if (st.month < prevMonth && !(st.skipped || []).includes(item)) st.skipped = [...(st.skipped || []), item].slice(-300);
+        st.fails = 0; st.typeIdx++;
+      }
       else { st.pausedUntil = new Date(Date.now() + (r.error === "HTTP 429" ? Math.max(PAUSE_MS, (r.retryAfter || 0) * 1000) : MONTH_PAUSE_MS)).toISOString(); }
     } else {
       st.fails = 0;
@@ -176,6 +217,9 @@ export default async function handler(req, res) {
   const match = laMatcher((las || []).map((l) => ({ code: l.la_code, name: l.la_name })));
   const log = { at: new Date().toISOString(), errors: [] };
   st.fts = st.fts || {}; st.cf = st.cf || {};
+  for (const k of ["pcs", "s2w"]) if (st[k] && Array.isArray(st[k].skipped)) st[k].skipped = [...new Set(st[k].skipped)];
+  await runRecent(sb, "fts", st.fts, log, match);
+  await runRecent(sb, "cf", st.cf, log, match);
   await runSource(sb, "fts", st.fts, log, started + BUDGET_MS * 0.55, match);
   await runSource(sb, "cf", st.cf, log, started + BUDGET_MS * 0.8, match);
   st.pcs = st.pcs || {}; st.s2w = st.s2w || {};
