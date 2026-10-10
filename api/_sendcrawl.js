@@ -80,14 +80,39 @@ const KEY_TEXT = /\b(vacanc(y|ies)|jobs?|careers?|recruitment|work (for|with) us
 const KEY_HREF = /(vacanc|\/jobs?\b|career|recruit|work-?for-?us|work-?with-?us|join-?(our|the)-?team|employment)/i;
 const NOT = /(pupil|student|parent|admission|term-?dates|prospectus|news|blog|curriculum|ofsted|policy|policies|privacy|cookie)/i;
 
-export function findCareersLinks(html, baseUrl) {
+
+// Pupil careers education (9 October 2026 accuracy test). Most secondary and special
+// schools publish a statutory careers page for pupils (CEIAG, Gatsby benchmarks), often
+// linked as just "Careers". It lists no staff jobs. Links that read as careers education
+// are skipped at discovery unless they also say vacancies, jobs or recruitment; pages
+// that turn out to be careers education are caught by pupilCareersPage at the daily check.
+export const STAFF_HINT = /(vacanc|\bjobs?\b|recruit|work[\s_-]*(for|with)[\s_-]*us|join[\s_-]*(our|the)[\s_-]*team|employment[\s_-]*opportunit|current[\s_-]*opportunit|staff[\s_-]*(vacanc|recruit|opportunit))/i;
+export const PUPIL_TEXT = /(\b(ceiag|ciag|iag|gatsby)\b|careers?\s*(&|and|,)?\s*(education|guidance|information|advice|programme|program|support|pathways|destinations|future|employability|work|post|preparation|plan|curriculum|brochure|leader|fair|week|6th|sixth)|(post\s*16|6th form|sixth form|provision)\W*(and\W*)?careers?|career and work|careers? for (pupils|students)|primary careers|careers?\s*(&|and)?\s*(moving on|policy|accreditation|special interests|lmi)|futures?\s*(&|and)\s*careers?)/i;
+export const PUPIL_HREF = /((\/|-)(curriculum|learning|pupils?|students?|parents|sixth-?form|6th-?form|post-?16|key-?stage|ks[345]|school-life)(\/|-|$)|ceiag|gatsby|careers?-?(education|guidance|information|advice|programme|support|pathways|destinations|post|work|plan|and-(guidance|preparation|future|employability|work|post|destinations))|careersandguidance|careersguidance)/i;
+export function pupilCareersLink(text, href) {
+  const t = String(text || "").replace(/&#0?38;/g, "&");
+  let path = href; try { const u = new URL(href); path = u.pathname + u.search; } catch (e) {}
+  if (STAFF_HINT.test(t) || STAFF_HINT.test(path)) return false;
+  return PUPIL_TEXT.test(t) || PUPIL_HREF.test(path);
+}
+// Page text: strong careers-education markers and no sign of a job advert.
+const PUPIL_PAGE = /\b(gatsby|baker clause|provider access|careers leader|careers lead|ceiag|careers education|careers programme|careers adviser|careers advisor|unifrog|start profile|labour market information|work experience|preparation for adulthood|post[- ]16 options|destinations)\b/gi;
+const STAFF_PAGE = /\b(closing date|per annum|pro rata|job description|person specification|salary|fte)\b/i;
+export function pupilCareersPage(text) {
+  if (!text || STAFF_PAGE.test(text)) return false;
+  const hits = new Set((String(text).match(PUPIL_PAGE) || []).map((x) => x.toLowerCase()));
+  return hits.size >= 3;
+}
+
+export function findCareersLinks(html, baseUrl, exclude) {
   const out = []; const seen = new Set();
   const re = /<a\b[^>]*href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi; let m;
   while ((m = re.exec(html || ""))) {
     const href = m[1].trim(); const text = m[2].replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim().slice(0, 120);
     if (/^(mailto|tel|javascript):/i.test(href)) continue;
     let abs; try { abs = new URL(href, baseUrl).toString(); } catch (e) { continue; }
-    if (seen.has(abs)) continue;
+    if (seen.has(abs) || (exclude && exclude.has(abs))) continue;
+    if (pupilCareersLink(text, abs)) continue;
     const tHit = KEY_TEXT.test(text), hHit = KEY_HREF.test(href);
     if (!tHit && !hHit) continue;
     if (NOT.test(text) && !/vacanc|job|career|recruit/i.test(text)) continue;

@@ -1,6 +1,6 @@
 import { cronAllowed } from "./_cron.js";
 import { sbAdmin, kvGet, kvSet, budgetLeft, recordUsage } from "./_send.js";
-import { politeFetch, robotsRules, robotsAllows, pool } from "./_sendcrawl.js";
+import { politeFetch, robotsRules, robotsAllows, pool, pupilCareersPage } from "./_sendcrawl.js";
 import { sha, pageText, pageLinks, looksLikeJobs, aiExtract, classify, salaryNumbers } from "./_sendextract.js";
 
 export const config = { maxDuration: 300 };
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   if (!(await cronAllowed(req))) return res.status(401).json({ error: "Not allowed" });
   const sb = sbAdmin(); if (!sb) return res.status(500).json({ error: "Supabase not configured" });
   const started = Date.now();
-  const log = { at: new Date().toISOString(), checked: 0, unchanged: 0, noJobs: 0, aiPages: 0, aiFailed: 0, deferred: 0, fetchFailed: 0, robotsBlocked: 0, found: 0, inserted: 0, removed: 0, closed: 0, pence: 0, groundTruthMatched: 0, errors: [] };
+  const log = { at: new Date().toISOString(), checked: 0, unchanged: 0, noJobs: 0, aiPages: 0, aiFailed: 0, deferred: 0, fetchFailed: 0, robotsBlocked: 0, pupilCareers: 0, found: 0, inserted: 0, removed: 0, closed: 0, pence: 0, groundTruthMatched: 0, errors: [] };
 
   const { data: tax } = await sb.from("send_job_taxonomy").select("code,family,synonyms");
   const dueBefore = new Date(Date.now() - DUE_HOURS * 3600000).toISOString();
@@ -60,6 +60,15 @@ export default async function handler(req, res) {
     const text = pageText(page.text);
     const hash = sha(text.replace(/\d{1,2}:\d{2}(:\d{2})?/g, ""));
     const { data: existing } = await sb.from("send_vacancies").select("id,dedupe_key,missed_checks,status").eq("source_id", s.id).in("status", ["LIVE", "UNVERIFIED"]);
+
+    // A pupil careers-education page lists no staff jobs: retire it and send the school
+    // website back to discovery, which will skip this page next time. Never when the
+    // page still has live or unverified vacancies.
+    if (!(existing && existing.length) && pupilCareersPage(text)) {
+      await sb.from("send_sources").update({ status: "pupil_careers", content_hash: hash, last_checked_at: now, last_http_status: page.status, consecutive_failures: 0, terms_note: "Pupil careers education page, not staff vacancies" }).eq("id", s.id);
+      await sb.from("send_sources").update({ status: "to_discover" }).eq("organisation_id", s.organisation_id).eq("kind", "school_website").eq("status", "discovered");
+      log.pupilCareers++; return;
+    }
 
     if (hash === s.content_hash) {
       if (existing && existing.length) await sb.from("send_vacancies").update({ last_seen_at: now, last_verified_at: now, missed_checks: 0 }).in("id", existing.map((v) => v.id));

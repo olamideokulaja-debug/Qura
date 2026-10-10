@@ -87,7 +87,9 @@ export default async function handler(req, res) {
       log.failed++; return;
     }
     let finalHost = host; try { finalHost = new URL(page.url).hostname.toLowerCase(); } catch (e) {}
-    const links = findCareersLinks(page.text, page.url);
+    // careers pages already found to be pupil careers education are not picked again
+    const { data: rej } = await sb.from("send_sources").select("url").eq("organisation_id", s.organisation_id).eq("status", "pupil_careers");
+    const links = findCareersLinks(page.text, page.url, new Set((rej || []).map((x) => x.url)));
     if (!links.length) {
       await sb.from("send_sources").update({ status: "no_careers_link", allowed: true, robots_checked_at: now, last_checked_at: now, last_http_status: page.status, consecutive_failures: 0 }).eq("id", s.id);
       log.noLink++; return;
