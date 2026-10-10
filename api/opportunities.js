@@ -3,6 +3,7 @@ import { getUser, kvGet, kvSet } from "./_auth.js";
 import { sbAdmin, asDiscover, tsQuery, familyOf, relatedFor, classify, TAXONOMY } from "./_opps.js";
 import { protectedResident, PROTECTED_ALERT_MSG } from "./_protected.js";
 import { bump } from "./_metrics.js";
+import { recordOpen } from "./_tracking.js";
 import { limited } from "./_ratelimit.js";
 import { orgVerified, isFounderEmail } from "./_orgcheck.js";
 import { sendMail, owners, SUPPORT } from "./_waitlist.js";
@@ -258,7 +259,13 @@ async function actions(req, res, user) {
     await kvSet(user.id, "opp_alerts", next);
     return res.status(200).json({ ok: true, alerts: next.map(({ email, ...a }) => a) });
   }
-  if (b.action === "click") { await bump("opp_external_click"); return res.status(200).json({ ok: true }); }
+  if (b.action === "click") {
+    await bump("opp_external_click");
+    // Application outcome tracking (10 October 2026): a clinician's open is saved
+    // against them and the role, so Qura can ask later whether they applied.
+    const trackingId = await recordOpen(user, String(b.id || "").slice(0, 80), String(b.platform || ""));
+    return res.status(200).json({ ok: true, trackingId });
+  }
   if (b.action === "claim") {
     if (!sb) return res.status(500).json({ error: "Not configured" });
     const acc = (await kvGet(user.id, "account")) || {};
