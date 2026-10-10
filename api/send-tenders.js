@@ -75,7 +75,10 @@ function firstUrl(src, day) {
 }
 
 async function runSource(sb, src, st, log, deadline, match, startDays = BACKFILL_DAYS, tag = src) {
-  const name = (src === "fts" ? "Find a Tender" : "Contracts Finder") + (tag === src ? "" : " (last " + startDays + " days)");
+  // The saved source is always the plain name: tenderRow builds the notice link from it, and
+  // the public tender view and the UI filter on it. The "(last N days)" label is for the log only.
+  const source = src === "fts" ? "Find a Tender" : "Contracts Finder";
+  const name = source + (tag === src ? "" : " (last " + startDays + " days)");
   const today = isoDay(Date.now());
   if (!st.cursorDay) st.cursorDay = isoDay(Date.now() - startDays * DAY);
   let pages = 0;
@@ -88,7 +91,7 @@ async function runSource(sb, src, st, log, deadline, match, startDays = BACKFILL
     if (r.error) { log.errors.push(name + " " + st.cursorDay + ": " + r.error); st.fails = (st.fails || 0) + 1; if (st.fails >= 3) { st.fails = 0; st.next = null; st.cursorDay = isoDay(Date.parse(st.cursorDay) + DAY); } break; }
     st.fails = 0;
     const rels = (r.data && r.data.releases) || [];
-    const rows = []; for (const rel of rels) { const row = tenderRow(rel, name, match); if (row) rows.push(row); }
+    const rows = []; for (const rel of rels) { const row = tenderRow(rel, source, match); if (row) rows.push(row); }
     if (rows.length) {
       const uniq = [...new Map(rows.map((x) => [x.id, x])).values()];
       const { error } = await sb.from("send_tenders").upsert(uniq, { onConflict: "id" });
@@ -120,6 +123,9 @@ const frontDone = (s) => !!(s.front && s.front.doneTo && s.front.doneTo >= isoDa
 const latest = (a, b) => (!a ? b : !b ? a : (Date.parse(a) > Date.parse(b) ? a : b));
 async function runSourceNewestFirst(sb, src, s, log, deadline, match) {
   s.front = s.front || {};
+  // v2 (10 October 2026): the first version saved this window's rows under "Find a Tender (last 90
+  // days)", with no notice link. Read the window once more so every row is saved again correctly.
+  if (!s.front.v2) s.front = { startDay: s.front.startDay, v2: true };
   if (!s.front.startDay) s.front.startDay = isoDay(Date.now() - FRONT_DAYS * DAY);
   s.pausedUntil = s.front.pausedUntil = latest(s.pausedUntil, s.front.pausedUntil);
   if (!frontDone(s)) {
