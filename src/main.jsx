@@ -4,6 +4,7 @@ import App from "./App.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import FoundingBanner from "./FoundingBanner.jsx";
 import CompensationPanel from "./CompensationPanel.jsx";
+import { supabase, supabaseEnabled } from "./supabase.js";
 
 // A confirmation link can still arrive at the root if an older email is opened
 // or a setting is changed. Landing here with a token puts the app in a
@@ -32,6 +33,17 @@ async function applyDeepLink() {
     if (!open || !OPENABLE[open]) return;
     const tab = p.get("tab");
     if (tab && OPENABLE[open].includes(tab)) { try { sessionStorage.setItem("qura_send_tab", tab); } catch (e) {} }
+    // The screen choice is saved to the account as well as this browser, and the
+    // account copy wins. Straight after a page load the sign-in is still being
+    // restored, so without this wait only the browser copy was written and the
+    // link opened the last screen used instead (found 10 October 2026). Waits at
+    // most 3 seconds, and only when a link like this is used.
+    if (supabaseEnabled && supabase) {
+      for (let i = 0; i < 15; i++) {
+        try { const { data } = await supabase.auth.getSession(); if (data && data.session) break; } catch (e) { break; }
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    }
     await Promise.all(OPEN_ROLES[open].map((r) => window.storage.set("cura_active_" + r, JSON.stringify(open)).catch(() => null)));
     p.delete("open"); p.delete("tab");
     const q = p.toString();
