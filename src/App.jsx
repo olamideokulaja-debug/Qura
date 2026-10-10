@@ -334,6 +334,7 @@ import { LAUNCH_DATE, CountdownBanner } from "./components/countdown.jsx";
 import { PlatformContent, WhySwitch, MarketMap } from "./pages/sections.jsx";
 // The clinician-first homepage (28 September 2026), kept in its own file.
 import { HomeHero, HomeValue, HomeVerify, HomeEcosystem, HomeApp, HomeTrust, HomeFinalCta } from "./pages/home.jsx";
+import OurStory from "./pages/story.jsx";
 import PostRole from "./PostRole.jsx";
 import AgencyPool from "./AgencyPool.jsx";
 import TenderSnapshot from "./TenderSnapshot.jsx";
@@ -3635,7 +3636,7 @@ const SEND_FEATURES = [
 function SendSection() {
   return (
     <div className="sec send">
-      <div style={{ background: "linear-gradient(160deg,#0A1A30,#13243F)", color: "#fff", padding: "84px 24px 56px" }}>
+      <div style={{ background: "linear-gradient(160deg,#0A1A30,#13243F)", color: "#fff", padding: "56px 24px 48px" }}>
         <div className="wrap">
           <div style={{ textAlign: "center", maxWidth: 780, margin: "0 auto 30px" }}>
             <span className="chip chip-cyan" style={{ background: "rgba(0,194,184,.15)", color: "var(--cyan)" }}>SEND Intelligence</span>
@@ -3653,12 +3654,13 @@ function SendSection() {
           <SendFilm cta={false} />
         </div>
       </div>
-      <div className="wrap" style={{ padding: "64px 24px 80px" }}>
-        <div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 30px" }}>
+      <style>{".send-feats{display:grid;gap:16px;grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:28px}@media(max-width:960px){.send-feats{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.send-feats{grid-template-columns:1fr}}"}</style>
+      <div className="wrap" style={{ padding: "52px 24px 56px", maxWidth: 1240 }}>
+        <div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 28px" }}>
           <div className="eyebrow" style={{ color: "#06776F" }}>What you see each morning</div>
           <h2 className="disp" style={{ fontSize: "clamp(24px,3.4vw,34px)", fontWeight: 700, margin: "10px 0 0" }}>One place for SEND demand</h2>
         </div>
-        <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", marginBottom: 40 }}>
+        <div className="send-feats">
           {SEND_FEATURES.map(([Ic, k, h, b]) => (
             <div key={k} className="card lift" style={{ padding: 24 }}>
               <div style={{ width: 42, height: 42, borderRadius: 12, background: "var(--cyan-soft)", display: "grid", placeItems: "center", marginBottom: 12 }}><Ic size={20} color="#06776F" /></div>
@@ -3668,7 +3670,7 @@ function SendSection() {
             </div>
           ))}
         </div>
-        <div style={{ background: "linear-gradient(160deg,#0A1A30,#13243F)", color: "#fff", borderRadius: 18, padding: "28px 30px", display: "flex", gap: 24, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", marginBottom: 40 }}>
+        <div style={{ background: "linear-gradient(160deg,#0A1A30,#13243F)", color: "#fff", borderRadius: 18, padding: "28px 30px", display: "flex", gap: 24, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
           <div style={{ maxWidth: 600 }}>
             <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--cyan)" }}>Founding SEND Partner</div>
             <div className="disp" style={{ fontSize: "clamp(22px,3vw,30px)", fontWeight: 700, margin: "8px 0" }}>5 places. 50% off for 12 months.</div>
@@ -3676,7 +3678,7 @@ function SendSection() {
           </div>
           <a href="/?open=send" className="btn lift" style={{ background: "var(--cyan)", color: "var(--navy)", fontWeight: 800, padding: "12px 24px", textDecoration: "none" }}>Register your interest</a>
         </div>
-        <div style={{ maxWidth: 760, margin: "0 auto" }}>
+        <div className="card" style={{ padding: "22px 26px" }}>
           <div className="row" style={{ gap: 8, marginBottom: 10 }}><ShieldCheck size={18} color="#06776F" /><b>Built on public data</b></div>
           <ul className="muted" style={{ margin: 0, paddingLeft: 20, lineHeight: 1.7, fontSize: 14.5 }}>
             <li>Schools come from Get Information about Schools (Department for Education), under the Open Government Licence.</li>
@@ -3691,7 +3693,7 @@ function SendSection() {
 
 function SupplierAppSection() {
   return (
-    <div id="suppliers-app" className="sec suppliers-app" style={{ background: "linear-gradient(160deg,#0A1A30,#13243F)", color: "#fff", padding: "84px 24px" }}>
+    <div id="suppliers-app" className="sec suppliers-app" style={{ background: "linear-gradient(160deg,#0A1A30,#13243F)", color: "#fff", padding: "56px 24px 60px" }}>
       <div className="wrap">
         <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 26px" }}>
           <span className="chip chip-cyan" style={{ background: "rgba(0,194,184,.15)", color: "var(--cyan)" }}>For workforce suppliers</span>
@@ -3701,7 +3703,7 @@ function SupplierAppSection() {
         {/* The agency film (1 October 2026), placed exactly as the clinician
             film is on its page: under the heading, above everything else. */}
         <AgencyFilm />
-        <div style={{ display: "grid", gap: 12, maxWidth: 860, margin: "0 auto 30px", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))" }}>
+        <div style={{ display: "grid", gap: 12, maxWidth: 1120, margin: "0 auto 28px", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,240px),1fr))" }}>
           {SUPPLIER_TAGLINES.map((t, i) => (
             <div key={i} style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: "18px 20px", textAlign: "left" }}>
               <div style={{ fontWeight: 700, fontSize: 15.5, marginBottom: 6 }}>{t.h}</div>
@@ -3733,9 +3735,9 @@ const NAV = [
     ["Marketplace", "market", "The live marketplace, every market"],
     ["Solutions", "solutions", "What Qura solves, by organisation"],
   ] },
-  // Named for the app specifically. "Who it's for" read as though it described
-  // the whole platform, when what sits under it is the two app audiences.
-  { k: "who", l: "Qura App", items: [
+  // "Join Qura" (Olamide, 10 October 2026): "Qura App" did not describe the clinician and
+  // supplier pages, and "Who it's for" read as though it described the whole platform.
+  { k: "who", l: "Join Qura", items: [
     ["For clinicians", "clinicians", "The app, your career, your applications"],
     ["For suppliers", "suppliers-app", "Live demand, talent and introductions"],
   ] },
@@ -4306,40 +4308,9 @@ function Landing({ onEnter, onDemo, earlyFocus, onJoin, onOpen, signedIn }) {
 
       <HowItWorks section={howSec} go={setHowSec} />
 
+      {/* Our story: redesigned 10 October 2026, lives in src/pages/story.jsx */}
       <div className="sec story" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
-        <div className="wrap" style={{ padding: "72px 24px" }}>
-          <Reveal><div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 44px" }}><div className="eyebrow">Behind the brand</div><h1 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "8px 0 10px" }}>Our story</h1><p className="muted" style={{ fontSize: 16, lineHeight: 1.65, marginTop: 0 }}>{APP_NAME} was not created in a boardroom. It was created after decades of working inside healthcare.</p></div></Reveal>
-          <div className="grid g2" style={{ gap: 22, alignItems: "start" }}>
-            <Reveal>
-              <div className="card" style={{ padding: 30 }}>
-                <div className="ph-accent" />
-                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7, marginTop: 0 }}>Between us we have spent more than 32 years across healthcare business development, workforce strategy, healthcare economics and large-scale health system transformation. We have seen first-hand how much time is wasted because the right people simply cannot find each other.</p>
-                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>One of us had just stepped away from a senior leadership role after more than a decade helping healthcare organisations and agencies win high-value partnerships across the UK. Despite the success, one question kept coming back: what if that knowledge could improve the entire sector instead of just one organisation?</p>
-                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>The other was leading major healthcare transformation projects across Africa, working alongside governments and health systems to improve access to care while helping deliver one of the continent's most ambitious cancer programmes.</p>
-                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>Although we came from different parts of the world, we discovered something surprising. The challenges were almost identical. Hospitals struggled to identify the right partners. Workforce suppliers found it difficult to reach the right decision-makers. Clinicians faced fragmented career pathways. Valuable opportunities were missed because the healthcare ecosystem remained disconnected.</p>
-                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>Late one evening, during an informal conversation, one idea became impossible to ignore. Healthcare did not need another recruitment platform. It needed an ecosystem.</p>
-                <p style={{ fontSize: 15.5, lineHeight: 1.7, fontWeight: 600 }}>That conversation became {APP_NAME}.</p>
-                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>Today, {APP_NAME} is being built to connect healthcare organisations, suppliers, workforce partners and clinicians through one intelligent platform that removes friction, improves transparency and helps the right people find each other faster.</p>
-                <div style={{ marginTop: 22, padding: "18px 20px", borderRadius: 14, background: "var(--cyan-soft)" }}><div className="faint" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>Our belief</div><div className="disp gradient-text" style={{ fontSize: 21, fontWeight: 700, lineHeight: 1.35 }}>Healthcare moves faster when the right people connect.</div></div>
-              </div>
-            </Reveal>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {[{ i: Award, t: "Built by experience", d: "Every feature is designed around real healthcare challenges, not assumptions." },
-                { i: ShieldCheck, t: "Trust before transactions", d: "Long-term partnerships are built on transparency, credibility and reputation." },
-                { i: Sparkles, t: "Technology with purpose", d: "Artificial intelligence should remove administration, not replace relationships." },
-                { i: Globe, t: "Global thinking", d: "Healthcare challenges do not stop at borders, and neither should the solutions." },
-                { i: Star, t: "Quality over quantity", d: "Better connections create better outcomes for organisations, clinicians and ultimately patients." },
-                { i: TrendingUp, t: "Always improving", d: "Healthcare never stands still. Neither will " + APP_NAME + "." }].map((v, i) => (
-                <Reveal key={v.t} delay={i * 50}>
-                  <div className="card lift" style={{ padding: "16px 18px", display: "flex", gap: 14, alignItems: "flex-start" }}>
-                    <div style={{ width: 42, height: 42, borderRadius: 11, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><v.i size={19} color="#1E54E6" /></div>
-                    <div><div style={{ fontWeight: 700, fontSize: 15 }}>{v.t}</div><div className="muted" style={{ fontSize: 13, marginTop: 3, lineHeight: 1.55 }}>{v.d}</div></div>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-          </div>
-        </div>
+        <OurStory appName={APP_NAME} onEnter={onEnter} />
       </div>
 
       <div id="pricing" className="sec pricing" style={{ background: "var(--navy)" }}>
