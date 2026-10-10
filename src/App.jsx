@@ -370,6 +370,7 @@ import ClinicianRegistration from "./ClinicianRegistration.jsx";
 import { CLIN_TAGLINES, CLIN_UNIVERSAL, CLIN_TABS, CLIN_COUNTRIES, ClinicianSection } from "./pages/clinician.jsx";
 import { AgencyFilm } from "./pages/agency.jsx";
 import SendSection from "./pages/send.jsx";
+import SupplierAppSection from "./pages/suppliers.jsx";
 import { APP_NAME } from "./constants.js";
 import { initAnalytics, trackPage, setMarketingMode, track } from "./lib/analytics.js";
 import { QuraLogo, Wordmark, Avatar, useCountUp, Stat, Kpi, SectionHead, PageHead, Toggle, Stars, Reveal, PulseLine, DemoTag, IllustrativeBanner } from "./components/ui.jsx";
@@ -3598,12 +3599,7 @@ function HowItWorks({ section = "walk", go }) {
 
 
 /* ===== Supplier-facing app-download section (drives mobile app installs) ===== */
-const SUPPLIER_TAGLINES = [
-  { h: "Your whole pipeline in your pocket", b: "Track candidates and BD opportunities worldwide, in real time, from your phone. No desk required." },
-  { h: "Never out of touch", b: "Being out of office doesn't mean being out of reach. Stay connected to clients and clinicians 24/7." },
-  { h: "Connect the moment it counts", b: "Reach clinicians instantly, during clinic hours or after. BD isn't limited to 9 to 5." },
-  { h: "Nothing slips through", b: "Emails vanish in clinician inboxes daily. Your AI assistant on Qura replies at any hour, so no opportunity is lost." },
-];
+// SUPPLIER_TAGLINES and the suppliers page live in src/pages/suppliers.jsx (10 October 2026).
 
 // Store badge links — replace with the real store URLs once the app is published.
 // Store links. Leave these as empty strings until each listing is actually live.
@@ -3623,38 +3619,6 @@ const SUPPLIER_TAGLINES = [
 
 
 // The SEND tab lives in src/pages/send.jsx (moved 10 October 2026 so it can change without this file).
-
-function SupplierAppSection() {
-  return (
-    <div id="suppliers-app" className="sec suppliers-app" style={{ background: "linear-gradient(160deg,#0A1A30,#13243F)", color: "#fff", padding: "56px 24px 60px" }}>
-      <div className="wrap">
-        <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 26px" }}>
-          <span className="chip chip-cyan" style={{ background: "rgba(0,194,184,.15)", color: "var(--cyan)" }}>For workforce suppliers</span>
-          <h1 className="disp" style={{ fontSize: "clamp(26px,4vw,40px)", fontWeight: 700, margin: "16px 0 10px", lineHeight: 1.1 }}>Your pipeline, in your pocket.</h1>
-          <p style={{ color: "#AEBED6", fontSize: 16, lineHeight: 1.6 }}>Being out of office doesn't mean being out of touch. Run your business development from your phone, wherever you are.</p>
-        </div>
-        {/* The agency film (1 October 2026), placed exactly as the clinician
-            film is on its page: under the heading, above everything else. */}
-        <AgencyFilm />
-        <div style={{ display: "grid", gap: 12, maxWidth: 1120, margin: "0 auto 28px", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,240px),1fr))" }}>
-          {SUPPLIER_TAGLINES.map((t, i) => (
-            <div key={i} style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: "18px 20px", textAlign: "left" }}>
-              <div style={{ fontWeight: 700, fontSize: 15.5, marginBottom: 6 }}>{t.h}</div>
-              <div style={{ fontSize: 14, lineHeight: 1.5, color: "#C4D0E2" }}>{t.b}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ textAlign: "center" }}>
-          <StoreBadges />
-          {/* StoreBadges now states the position itself, and Android is live. This
-              line said "Coming to iOS and Android" directly under a badge people
-              can already download from. */}
-          <div style={{ fontSize: 12, color: "#8697B0", marginTop: 14 }}>Free on Android. Run your pipeline from your phone.</div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Top navigation. Five groups instead of nine flat links, so the row stops
 // crowding. A value of "how:walk" means view "how" with section "walk".
