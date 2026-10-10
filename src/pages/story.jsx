@@ -24,8 +24,8 @@ const FOUNDERS = [
     name: "Dr Olamide Okulaja", role: "Co-Founder and Chief Growth Officer", place: "Lagos, Nigeria", img: imgOlamide,
     alt: "Dr Olamide Okulaja, Co-Founder and Chief Growth Officer of Qura",
     bio: [
-      "Olamide is a medical doctor whose career spans healthcare financing, policy and large-scale health system transformation, with roles at PharmAccess Foundation, the International Finance Corporation (World Bank Group) and the Lagos State Ministry of Health.",
-      "In Lagos he led the Medical Diagnostics and Service Provision Scheme and the work on the NHIA law for universal health coverage, and he has helped deliver one of Africa's most ambitious cancer programmes. At Qura he leads growth, the platform and its intelligence.",
+      "Olamide is a medical doctor whose career spans healthcare financing, policy and large-scale health system transformation, working alongside governments and health systems across Africa.",
+      "He has led programmes that widen access to care and health coverage, and helped deliver one of the continent's most ambitious cancer programmes. At Qura he leads growth, the platform and its intelligence.",
     ],
   },
 ];
