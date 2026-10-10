@@ -29,11 +29,12 @@ export const CLIN_COUNTRIES = {
   "Canada": { flag: "\uD83C\uDDE8\uD83C\uDDE6", reg: "Provincial colleges", items: ["Eligibility with the relevant provincial college", "Credential assessment (NNAS / MCC)", "An eligible Canadian work permit or PR pathway"] },
 };
 
-// The film sits directly under the hero, above everything else on the page.
-// This is the one page where the call to action is live: organisations wait
-// until 22 September, clinicians can join today, which is exactly what the
-// film argues. The context line goes ABOVE the player, so a clinician knows
-// what they are about to watch before deciding whether to press play.
+// The film sits beside the hero copy, above everything else on the page.
+// 10 October 2026: the 56s rebuild replaces the August film, which still said
+// "we open on the twenty second of September". It ends on the founding offer
+// (join by 31 December, Career+ free for 12 months, the verified profile free
+// always). The context line goes ABOVE the player, so a clinician knows what
+// they are about to watch before deciding whether to press play.
 function ClinicianFilm({ onEnter, cta = true }) {
   const goFull = (ev) => {
     const v = ev.currentTarget;
@@ -50,19 +51,19 @@ function ClinicianFilm({ onEnter, cta = true }) {
   return (
     <div style={{ maxWidth: 760, margin: cta ? "0 auto 34px" : "0 auto" }}>
       <div style={{ textAlign: "center", color: "#AEBED6", fontSize: 13.5, marginBottom: 12 }}>
-        70 seconds on why clinicians join Qura.
+        56 seconds on why clinicians join Qura.
       </div>
       <video
         controls
         preload="none"
         playsInline
-        poster="/qura-clinician-film-poster.jpg"
+        poster="/qura-clinician-film-56s-poster.jpg"
         onPlay={goFull}
         onEnded={leaveFull}
         style={{ width: "100%", display: "block", borderRadius: 16, background: "#0A1730", boxShadow: "0 18px 50px rgba(0,0,0,.35)" }}
       >
-        <source src="/qura-clinician-film.mp4" type="video/mp4" />
-        <track kind="captions" srcLang="en" label="English" default src="/qura-clinician-film-subtitles.vtt" />
+        <source src="/qura-clinician-film-56s.mp4" type="video/mp4" />
+        <track kind="captions" srcLang="en" label="English" default src="/qura-clinician-film-56s-subtitles.vtt" />
       </video>
       {cta && <div style={{ textAlign: "center", marginTop: 16 }}>
         <button onClick={onEnter} className="btn lift" style={{ background: "var(--cyan)", color: "var(--navy)", fontWeight: 800, padding: "12px 24px" }}>

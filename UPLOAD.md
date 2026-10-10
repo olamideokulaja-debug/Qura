@@ -1,8 +1,18 @@
-# SEND tender feeds: newest first
+# Update: the new clinician film on For clinicians
 
-Upload both files to the repo's `api` folder, replacing the existing ones:
+Replaces the August clinician film, which still said "we open on the twenty second of September", with the 56s rebuild that ends on the founding offer.
 
-- `api/send-tenders.js`: each source (Find a Tender, Contracts Finder) now reads the last 90 days first, then the 3-year backfill resumes and skips those days. A "slow down" (429) from either service pauses that whole source.
-- `api/send-market.js`: once the 90-day window is complete, "Notices read so far" shows the true up-to date, and the note says how far the older backfill has got.
+## Upload (add these, nothing to delete)
 
-No screen changes and no database changes. The cron (every 10 minutes) picks it up on the next run. Expect Find a Tender's last 90 days within about 3 hours, and Contracts Finder's within about 4 to 6 hours (it often asks Qura to slow down).
+| File | Folder | What it is |
+|---|---|---|
+| `qura-clinician-film-56s.mp4` | `public` | The 56s film, 1080p, web-compressed (19 MB) |
+| `qura-clinician-film-56s-subtitles.vtt` | `public` | Captions, on by default |
+| `qura-clinician-film-56s-poster.jpg` | `public` | Poster: "You qualified to do the work." |
+| `clinician.jsx` | `src/pages` | Replaces the existing file. The player now uses the three new files, and the line above it reads "56 seconds on why clinicians join Qura." |
+
+The old `qura-clinician-film*.mp4/.vtt/.jpg` files can stay in `public` for now. Nothing links to them after this update, so they can be deleted later.
+
+## After upload
+
+Vercel rebuilds on its own. Tell me and I'll check that the For clinicians page plays the new film with captions and the new poster.
