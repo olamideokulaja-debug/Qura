@@ -70,11 +70,6 @@
       "source": "/send-intelligence",
       "destination": "/?open=send",
       "permanent": false
-    },
-    {
-      "source": "/send.html",
-      "destination": "/?open=send",
-      "permanent": false
     }
   ],
   "rewrites": [
@@ -136,7 +131,7 @@
     },
     {
       "source": "/send",
-      "destination": "/send-specialists.html"
+      "destination": "/send.html"
     }
   ],
   "headers": [

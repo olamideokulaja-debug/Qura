@@ -37,6 +37,11 @@ export const ROUTE_META = {
     title: "Healthcare Workforce CRM for Suppliers | Qura",
     description: "Run your healthcare recruitment pipeline, business development and outreach from one place: live opportunities, named decision-makers, AI-drafted proposals.",
   },
+  "/send": {
+    view: "send",
+    title: "SEND Intelligence | Every Special School, Every Vacancy | Qura",
+    description: "Every special school, alternative provision and SEN unit in England, checked every day. Live SEND vacancies, tenders and council pressure for specialist SEND suppliers.",
+  },
   "/marketplace": {
     view: "market",
     title: "Live Healthcare Demand — Roles & Tenders | Qura",

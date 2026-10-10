@@ -1,42 +1,25 @@
-# Upload to olamideokulaja-debug/Qura (main)
+# Update: SEND becomes a tab on the main site
 
-Upload in this order, so no page ever points at a file that isn't there yet. Use "Add file → Upload files" in each folder.
+The films and captions you uploaded are live and stay as they are. This update makes SEND a tab in the top navigation of the main site, at qurahealth.org/send, in place of the separate page.
 
-## 1. `public/` (12 files, 64 MB in all; the largest is 19.9 MB)
+## 1. Delete one file
 
-| File | Used by |
-|---|---|
-| `qura-every-lens-92s.mp4` (18.7 MB) · `qura-every-lens-92s-subtitles.vtt` | Landing page player |
-| `qura-agency-film-66s.mp4` (18.5 MB) · `qura-agency-film-66s-subtitles.vtt` | For suppliers page, agency film |
-| `qura-send-film.mp4` (19.9 MB) · `qura-send-film-subtitles.vtt` · `qura-send-film-poster.jpg` | For suppliers page (under the agency film) and the new `/send` page |
-| `qura-send-upsell.mp4` (9.7 MB) · `qura-send-upsell-subtitles.vtt` · `qura-send-upsell-poster.jpg` | In-app SEND offer screen |
-| `send-specialists.html` | The new public page at qurahealth.org/send |
+In the repo, delete **`public/send-specialists.html`** (open it on GitHub, then the bin icon). The SEND tab replaces it.
 
-Leave the existing files where they are: `qura-every-lens-88s.mp4`, `qura-agency-film.mp4` and their posters and captions are the fallback. The existing `qura-every-lens-poster.jpg` and `qura-agency-film-poster.jpg` are reused (both films still open on the same shot).
+## 2. Upload, replacing the existing files
 
-## 2. Root: `vercel.json`
+| File | Folder | What changed |
+|---|---|---|
+| `vercel.json` | repo root | `/send` now serves the main site's SEND tab (`/send.html`, written by the build). The old redirect from `/send.html` into the app is removed so it doesn't clash; `/send-intelligence` still opens the SEND screen in the app. |
+| `src/App.jsx` | `src` | A **SEND** tab in the top nav, between "Qura App" and "Fragile professions", plus "SEND Intelligence" in the footer. The new section has the hero ("Every special school. Every vacancy. Every morning."), the 62s film, the six feature cards, the Founding SEND Partner offer and "Built on public data". The landing film (92s) and the SEND film under the agency film are unchanged from the last upload. |
+| `src/pages/agency.jsx` | `src/pages` | The SEND film's "See SEND Intelligence" button now opens the tab, and the button is hidden on the tab itself. |
+| `src/data/seo.js` | `src/data` | A `/send` entry, so the tab gets its own title, description and link preview, and appears in the crawlable nav. |
 
-Today's live file with one addition: a rewrite from `/send` to `/send-specialists.html`. Everything else (crons, the `/send-intelligence` and `/send.html` redirects into the app, the security headers) is unchanged.
-
-## 3. `src/`
-
-- **`src/App.jsx`**: today's live file with four changes:
-  - The landing player plays `/qura-every-lens-92s.mp4` with the 92s captions.
-  - The line above it reads "92 seconds on what Qura does for every lens, now with SEND Intelligence."
-  - It imports `SendFilm` from `./pages/agency.jsx`.
-  - It renders `<SendFilm />` under `<AgencyFilm />` on the For suppliers section.
-- **`src/pages/agency.jsx`**:
-  - The agency film is now the 66s cut, and its line reads "66 seconds on what Qura does for agencies." The Founding Partner button is unchanged.
-  - It adds `SendFilm`: the 62s SEND film with "Place SEND staff? 62 seconds on SEND Intelligence." above it, and a "See SEND Intelligence" button linking to `/send`.
-  - Both players share the same full-screen behaviour, and captions are on by default.
-- **`src/SendIntelligence.jsx`**: today's live file with the 30s upsell film added at the top of the offer screen, the screen suppliers without SEND see. Nothing else changes.
+`src/SendIntelligence.jsx` and the `public/` videos are already up and don't need re-uploading. Copies are in this folder for reference.
 
 ## After upload
 
-Vercel redeploys on its own. Then check:
-1. **qurahealth.org:** the landing film is 1:32 and plays with captions.
-2. **qurahealth.org/for-suppliers:** the agency film is 1:06; the SEND film sits under it, and its button opens `/send`.
-3. **qurahealth.org/send:** the page loads, the film plays, and "Register your interest" opens the SEND screen in the app (sign-in first if needed).
-4. **In the app:** as a supplier without SEND, open SEND Intelligence; the 30s film sits above the offer.
-
-Tell me when it's up and I'll check the live pages.
+Vercel rebuilds on its own. Then tell me and I'll check that:
+- the SEND tab shows in the top nav and opens /send, with the film playing;
+- /send loads directly, and shares with its own title;
+- the For suppliers page and the landing film are unchanged.

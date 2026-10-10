@@ -55,8 +55,9 @@ export function AgencyFilm() {
 
 // The SEND Intelligence film (9 October 2026), for specialist SEND staffing and
 // therapy suppliers. It sits under the agency film and ends on the Founding
-// SEND Partner offer, so the call to action goes to the public SEND page.
-export function SendFilm() {
+// SEND Partner offer, so the call to action goes to the SEND tab (/send).
+// On the SEND tab itself the button is hidden (cta={false}).
+export function SendFilm({ cta = true }) {
   return (
     <div style={{ maxWidth: 760, margin: "0 auto 34px" }}>
       <div style={{ textAlign: "center", color: "#AEBED6", fontSize: 13.5, marginBottom: 12 }}>
@@ -74,13 +75,13 @@ export function SendFilm() {
         <source src="/qura-send-film.mp4" type="video/mp4" />
         <track kind="captions" srcLang="en" label="English" default src="/qura-send-film-subtitles.vtt" />
       </video>
-      <div style={{ textAlign: "center", marginTop: 16 }}>
+      {cta && <div style={{ textAlign: "center", marginTop: 16 }}>
         <a href="/send" onClick={() => track("send_film_cta")} className="btn lift"
           style={{ background: "transparent", color: "#fff", border: "1px solid #3B5A88", fontWeight: 800, padding: "12px 24px", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: 6 }}>
           See SEND Intelligence <ArrowRight size={16} />
         </a>
         <div style={{ color: "#AEBED6", fontSize: 12.5, marginTop: 9 }}>5 Founding SEND Partner places, 50% off for 12 months.</div>
-      </div>
+      </div>}
     </div>
   );
 }

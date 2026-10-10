@@ -573,7 +573,7 @@ a{transition:color .15s ease}
 .step-num{width:26px;height:26px;border-radius:99px;display:grid;place-items:center;font-size:12px;font-weight:800;flex-shrink:0;background:#EEF1F7;color:#5A6783}
 .step-btn.on .step-num{background:var(--teal);color:#fff}
 .lb .sec{display:none!important}
-.lb[data-view="home"] .sec.home,.lb[data-view="clinicians"] .sec.clinicians,.lb[data-view="suppliers-app"] .sec.suppliers-app,.lb[data-view="market"] .sec.market,.lb[data-view="fragile"] .sec.fragile,.lb[data-view="solutions"] .sec.solutions,.lb[data-view="story"] .sec.story,.lb[data-view="how"] .sec.how,.lb[data-view="pricing"] .sec.pricing,.lb[data-view="faq"] .sec.faq{display:block!important}
+.lb[data-view="home"] .sec.home,.lb[data-view="clinicians"] .sec.clinicians,.lb[data-view="suppliers-app"] .sec.suppliers-app,.lb[data-view="send"] .sec.send,.lb[data-view="market"] .sec.market,.lb[data-view="fragile"] .sec.fragile,.lb[data-view="solutions"] .sec.solutions,.lb[data-view="story"] .sec.story,.lb[data-view="how"] .sec.how,.lb[data-view="pricing"] .sec.pricing,.lb[data-view="faq"] .sec.faq{display:block!important}
 .navlink{color:var(--muted);font-size:14.5px;font-weight:500;text-decoration:none;transition:color .15s}
 .navlink:hover{color:var(--navy)}
 `;
@@ -3620,6 +3620,75 @@ const SUPPLIER_TAGLINES = [
 
 
 
+// The SEND tab (10 October 2026): SEND Intelligence for specialist SEND staffing
+// and therapy suppliers. Same pattern as every other public view: one section,
+// shown when the view is "send", at /send. The film ends on the Founding SEND
+// Partner offer; registering interest opens the SEND screen in the app.
+const SEND_FEATURES = [
+  [Building2, "Schools", "About 5,000 schools", "Every special school, alternative provision and school with an SEN unit in England, from the official list, with daily checks of their own jobs pages."],
+  [Search, "Vacancies", "Live SEND vacancies", "Posted on schools' own websites, picked up by the daily checks and linked to the original advert."],
+  [FileText, "Tenders", "Tenders and renewals", "SEND tenders, pre-tender notices, frameworks and contracts coming up for renewal, so you are ready before they land."],
+  [Network, "Councils", "Councils under pressure", "EHC plan growth, assessment delays, high-needs funding, Safety Valve and Delivering Better Value, and Ofsted concerns."],
+  [Bell, "Territories", "A morning alert, a Monday briefing", "Choose your councils, settings and professions. Matching vacancies arrive each morning, with a briefing every Monday."],
+  [Sparkles, "Outreach", "Drafted in seconds", "An AI first draft for each vacancy, plus exports and your Qura pipeline. You check every line and send it yourself."],
+];
+function SendSection() {
+  return (
+    <div className="sec send">
+      <div style={{ background: "linear-gradient(160deg,#0A1A30,#13243F)", color: "#fff", padding: "84px 24px 56px" }}>
+        <div className="wrap">
+          <div style={{ textAlign: "center", maxWidth: 780, margin: "0 auto 30px" }}>
+            <span className="chip chip-cyan" style={{ background: "rgba(0,194,184,.15)", color: "var(--cyan)" }}>SEND Intelligence</span>
+            <h1 className="disp" style={{ fontSize: "clamp(28px,4.6vw,46px)", fontWeight: 700, margin: "16px 0 12px", lineHeight: 1.1 }}>
+              Every special school. Every vacancy. <span style={{ color: "var(--cyan)" }}>Every morning.</span>
+            </h1>
+            <p style={{ color: "#AEBED6", fontSize: 16.5, lineHeight: 1.6, margin: "0 0 22px" }}>
+              For specialist SEND staffing and therapy suppliers. Qura checks the jobs pages of special schools, alternative provision and SEN units across England every day, and puts the vacancies, tenders and council signals in one place.
+            </p>
+            <div className="row" style={{ gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
+              <a href="/?open=send" className="btn lift" style={{ background: "var(--cyan)", color: "var(--navy)", fontWeight: 800, padding: "12px 24px", textDecoration: "none" }}>Register your interest</a>
+              <a href="/send-data" className="btn" style={{ background: "transparent", color: "#fff", border: "1px solid #3B5A88", fontWeight: 700, padding: "12px 24px", textDecoration: "none" }}>How we use public data</a>
+            </div>
+          </div>
+          <SendFilm cta={false} />
+        </div>
+      </div>
+      <div className="wrap" style={{ padding: "64px 24px 80px" }}>
+        <div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 30px" }}>
+          <div className="eyebrow" style={{ color: "#06776F" }}>What you see each morning</div>
+          <h2 className="disp" style={{ fontSize: "clamp(24px,3.4vw,34px)", fontWeight: 700, margin: "10px 0 0" }}>One place for SEND demand</h2>
+        </div>
+        <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", marginBottom: 40 }}>
+          {SEND_FEATURES.map(([Ic, k, h, b]) => (
+            <div key={k} className="card lift" style={{ padding: 24 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 12, background: "var(--cyan-soft)", display: "grid", placeItems: "center", marginBottom: 12 }}><Ic size={20} color="#06776F" /></div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#06776F" }}>{k}</div>
+              <div style={{ fontWeight: 700, fontSize: 16.5, margin: "4px 0 6px" }}>{h}</div>
+              <div className="muted" style={{ fontSize: 14, lineHeight: 1.55 }}>{b}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{ background: "linear-gradient(160deg,#0A1A30,#13243F)", color: "#fff", borderRadius: 18, padding: "28px 30px", display: "flex", gap: 24, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", marginBottom: 40 }}>
+          <div style={{ maxWidth: 600 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--cyan)" }}>Founding SEND Partner</div>
+            <div className="disp" style={{ fontSize: "clamp(22px,3vw,30px)", fontWeight: 700, margin: "8px 0" }}>5 places. 50% off for 12 months.</div>
+            <div style={{ color: "#C4D0E2", fontSize: 14.5, lineHeight: 1.55 }}>The first five SEND customers get half price for their first year, with no setup fee. Places open soon: register your interest and a founder will be in touch.</div>
+          </div>
+          <a href="/?open=send" className="btn lift" style={{ background: "var(--cyan)", color: "var(--navy)", fontWeight: 800, padding: "12px 24px", textDecoration: "none" }}>Register your interest</a>
+        </div>
+        <div style={{ maxWidth: 760, margin: "0 auto" }}>
+          <div className="row" style={{ gap: 8, marginBottom: 10 }}><ShieldCheck size={18} color="#06776F" /><b>Built on public data</b></div>
+          <ul className="muted" style={{ margin: 0, paddingLeft: 20, lineHeight: 1.7, fontSize: 14.5 }}>
+            <li>Schools come from Get Information about Schools (Department for Education), under the Open Government Licence.</li>
+            <li>Vacancies come only from school, trust and council pages Qura is allowed to check. Coverage is partial and shown openly.</li>
+            <li>Qura holds no data about pupils, families or EHC plans. <a href="/send-data">How Qura uses data</a>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SupplierAppSection() {
   return (
     <div id="suppliers-app" className="sec suppliers-app" style={{ background: "linear-gradient(160deg,#0A1A30,#13243F)", color: "#fff", padding: "84px 24px" }}>
@@ -3672,6 +3741,7 @@ const NAV = [
     ["For clinicians", "clinicians", "The app, your career, your applications"],
     ["For suppliers", "suppliers-app", "Live demand, talent and introductions"],
   ] },
+  { k: "send", l: "SEND" },
   { k: "fragile", l: "Fragile professions" },
   { k: "pricing", l: "Pricing" },
   { k: "story", l: "Our story" },
@@ -3686,6 +3756,7 @@ const FOOTER_LINKS = [
   ["Solutions", "solutions"],
   ["For clinicians", "clinicians"],
   ["For suppliers", "suppliers-app"],
+  ["SEND Intelligence", "send"],
   ["Fragile professions", "fragile"],
   ["Pricing", "pricing"],
   ["Our story", "story"],
@@ -3710,6 +3781,7 @@ const ROUTES = [
   ["/", "home"],
   ["/for-clinicians", "clinicians"],
   ["/for-suppliers", "suppliers-app"],
+  ["/send", "send"],
   ["/marketplace", "market"],
   ["/how-it-works", "how", "walk"],
   ["/inside-the-platform", "how", "gallery"],
@@ -3725,6 +3797,7 @@ const PAGE_DESCRIPTIONS = {
   home: "Qura connects clinicians, healthcare providers, workforce suppliers and medical suppliers in one live healthcare marketplace and growth CRM.",
   clinicians: "Get verified once and be seen by healthcare organisations across the NHS, private healthcare and internationally. Free for clinicians, always.",
   "suppliers-app": "Find live healthcare workforce opportunities, map the decision-makers behind them and build a credible, verified supplier profile.",
+  send: "Every special school, alternative provision and SEN unit in England, checked every day. Live SEND vacancies, tenders and council pressure for specialist SEND suppliers.",
   market: "A live view of healthcare demand across five markets, built from official procurement portals and a verified decision-maker register.",
   how: "How Qura works, from verified profiles and live opportunity intelligence through to introductions organisations actually act on.",
   solutions: "Workforce, procurement and market intelligence solutions for hospitals, GP practices, care providers and healthcare suppliers.",
@@ -3738,6 +3811,7 @@ const PAGE_TITLES = {
   home: "Qura, the 24/7 live healthcare marketplace and growth CRM",
   clinicians: "For clinicians, Qura",
   "suppliers-app": "For workforce suppliers, Qura",
+  send: "SEND Intelligence, Qura",
   market: "Marketplace, Qura",
   how: "How Qura works",
   solutions: "Solutions, Qura",
@@ -4212,6 +4286,7 @@ function Landing({ onEnter, onDemo, earlyFocus, onJoin, onOpen, signedIn }) {
 
       <ClinicianSection onEnter={onEnter} />
       <SupplierAppSection />
+      <SendSection />
       <div id="platform" className="sec solutions" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
         <div className="wrap" style={{ padding: "78px 24px" }}>
           <Reveal><div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 48px" }}><div className="eyebrow">The personal touch behind the intelligence</div><h2 className="disp" style={{ fontSize: 36, fontWeight: 700, marginTop: 14 }}>Analytics with <span style={{ background: "linear-gradient(96deg,var(--teal),var(--cyan))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>experts</span> behind them</h2><p className="muted" style={{ fontSize: 17, marginTop: 12, lineHeight: 1.6 }}>Most platforms hand you a dashboard and wish you luck. {APP_NAME} hands you the judgment of experts who have spent over a decade winning healthcare contracts.</p></div></Reveal>
