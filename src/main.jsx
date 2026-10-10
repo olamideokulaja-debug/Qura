@@ -45,6 +45,20 @@ async function applyDeepLink() {
       }
     }
     await Promise.all(OPEN_ROLES[open].map((r) => window.storage.set("cura_active_" + r, JSON.stringify(open)).catch(() => null)));
+    // When the workspace first opens it saves its default screen straight away,
+    // which raced the read of the screen chosen here and usually won. So the
+    // first save of a different screen for these keys is skipped, once, within
+    // 10 minutes of the link being opened.
+    const keys = OPEN_ROLES[open].map((r) => "cura_active_" + r);
+    const want = JSON.stringify(open), until = Date.now() + 600000, armed = new Set(keys);
+    const set = window.storage.set.bind(window.storage);
+    window.storage.set = (k, v, shared) => {
+      if (armed.has(k) && Date.now() < until) {
+        armed.delete(k);
+        if (v !== want) return Promise.resolve({ key: k, value: want });
+      }
+      return set(k, v, shared);
+    };
     p.delete("open"); p.delete("tab");
     const q = p.toString();
     window.history.replaceState({}, "", window.location.pathname + (q ? "?" + q : "") + window.location.hash);
