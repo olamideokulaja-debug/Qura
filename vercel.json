@@ -133,6 +133,10 @@
     {
       "source": "/send-data",
       "destination": "/send-data.html"
+    },
+    {
+      "source": "/send",
+      "destination": "/send-specialists.html"
     }
   ],
   "headers": [

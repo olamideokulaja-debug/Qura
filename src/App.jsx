@@ -334,7 +334,6 @@ import { LAUNCH_DATE, CountdownBanner } from "./components/countdown.jsx";
 import { PlatformContent, WhySwitch, MarketMap } from "./pages/sections.jsx";
 // The clinician-first homepage (28 September 2026), kept in its own file.
 import { HomeHero, HomeValue, HomeVerify, HomeEcosystem, HomeApp, HomeTrust, HomeFinalCta } from "./pages/home.jsx";
-import OurStory from "./pages/story.jsx";
 import PostRole from "./PostRole.jsx";
 import AgencyPool from "./AgencyPool.jsx";
 import TenderSnapshot from "./TenderSnapshot.jsx";
@@ -368,7 +367,7 @@ import { extraScreen } from "./extraScreens.jsx";
 import AuthPanel from "./AuthPanel.jsx";
 import ClinicianRegistration from "./ClinicianRegistration.jsx";
 import { CLIN_TAGLINES, CLIN_UNIVERSAL, CLIN_TABS, CLIN_COUNTRIES, ClinicianSection } from "./pages/clinician.jsx";
-import { AgencyFilm } from "./pages/agency.jsx";
+import { AgencyFilm, SendFilm } from "./pages/agency.jsx";
 import { APP_NAME } from "./constants.js";
 import { initAnalytics, trackPage, setMarketingMode, track } from "./lib/analytics.js";
 import { QuraLogo, Wordmark, Avatar, useCountUp, Stat, Kpi, SectionHead, PageHead, Toggle, Stars, Reveal, PulseLine, DemoTag, IllustrativeBanner } from "./components/ui.jsx";
@@ -3633,6 +3632,8 @@ function SupplierAppSection() {
         {/* The agency film (1 October 2026), placed exactly as the clinician
             film is on its page: under the heading, above everything else. */}
         <AgencyFilm />
+        {/* The SEND Intelligence film (9 October 2026) for specialist SEND suppliers, under the agency film. */}
+        <SendFilm />
         <div style={{ display: "grid", gap: 12, maxWidth: 860, margin: "0 auto 30px", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))" }}>
           {SUPPLIER_TAGLINES.map((t, i) => (
             <div key={i} style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: "18px 20px", textAlign: "left" }}>
@@ -4024,7 +4025,7 @@ function Landing({ onEnter, onDemo, earlyFocus, onJoin, onOpen, signedIn }) {
           <div className="eyebrow" style={{ color: "#06776F" }}>For organisations</div>
           <h2 className="disp" style={{ fontSize: 30, fontWeight: 700, margin: "8px 0 0" }}>See the market moving</h2>
           <div className="muted reveal" style={{ fontSize: 13.5, marginTop: 30, textAlign: "center" }}>
-            88 seconds on what {APP_NAME} does for every lens. Live since 22 September 2026.
+            92 seconds on what {APP_NAME} does for every lens, now with SEND Intelligence. Live since 22 September 2026.
           </div>
 
           {/* Film and live feed side by side. The feed is the single most
@@ -4232,9 +4233,40 @@ function Landing({ onEnter, onDemo, earlyFocus, onJoin, onOpen, signedIn }) {
 
       <HowItWorks section={howSec} go={setHowSec} />
 
-      {/* Our story: redesigned 10 October 2026, lives in src/pages/story.jsx */}
       <div className="sec story" style={{ background: "var(--bg)", borderTop: "1px solid var(--line)", borderBottom: "1px solid var(--line)" }}>
-        <OurStory appName={APP_NAME} onEnter={onEnter} />
+        <div className="wrap" style={{ padding: "72px 24px" }}>
+          <Reveal><div style={{ textAlign: "center", maxWidth: 640, margin: "0 auto 44px" }}><div className="eyebrow">Behind the brand</div><h1 className="disp" style={{ fontSize: 36, fontWeight: 700, margin: "8px 0 10px" }}>Our story</h1><p className="muted" style={{ fontSize: 16, lineHeight: 1.65, marginTop: 0 }}>{APP_NAME} was not created in a boardroom. It was created after decades of working inside healthcare.</p></div></Reveal>
+          <div className="grid g2" style={{ gap: 22, alignItems: "start" }}>
+            <Reveal>
+              <div className="card" style={{ padding: 30 }}>
+                <div className="ph-accent" />
+                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7, marginTop: 0 }}>Between us we have spent more than 32 years across healthcare business development, workforce strategy, healthcare economics and large-scale health system transformation. We have seen first-hand how much time is wasted because the right people simply cannot find each other.</p>
+                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>One of us had just stepped away from a senior leadership role after more than a decade helping healthcare organisations and agencies win high-value partnerships across the UK. Despite the success, one question kept coming back: what if that knowledge could improve the entire sector instead of just one organisation?</p>
+                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>The other was leading major healthcare transformation projects across Africa, working alongside governments and health systems to improve access to care while helping deliver one of the continent's most ambitious cancer programmes.</p>
+                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>Although we came from different parts of the world, we discovered something surprising. The challenges were almost identical. Hospitals struggled to identify the right partners. Workforce suppliers found it difficult to reach the right decision-makers. Clinicians faced fragmented career pathways. Valuable opportunities were missed because the healthcare ecosystem remained disconnected.</p>
+                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>Late one evening, during an informal conversation, one idea became impossible to ignore. Healthcare did not need another recruitment platform. It needed an ecosystem.</p>
+                <p style={{ fontSize: 15.5, lineHeight: 1.7, fontWeight: 600 }}>That conversation became {APP_NAME}.</p>
+                <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.7 }}>Today, {APP_NAME} is being built to connect healthcare organisations, suppliers, workforce partners and clinicians through one intelligent platform that removes friction, improves transparency and helps the right people find each other faster.</p>
+                <div style={{ marginTop: 22, padding: "18px 20px", borderRadius: 14, background: "var(--cyan-soft)" }}><div className="faint" style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 6 }}>Our belief</div><div className="disp gradient-text" style={{ fontSize: 21, fontWeight: 700, lineHeight: 1.35 }}>Healthcare moves faster when the right people connect.</div></div>
+              </div>
+            </Reveal>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {[{ i: Award, t: "Built by experience", d: "Every feature is designed around real healthcare challenges, not assumptions." },
+                { i: ShieldCheck, t: "Trust before transactions", d: "Long-term partnerships are built on transparency, credibility and reputation." },
+                { i: Sparkles, t: "Technology with purpose", d: "Artificial intelligence should remove administration, not replace relationships." },
+                { i: Globe, t: "Global thinking", d: "Healthcare challenges do not stop at borders, and neither should the solutions." },
+                { i: Star, t: "Quality over quantity", d: "Better connections create better outcomes for organisations, clinicians and ultimately patients." },
+                { i: TrendingUp, t: "Always improving", d: "Healthcare never stands still. Neither will " + APP_NAME + "." }].map((v, i) => (
+                <Reveal key={v.t} delay={i * 50}>
+                  <div className="card lift" style={{ padding: "16px 18px", display: "flex", gap: 14, alignItems: "flex-start" }}>
+                    <div style={{ width: 42, height: 42, borderRadius: 11, background: "#EEF3FF", display: "grid", placeItems: "center", flexShrink: 0 }}><v.i size={19} color="#1E54E6" /></div>
+                    <div><div style={{ fontWeight: 700, fontSize: 15 }}>{v.t}</div><div className="muted" style={{ fontSize: 13, marginTop: 3, lineHeight: 1.55 }}>{v.d}</div></div>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div id="pricing" className="sec pricing" style={{ background: "var(--navy)" }}>
@@ -5232,8 +5264,8 @@ function QuraFilmPlayer({ onFinish }) {
       }}
       style={{ width: "100%", display: "block", borderRadius: 16, background: "#0A1730", boxShadow: "0 18px 50px rgba(10,23,48,.18)" }}
     >
-      <source src="/qura-every-lens-88s.mp4" type="video/mp4" />
-      <track kind="captions" srcLang="en" label="English" default src="/qura-every-lens-88s-subtitles.vtt" />
+      <source src="/qura-every-lens-92s.mp4" type="video/mp4" />
+      <track kind="captions" srcLang="en" label="English" default src="/qura-every-lens-92s-subtitles.vtt" />
     </video>
   );
 }

@@ -127,6 +127,12 @@ function Offer({ offer, onToast, reload }) {
   const canBuy = s.open && offer.stripeReady;
   return (
     <div>
+      {/* The upsell film (9 October 2026): 30 seconds for suppliers already on Qura. Captions on, as most watch muted. */}
+      <video controls preload="none" playsInline poster="/qura-send-upsell-poster.jpg"
+        style={{ width: "100%", maxWidth: 720, display: "block", borderRadius: 14, background: "#0A1730", marginBottom: 14 }}>
+        <source src="/qura-send-upsell.mp4" type="video/mp4" />
+        <track kind="captions" srcLang="en" label="English" default src="/qura-send-upsell-subtitles.vtt" />
+      </video>
       <div className="card" style={{ padding: 20, marginBottom: 14 }}>
         <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>SEND Intelligence</div>
         <p style={{ marginTop: 0 }}>Every special school, alternative provision and school with an SEN unit in England, with Scotland, Wales and Northern Ireland from their official lists, the SEND vacancies they post on their own websites each day, council demand and funding, and SEND tenders, early signals and contracts ending soon. Built for specialist staffing and therapy suppliers.</p>
