@@ -74,17 +74,17 @@ function firstUrl(src, day) {
   return CF + "?publishedFrom=" + day + "&publishedTo=" + isoDay(Date.parse(day) + DAY) + "&size=100";
 }
 
-async function runSource(sb, src, st, log, deadline, match) {
-  const name = src === "fts" ? "Find a Tender" : "Contracts Finder";
+async function runSource(sb, src, st, log, deadline, match, startDays = BACKFILL_DAYS, tag = src) {
+  const name = (src === "fts" ? "Find a Tender" : "Contracts Finder") + (tag === src ? "" : " (last " + startDays + " days)");
   const today = isoDay(Date.now());
-  if (!st.cursorDay) st.cursorDay = isoDay(Date.now() - BACKFILL_DAYS * DAY);
+  if (!st.cursorDay) st.cursorDay = isoDay(Date.now() - startDays * DAY);
   let pages = 0;
-  if (st.pausedUntil && Date.now() < Date.parse(st.pausedUntil)) { log[src + "Paused"] = st.pausedUntil; return; }
+  if (st.pausedUntil && Date.now() < Date.parse(st.pausedUntil)) { log[tag + "Paused"] = st.pausedUntil; return; }
   while (Date.now() < deadline && pages < MAX_PAGES[src]) {
     if (st.cursorDay > today) { st.cursorDay = today; st.next = null; break; }
     const url = st.next || firstUrl(src, st.cursorDay);
     const r = await getJson(url); pages++;
-    if (r.error === "HTTP 429") { const wait = Math.max(PAUSE_MS, (r.retryAfter || 0) * 1000); st.pausedUntil = new Date(Date.now() + wait).toISOString(); log.errors.push(name + ": asked to slow down (429); pausing until " + st.pausedUntil); log[src + "Throttled"] = true; break; }
+    if (r.error === "HTTP 429") { const wait = Math.max(PAUSE_MS, (r.retryAfter || 0) * 1000); st.pausedUntil = new Date(Date.now() + wait).toISOString(); log.errors.push(name + ": asked to slow down (429); pausing until " + st.pausedUntil); log[tag + "Throttled"] = true; break; }
     if (r.error) { log.errors.push(name + " " + st.cursorDay + ": " + r.error); st.fails = (st.fails || 0) + 1; if (st.fails >= 3) { st.fails = 0; st.next = null; st.cursorDay = isoDay(Date.parse(st.cursorDay) + DAY); } break; }
     st.fails = 0;
     const rels = (r.data && r.data.releases) || [];
@@ -93,9 +93,9 @@ async function runSource(sb, src, st, log, deadline, match) {
       const uniq = [...new Map(rows.map((x) => [x.id, x])).values()];
       const { error } = await sb.from("send_tenders").upsert(uniq, { onConflict: "id" });
       if (error) { log.errors.push(name + " save: " + error.message); break; }
-      log[src + "Kept"] = (log[src + "Kept"] || 0) + uniq.length;
+      log[tag + "Kept"] = (log[tag + "Kept"] || 0) + uniq.length;
     }
-    log[src + "Read"] = (log[src + "Read"] || 0) + rels.length;
+    log[tag + "Read"] = (log[tag + "Read"] || 0) + rels.length;
     const next = r.data && r.data.links && r.data.links.next;
     if (next && rels.length) st.next = next;
     else {
@@ -106,7 +106,32 @@ async function runSource(sb, src, st, log, deadline, match) {
     }
     await sleep(3000);
   }
-  log[src + "Pages"] = pages; log[src + "Day"] = st.cursorDay;
+  log[tag + "Pages"] = pages; log[tag + "Day"] = st.cursorDay;
+}
+
+// Newest first (10 October 2026): the recent pass only covers 2 days, but a tender stays open for
+// 30 to 90 days, so tenders published between the backfill and the last 2 days were missing (on
+// 10 October the backfill was at December 2025 for Find a Tender and March 2024 for Contracts
+// Finder). Each source now reads the last 90 days first, with its own cursor in st.front; the
+// 3-year backfill resumes afterwards and skips the days the front window has already read.
+// A 429 pauses the whole source, whichever pass hit it.
+const FRONT_DAYS = 90;
+const frontDone = (s) => !!(s.front && s.front.doneTo && s.front.doneTo >= isoDay(Date.now() - 2 * DAY));
+const latest = (a, b) => (!a ? b : !b ? a : (Date.parse(a) > Date.parse(b) ? a : b));
+async function runSourceNewestFirst(sb, src, s, log, deadline, match) {
+  s.front = s.front || {};
+  if (!s.front.startDay) s.front.startDay = isoDay(Date.now() - FRONT_DAYS * DAY);
+  s.pausedUntil = s.front.pausedUntil = latest(s.pausedUntil, s.front.pausedUntil);
+  if (!frontDone(s)) {
+    await runSource(sb, src, s.front, log, deadline, match, FRONT_DAYS, src + "Front");
+    s.pausedUntil = latest(s.pausedUntil, s.front.pausedUntil);
+    return;
+  }
+  if (s.cursorDay && s.cursorDay >= s.front.startDay && s.cursorDay < s.front.doneTo) {
+    log[src + "Skipped"] = s.cursorDay + " to " + s.front.doneTo + " (already read)";
+    s.cursorDay = s.front.doneTo; s.next = null;
+  }
+  await runSource(sb, src, s, log, deadline, match);
 }
 
 // Recent pass (10 October 2026): the backfill reads forward from 3 years ago, so until it catches
@@ -220,8 +245,8 @@ export default async function handler(req, res) {
   for (const k of ["pcs", "s2w"]) if (st[k] && Array.isArray(st[k].skipped)) st[k].skipped = [...new Set(st[k].skipped)];
   await runRecent(sb, "fts", st.fts, log, match);
   await runRecent(sb, "cf", st.cf, log, match);
-  await runSource(sb, "fts", st.fts, log, started + BUDGET_MS * 0.55, match);
-  await runSource(sb, "cf", st.cf, log, started + BUDGET_MS * 0.8, match);
+  await runSourceNewestFirst(sb, "fts", st.fts, log, started + BUDGET_MS * 0.55, match);
+  await runSourceNewestFirst(sb, "cf", st.cf, log, started + BUDGET_MS * 0.8, match);
   st.pcs = st.pcs || {}; st.s2w = st.s2w || {};
   for (const k of ["pcs", "s2w"]) { if (Date.now() < started + BUDGET_MS) { try { await runMonthly(sb, k, st[k], log, match); } catch (e) { log.errors.push(MONTHLY[k].name + ": " + String(e.message || e)); } } }
   // Buyers that did not match a council when first stored (council list not loaded yet)

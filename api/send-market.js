@@ -55,6 +55,14 @@ export default async function handler(req, res) {
       const { data, count, error } = await tenderQuery(sb, kind, category, null, String(req.query.nation || "")).range((page - 1) * PAGE, page * PAGE - 1);
       if (error) throw new Error(error.message);
       const st = (await kvGet("shared", "send_tender_state")) || {};
+      // Newest first (10 October 2026): each source reads its last 90 days before the older backfill.
+      // Once that window is complete, "read to" is today, and the note says how far the older
+      // backfill has got, so a gap in older notices is stated rather than hidden.
+      const recentDone = (s) => !!(s && s.front && s.front.doneTo && s.front.doneTo >= iso(Date.now() - 2 * DAY) && !(s.doneTo && s.doneTo >= s.front.doneTo));
+      const readTo = (s) => (recentDone(s) ? s.front.doneTo : (s && s.doneTo) || null);
+      const dmy = (d) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+      const older = [["Find a Tender", st.fts], ["Contracts Finder", st.cf]].filter(([, s]) => recentDone(s)).map(([n, s]) => n + " up to " + (s.doneTo ? dmy(s.doneTo) : "the start"));
+      const olderNote = older.length ? " The last 90 days are read first; older notices are still being filled in (" + older.join(", ") + ")." : "";
       // Council forward plans (10 October 2026): how many councils Qura can read.
       let fp = null;
       if (kind === "signals") {
@@ -63,8 +71,8 @@ export default async function handler(req, res) {
         for (const r of cd || []) { if (r.status === "found") fp.read++; else if (r.status === "blocked_by_site" || r.status === "robots_blocked") fp.blocked++; else if (r.status === "not_found") fp.not_found++; else if (r.status === "to_find") fp.to_find++; }
       }
       return res.status(200).json({ kind, items: data || [], total: count || 0, page, pageSize: PAGE, categories: CATEGORY_LABEL,
-        forward_plans: fp, progress: { find_a_tender_read_to: st.fts && st.fts.doneTo || null, contracts_finder_read_to: st.cf && st.cf.doneTo || null, scotland_read_to: st.pcs && st.pcs.doneTo || null, wales_read_to: st.s2w && st.s2w.doneTo || null }, nations: NATIONS,
-        note: kind === "renewals" ? "Contracts whose published end date falls in the next 18 months. A forecast: buyers may extend, re-procure early or stop buying." : kind === "signals" ? "Pipeline, market engagement and planned procurement notices from the last 12 months, plus SEND items in council forward plans of key decisions" + (fp ? " (" + fp.read + " councils read; " + fp.blocked + " block automated reading; " + fp.not_found + " not found" + (fp.to_find ? "; " + fp.to_find + " still to look up" : "") + ")" : "") + ". Early signals; not every one becomes a tender." : "From Find a Tender, Contracts Finder and Public Contracts Scotland (Open Government Licence). Sell2Wales is added when its data service is working again. Always read the original notice." });
+        forward_plans: fp, progress: { find_a_tender_read_to: readTo(st.fts), contracts_finder_read_to: readTo(st.cf), scotland_read_to: st.pcs && st.pcs.doneTo || null, wales_read_to: st.s2w && st.s2w.doneTo || null }, nations: NATIONS,
+        note: kind === "renewals" ? "Contracts whose published end date falls in the next 18 months. A forecast: buyers may extend, re-procure early or stop buying." : kind === "signals" ? "Pipeline, market engagement and planned procurement notices from the last 12 months, plus SEND items in council forward plans of key decisions" + (fp ? " (" + fp.read + " councils read; " + fp.blocked + " block automated reading; " + fp.not_found + " not found" + (fp.to_find ? "; " + fp.to_find + " still to look up" : "") + ")" : "") + ". Early signals; not every one becomes a tender." : "From Find a Tender, Contracts Finder and Public Contracts Scotland (Open Government Licence). Sell2Wales is added when its data service is working again. Always read the original notice." + olderNote });
     }
 
     if (view === "therapy") {
