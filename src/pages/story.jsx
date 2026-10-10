@@ -8,8 +8,8 @@
 
 import React from "react";
 import { ArrowRight, Award, ShieldCheck, Sparkles, Globe, Star, TrendingUp, MapPin } from "lucide-react";
-import imgOlamide from "../team-olamide.webp";
-import imgOla from "../team-ola.webp";
+import { imgOlamide } from "./photoOlamide.js";
+import { imgOla } from "./photoOla.js";
 
 const FOUNDERS = [
   {
