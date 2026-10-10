@@ -55,9 +55,16 @@ export default async function handler(req, res) {
       const { data, count, error } = await tenderQuery(sb, kind, category, null, String(req.query.nation || "")).range((page - 1) * PAGE, page * PAGE - 1);
       if (error) throw new Error(error.message);
       const st = (await kvGet("shared", "send_tender_state")) || {};
+      // Council forward plans (10 October 2026): how many councils Qura can read.
+      let fp = null;
+      if (kind === "signals") {
+        const { data: cd } = await sb.from("send_council_democracy").select("status");
+        fp = { read: 0, blocked: 0, not_found: 0, to_find: 0 };
+        for (const r of cd || []) { if (r.status === "found") fp.read++; else if (r.status === "blocked_by_site" || r.status === "robots_blocked") fp.blocked++; else if (r.status === "not_found") fp.not_found++; else if (r.status === "to_find") fp.to_find++; }
+      }
       return res.status(200).json({ kind, items: data || [], total: count || 0, page, pageSize: PAGE, categories: CATEGORY_LABEL,
-        progress: { find_a_tender_read_to: st.fts && st.fts.doneTo || null, contracts_finder_read_to: st.cf && st.cf.doneTo || null, scotland_read_to: st.pcs && st.pcs.doneTo || null, wales_read_to: st.s2w && st.s2w.doneTo || null }, nations: NATIONS,
-        note: kind === "renewals" ? "Contracts whose published end date falls in the next 18 months. A forecast: buyers may extend, re-procure early or stop buying." : kind === "signals" ? "Pipeline, market engagement and planned procurement notices from the last 12 months. Early signals; not every one becomes a tender." : "From Find a Tender, Contracts Finder and Public Contracts Scotland (Open Government Licence). Sell2Wales is added when its data service is working again. Always read the original notice." });
+        forward_plans: fp, progress: { find_a_tender_read_to: st.fts && st.fts.doneTo || null, contracts_finder_read_to: st.cf && st.cf.doneTo || null, scotland_read_to: st.pcs && st.pcs.doneTo || null, wales_read_to: st.s2w && st.s2w.doneTo || null }, nations: NATIONS,
+        note: kind === "renewals" ? "Contracts whose published end date falls in the next 18 months. A forecast: buyers may extend, re-procure early or stop buying." : kind === "signals" ? "Pipeline, market engagement and planned procurement notices from the last 12 months, plus SEND items in council forward plans of key decisions" + (fp ? " (" + fp.read + " councils read; " + fp.blocked + " block automated reading; " + fp.not_found + " not found" + (fp.to_find ? "; " + fp.to_find + " still to look up" : "") + ")" : "") + ". Early signals; not every one becomes a tender." : "From Find a Tender, Contracts Finder and Public Contracts Scotland (Open Government Licence). Sell2Wales is added when its data service is working again. Always read the original notice." });
     }
 
     if (view === "therapy") {
