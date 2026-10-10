@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   if (await limited(req, res, access.user, { bucket: "send_export", limit: 20, windowSec: 3600 })) return;
   const sb = sbAdmin(); if (!sb) return res.status(500).json({ error: "Supabase not configured" });
   const what = String(req.query.what || "");
-  const las = list(req.query.la, /^\d{3}$/);
+  const las = list(req.query.la, /^(\d{3}|W\d{3}|[SN]:[A-Za-z' &.-]{2,40})$/);
   const today = iso(Date.now());
   let lines, cols, rows;
 
@@ -61,13 +61,14 @@ export default async function handler(req, res) {
     } else if (what === "schools") {
       const setting = ["special", "ap", "mainstream_unit"].includes(req.query.setting) ? req.query.setting : null;
       rows = await pageAll(() => {
-        let q = sb.from("send_organisations").select("official_id,name,setting_group,establishment_type,status,la_name,region,town,postcode,website,phone,trust_name,pupils,sen_ehcp,sen_support,resourced_provision_type,open_date,source_ref").eq("org_kind", "school").eq("in_scope", true).order("name");
+        let q = sb.from("send_organisations").select("official_id,nation,name,setting_group,establishment_type,status,la_name,region,town,postcode,website,phone,trust_name,pupils,sen_ehcp,sen_support,resourced_provision_type,open_date,source_ref").eq("org_kind", "school").eq("in_scope", true).order("name");
         if (setting) q = q.eq("setting_group", setting);
+        if (["england", "scotland", "wales", "northern_ireland"].includes(req.query.nation)) q = q.eq("nation", req.query.nation);
         if (las.length) q = q.in("la_code", las);
         return q;
       }, MAX);
-      lines = [LICENCE.qura, "Source: Get Information about Schools, Department for Education. " + LICENCE.ogl, "Pupil figures are totals published in official school records. Qura holds no data about individual pupils.", "Exported " + today + "."];
-      cols = [["URN", (r) => r.official_id], ["School", (r) => r.name], ["Setting", (r) => r.setting_group], ["Type", (r) => r.establishment_type], ["Status", (r) => r.status], ["Council", (r) => r.la_name], ["Region", (r) => r.region], ["Town", (r) => r.town], ["Postcode", (r) => r.postcode], ["Website", (r) => r.website], ["Phone", (r) => r.phone], ["Trust", (r) => r.trust_name], ["Pupils", (r) => r.pupils], ["Pupils with an EHC plan", (r) => r.sen_ehcp], ["Pupils on SEN support", (r) => r.sen_support], ["Resourced provision", (r) => r.resourced_provision_type], ["Opens", (r) => r.open_date], ["Official record", (r) => r.source_ref]];
+      lines = [LICENCE.qura, "Sources: Get Information about Schools (Department for Education, England); School contact details (Scottish Government); Address list of schools (Welsh Government); School enrolment school-level data (Department of Education, Northern Ireland). " + LICENCE.ogl, "The Scottish Government asks commercial callers to seek permission from the local authority before contacting schools directly.", "Pupil figures are totals published in official school records. Qura holds no data about individual pupils.", "Exported " + today + "."];
+      cols = [["Official ID", (r) => r.official_id], ["Nation", (r) => ({ england: "England", scotland: "Scotland", wales: "Wales", northern_ireland: "Northern Ireland" })[r.nation] || r.nation], ["School", (r) => r.name], ["Setting", (r) => r.setting_group], ["Type", (r) => r.establishment_type], ["Status", (r) => r.status], ["Council", (r) => r.la_name], ["Region", (r) => r.region], ["Town", (r) => r.town], ["Postcode", (r) => r.postcode], ["Website", (r) => r.website], ["Phone", (r) => r.phone], ["Trust", (r) => r.trust_name], ["Pupils", (r) => r.pupils], ["Pupils with an EHC plan", (r) => r.sen_ehcp], ["Pupils on SEN support", (r) => r.sen_support], ["Resourced provision", (r) => r.resourced_provision_type], ["Opens", (r) => r.open_date], ["Official record", (r) => r.source_ref]];
     } else if (what === "tenders") {
       const kind = ["open", "signals", "renewals", "frameworks"].includes(req.query.kind) ? req.query.kind : "open";
       rows = await pageAll(() => {

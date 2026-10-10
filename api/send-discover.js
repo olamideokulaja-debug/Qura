@@ -22,7 +22,7 @@ const BATCH = 70, CONCURRENCY = 8, BUDGET_MS = 240000;
 async function refreshCoverage(sb, log) {
   const orgs = [], srcs = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await sb.from("send_organisations").select("id,la_code,la_name,region,setting_group,sen_ehcp,sen_support").eq("org_kind", "school").eq("in_scope", true).range(from, from + 999);
+    const { data, error } = await sb.from("send_organisations").select("id,nation,la_code,la_name,region,setting_group,sen_ehcp,sen_support").eq("org_kind", "school").eq("in_scope", true).range(from, from + 999);
     if (error) { log.errors.push("coverage orgs: " + error.message); return; }
     orgs.push(...(data || [])); if (!data || data.length < 1000) break;
   }
@@ -36,7 +36,7 @@ async function refreshCoverage(sb, log) {
   const by = new Map();
   for (const o of orgs) {
     const k = o.la_code || "unknown";
-    const a = by.get(k) || { nation: "england", area_kind: "local_authority", area_code: k, area_name: o.la_name || "Unknown", schools: 0, special: 0, ap: 0, mainstream_units: 0, sen_ehcp: 0, sen_support: 0, sources_total: 0, sources_monitored: 0 };
+    const a = by.get(k) || { nation: o.nation || "england", area_kind: "local_authority", area_code: k, area_name: o.la_name || "Unknown", schools: 0, special: 0, ap: 0, mainstream_units: 0, sen_ehcp: 0, sen_support: 0, sources_total: 0, sources_monitored: 0 };
     a.schools++; if (o.setting_group === "special") a.special++; else if (o.setting_group === "ap") a.ap++; else a.mainstream_units++;
     a.sen_ehcp += o.sen_ehcp || 0; a.sen_support += o.sen_support || 0;
     if (site.has(o.id)) a.sources_total++; if (monitored.has(o.id)) a.sources_monitored++;

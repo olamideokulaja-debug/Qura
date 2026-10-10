@@ -55,7 +55,11 @@ export default async function handler(req, res) {
       const view = String(req.query.view || "list");
       if (view === "las") {
         const { data } = await sb.from("send_organisations").select("la_code,name,region").eq("org_kind", "local_authority").eq("in_scope", true).order("name");
-        return res.status(200).json({ las: (data || []).map((l) => ({ code: l.la_code, name: l.name, region: l.region })) });
+        // Scotland, Wales and Northern Ireland: councils taken from the schools in each official list.
+        const other = await pageAll(() => sb.from("send_organisations").select("la_code,la_name,region").eq("org_kind", "school").eq("in_scope", true).neq("nation", "england"));
+        const seen = new Map(); for (const o of other) if (o.la_code && !seen.has(o.la_code)) seen.set(o.la_code, { code: o.la_code, name: o.la_name, region: o.region });
+        const all = (data || []).map((l) => ({ code: l.la_code, name: l.name, region: l.region })).concat([...seen.values()]).sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        return res.status(200).json({ las: all });
       }
       if (view === "heat") {
         const schools = await pageAll(() => sb.from("send_organisations").select("id,la_code,la_name,lat,lng,sen_ehcp,sen_support").eq("org_kind", "school").eq("in_scope", true).not("lat", "is", null));
@@ -84,7 +88,7 @@ export default async function handler(req, res) {
     if (b.action === "save") {
       const row = {
         user_id: uid, email: access.user.email || null, name: clean(b.name, 80) || "My territory",
-        la_codes: (Array.isArray(b.la_codes) ? b.la_codes : []).map((x) => clean(x, 6)).filter(Boolean).slice(0, 60),
+        la_codes: (Array.isArray(b.la_codes) ? b.la_codes : []).map((x) => clean(x, 60)).filter(Boolean).slice(0, 60),
         settings: (Array.isArray(b.settings) ? b.settings : []).filter((x) => SETTINGS.includes(x)),
         families: (Array.isArray(b.families) ? b.families : []).map((x) => clean(x, 40)).filter(Boolean).slice(0, 20),
         alerts: b.alerts !== false, briefing: b.briefing !== false, updated_at: new Date().toISOString(),
@@ -112,7 +116,7 @@ export default async function handler(req, res) {
       let vac = null, org = null;
       if (b.vacancy_id) { const { data } = await sb.from("send_vacancies").select("original_title,salary_text,closing_at,contract_type,organisation_id,source_url").eq("id", String(b.vacancy_id)).maybeSingle(); vac = data; }
       const orgId = (vac && vac.organisation_id) || b.organisation_id;
-      if (orgId) { const { data } = await sb.from("send_organisations").select("name,establishment_type,setting_group,la_name,sen_provision,resourced_provision_type,trust_name").eq("id", String(orgId)).maybeSingle(); org = data; }
+      if (orgId) { const { data } = await sb.from("send_organisations").select("name,nation,establishment_type,setting_group,la_name,sen_provision,resourced_provision_type,trust_name").eq("id", String(orgId)).maybeSingle(); org = data; }
       if (!org) return res.status(404).json({ error: "School not found" });
       const key = process.env.ANTHROPIC_API_KEY; if (!key) return res.status(500).json({ error: "AI not configured" });
       const facts = { school: org.name, type: org.establishment_type, council: org.la_name, trust: org.trust_name || null, sen_provision: org.sen_provision || [], unit: org.resourced_provision_type || null, vacancy: vac ? { title: vac.original_title, pay: vac.salary_text || null, closing: vac.closing_at ? vac.closing_at.slice(0, 10) : null, contract: vac.contract_type || null } : null, sender_company: clean(b.company, 120) || null };
@@ -123,7 +127,7 @@ export default async function handler(req, res) {
       const u = data.usage || {}; const pence = ((u.input_tokens || 0) * 80 + (u.output_tokens || 0) * 400) / 1e6;
       await recordUsage(sb, "ai_outreach", 1, Math.round(pence * 100) / 100);
       const text = (data.content || []).filter((x) => x.type === "text").map((x) => x.text).join("").trim();
-      return res.status(200).json({ draft: text, note: "AI first draft. Check every line, add your details, and send it yourself.", source_url: vac ? vac.source_url : null });
+      return res.status(200).json({ draft: text, note: "AI first draft. Check every line, add your details, and send it yourself." + (org.nation === "scotland" ? " The Scottish Government asks commercial callers to seek permission from the local authority before contacting schools directly." : ""), source_url: vac ? vac.source_url : null });
     }
     return res.status(400).json({ error: "Unknown action" });
   } catch (e) {

@@ -129,7 +129,7 @@ function Offer({ offer, onToast, reload }) {
     <div>
       <div className="card" style={{ padding: 20, marginBottom: 14 }}>
         <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>SEND Intelligence</div>
-        <p style={{ marginTop: 0 }}>Every special school, alternative provision and school with an SEN unit in England, the SEND vacancies they post on their own websites each day, council demand and funding, and SEND tenders, early signals and contracts ending soon. Built for specialist staffing and therapy suppliers.</p>
+        <p style={{ marginTop: 0 }}>Every special school, alternative provision and school with an SEN unit in England, with Scotland, Wales and Northern Ireland from their official lists, the SEND vacancies they post on their own websites each day, council demand and funding, and SEND tenders, early signals and contracts ending soon. Built for specialist staffing and therapy suppliers.</p>
         <ul style={{ margin: "0 0 0 18px", padding: 0, lineHeight: 1.7, fontSize: 14 }}>
           <li>About 5,000 schools, with daily checks of their jobs pages</li>
           <li>Territories with morning alerts and a Monday briefing</li>
@@ -178,15 +178,16 @@ function FounderSales({ offer, onToast, reload }) {
 function Overview({ go }) {
   const { data: s, err, loading } = useLoad("/api/send?view=summary");
   if (loading) return <Loading />; if (err) return <Err e={err} />;
-  const e = s.england || {}, live = s.live || {};
+  const e = s.england || {}, live = s.live || {}; const uk = s.uk || null;
   return (<div>
     <Grid>
       {live.vacancies != null && <Stat value={live.vacancies.toLocaleString()} label="live SEND vacancies" onClick={() => go("vacancies")} />}
       {live.open_tenders != null && <Stat value={live.open_tenders.toLocaleString()} label="open SEND tenders" onClick={() => go("tenders")} />}
-      <Stat value={(e.schools || 0).toLocaleString()} label="schools in scope, England" onClick={() => go("schools")} />
-      <Stat value={(e.special || 0).toLocaleString()} label="special schools" onClick={() => go("schools", { setting: "special" })} />
-      <Stat value={(e.ap || 0).toLocaleString()} label="alternative provision and PRUs" onClick={() => go("schools", { setting: "ap" })} />
-      <Stat value={(e.mainstream_units || 0).toLocaleString()} label="mainstream with SEN units" onClick={() => go("schools", { setting: "mainstream_unit" })} />
+      <Stat value={((uk || e).schools || 0).toLocaleString()} label={uk ? "schools in scope, UK" : "schools in scope, England"} onClick={() => go("schools")} />
+      <Stat value={((uk || e).special || 0).toLocaleString()} label="special schools" onClick={() => go("schools", { setting: "special" })} />
+      <Stat value={((uk || e).ap || 0).toLocaleString()} label="alternative provision and PRUs" onClick={() => go("schools", { setting: "ap" })} />
+      <Stat value={((uk || e).mainstream_units || 0).toLocaleString()} label="mainstream with SEN units" onClick={() => go("schools", { setting: "mainstream_unit" })} />
+      {uk && uk.nations && ["scotland", "wales", "northern_ireland"].map((n) => <Stat key={n} value={(uk.nations[n] || 0).toLocaleString()} label={"schools in scope, " + NATIONS[n]} onClick={() => go("schools", { nation: n })} />)}
       <Stat value={(e.trusts || 0).toLocaleString()} label="academy trusts" />
       <Stat value={e.local_authorities || 0} label="councils" onClick={() => go("councils")} />
     </Grid>
@@ -216,16 +217,18 @@ function Vacancies({ onToast, setModal }) {
 
 function Schools({ onToast, setModal, preset }) {
   const p0 = preset || {};
-  const [q, setQ] = useState(p0.q || ""); const [qq, setQQ] = useState(p0.q || ""); const [st, setSt] = useState(p0.setting || ""); const [page, setPage] = useState(1);
-  const { data: r, err, loading } = useLoad("/api/send?view=organisations&page=" + page + (qq ? "&q=" + encodeURIComponent(qq) : "") + (st ? "&setting=" + st : ""));
+  const [q, setQ] = useState(p0.q || ""); const [qq, setQQ] = useState(p0.q || ""); const [st, setSt] = useState(p0.setting || ""); const [page, setPage] = useState(1); const [nat, setNat] = useState(p0.nation || "");
+  const { data: r, err, loading } = useLoad("/api/send?view=organisations&page=" + page + (qq ? "&q=" + encodeURIComponent(qq) : "") + (st ? "&setting=" + st : "") + (nat ? "&nation=" + nat : ""));
   return (<div>
     <form className="row" style={{ gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }} onSubmit={(e) => { e.preventDefault(); setQQ(q); setPage(1); }}>
       <input className="in" placeholder="Search school name" value={q} onChange={(e) => setQ(e.target.value)} />
       <select className="in" value={st} onChange={(e) => { setSt(e.target.value); setPage(1); }}><option value="">All settings</option>{Object.entries(SETTING).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+      <select className="in" value={nat} onChange={(e) => { setNat(e.target.value); setPage(1); }}><option value="">All UK</option>{Object.entries(NATIONS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
       <button className="btn btn-primary" type="submit">Search</button>
       {r && <span className="muted" style={{ fontSize: 12.5 }}>{(r.total || 0).toLocaleString()} schools</span>}
-      <button type="button" className="btn btn-light" onClick={() => download("/api/send-export?what=schools" + (st ? "&setting=" + st : ""), onToast)}>Download CSV</button>
+      <button type="button" className="btn btn-light" onClick={() => download("/api/send-export?what=schools" + (st ? "&setting=" + st : "") + (nat ? "&nation=" + nat : ""), onToast)}>Download CSV</button>
     </form>
+    {(nat === "scotland" || nat === "wales" || nat === "northern_ireland") && <p className="muted" style={{ fontSize: 12.5, marginTop: -4 }}>{nat === "scotland" ? "From the Scottish Government's school contact list: schools with a special department or an integrated special unit. The Scottish Government asks commercial callers to seek permission from the local authority before contacting schools directly." : nat === "wales" ? "From the Welsh Government's address list: maintained special schools and pupil referral units. Independent special schools and SEN units are not yet included." : "From the Department of Education's school census: special schools and schools with specialist provision in mainstream."} Official lists for these nations do not include EHC plan or inspection data, and most give no website, so vacancy checks cover fewer of their schools.</p>}
     {loading ? <Loading /> : err ? <Err e={err} /> : <div className="card" style={{ padding: 12 }}>
       <Table head={["School", "Council", "Pupils", "With EHC plan", "SEN provision", ""]} empty="No schools match.">{r.items.map((o) => <tr key={o.id}><td style={TD}><b>{o.name}</b><br /><span className="muted" style={{ fontSize: 12 }}>{o.establishment_type}{o.status !== "Open" ? " · " + o.status : ""}</span>{o.trust_name && <><br /><span className="muted" style={{ fontSize: 12 }}>{o.trust_name}</span></>}</td><td style={TD}>{o.la_name}<br /><span className="muted" style={{ fontSize: 12 }}>{o.postcode}</span></td><td style={TD}>{o.pupils ?? ""}</td><td style={TD}>{o.sen_ehcp ?? ""}</td><td style={TD}>{(o.sen_provision || []).map((p, i) => <span key={i} style={TAG}>{String(p).split(" - ")[0]}</span>)}{o.resourced_provision_type && <span style={TAG}>{o.resourced_provision_type}</span>}</td><td style={TD}>{o.website && <><a href={o.website} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12.5 }}>Website</a><br /></>}<a href={o.source_ref} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12.5 }}>Official record</a><Actions org={o.name} role="SEND staffing" url={null} note="From SEND Intelligence" draft={{ organisation_id: o.id }} onToast={onToast} setModal={setModal} /></td></tr>)}</Table>
       <Pager total={r.total} page={r.page} size={r.pageSize} onPage={setPage} />
@@ -380,7 +383,7 @@ function MapView() {
   const { data: r, err, loading } = useLoad(mode === "heat" ? "/api/send-territory?view=heat" : "/api/send?view=map");
   useEffect(() => {
     if (!ready || !r || !el.current) return;
-    const L = window.L; const m = L.map(el.current).setView([52.8, -1.6], 6);
+    const L = window.L; const m = L.map(el.current).setView([54.4, -3.4], 5);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18, attribution: "&copy; OpenStreetMap contributors" }).addTo(m);
     if (mode === "heat") {
       const max = Math.max(1, ...r.areas.map((a) => a.live_vacancies || 0));
@@ -458,7 +461,7 @@ export default function SendIntelligence({ onToast }) {
         <h2 style={{ margin: 0 }}>SEND Intelligence</h2>
         <span className="chip" style={{ background: "#E6F4F2", color: "#06776F", fontSize: 11, fontWeight: 700 }}>Pilot</span>
       </div>
-      <p className="muted" style={{ marginTop: 0, fontSize: 13.5 }}>Special schools, alternative provision and SEN units in England: vacancies, councils, tenders and territories.</p>
+      <p className="muted" style={{ marginTop: 0, fontSize: 13.5 }}>Special schools, alternative provision and SEN units across the UK: vacancies, councils, tenders and territories.</p>
       {offer.loading ? <Loading /> : offer.err ? <Err e={offer.err} /> : !offer.data.hasAccess ? <Offer offer={offer.data} onToast={toast} reload={offer.reload} /> : <>
         <div className="row" style={{ gap: 6, flexWrap: "wrap", marginBottom: 14 }}>{TABS.map(([k, l]) => <button key={k} className={"btn " + (k === tab ? "btn-primary" : "btn-light")} style={{ fontSize: 13, padding: "6px 12px" }} onClick={() => pick(k)}>{l}</button>)}</div>
         <View key={tab + JSON.stringify(preset || {})} onToast={toast} setModal={setModal} go={(k, p) => { pick(k, p); try { window.scrollTo(0, 0); } catch (e) {} }} preset={preset} />

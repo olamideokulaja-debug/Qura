@@ -39,6 +39,13 @@ export default async function handler(req, res) {
   if (view === "summary") {
     const count = async (q) => { const { count: c } = await q; return c || 0; };
     const base = () => sb.from("send_organisations").select("id", { count: "exact", head: true }).eq("nation", "england").eq("in_scope", true);
+    // Schools in Scotland, Wales and Northern Ireland come from each nation's official list (10 October 2026).
+    const ukBase = () => sb.from("send_organisations").select("id", { count: "exact", head: true }).eq("in_scope", true).eq("org_kind", "school");
+    const NAT = ["england", "scotland", "wales", "northern_ireland"];
+    const [ukSpecial, ukAp, ukUnits, ...natCounts] = await Promise.all([
+      count(ukBase().eq("setting_group", "special")), count(ukBase().eq("setting_group", "ap")), count(ukBase().eq("setting_group", "mainstream_unit")),
+      ...NAT.map((n) => count(ukBase().eq("nation", n))),
+    ]);
     const [special, ap, units, trusts, las, proprietors, opening, sources, discovered] = await Promise.all([
       count(base().eq("org_kind", "school").eq("setting_group", "special")),
       count(base().eq("org_kind", "school").eq("setting_group", "ap")),
@@ -61,6 +68,7 @@ export default async function handler(req, res) {
     const budget = access.founder ? await budgetLeft(sb) : undefined;
     return res.status(200).json({
       england: { special, ap, mainstream_units: units, schools: special + ap + units, trusts, local_authorities: las, independent_proprietors: proprietors, proposed_to_open: opening },
+      uk: { special: ukSpecial, ap: ukAp, mainstream_units: ukUnits, schools: ukSpecial + ukAp + ukUnits, nations: Object.fromEntries(NAT.map((n, i) => [n, natCounts[i]])) },
       live: { vacancies: liveVac, open_tenders: openTenders },
       opening_soon: soon || [],
       sources: { registered: sources, discovered, coverage_note: "Daily vacancy checks started on 9 October 2026 and fill in over the first days." },
@@ -70,11 +78,12 @@ export default async function handler(req, res) {
   }
   if (view === "organisations") {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    let q = sb.from("send_organisations").select("id,name,setting_group,establishment_type,status,phase,age_low,age_high,town,postcode,la_name,region,website,phone,trust_name,proprietor_name,sen_provision,resourced_provision_type,pupils,sen_ehcp,sen_support,open_date,last_inspection,source_ref,last_verified_at,lat,lng", { count: "exact" })
+    let q = sb.from("send_organisations").select("id,nation,name,setting_group,establishment_type,status,phase,age_low,age_high,town,postcode,la_name,region,website,phone,trust_name,proprietor_name,sen_provision,resourced_provision_type,pupils,sen_ehcp,sen_support,open_date,last_inspection,source_ref,last_verified_at,lat,lng", { count: "exact" })
       .eq("in_scope", true).eq("org_kind", "school");
     if (req.query.setting) q = q.eq("setting_group", String(req.query.setting));
     if (req.query.la) q = q.eq("la_code", String(req.query.la));
     if (req.query.region) q = q.eq("region", String(req.query.region));
+    if (["england", "scotland", "wales", "northern_ireland"].includes(req.query.nation)) q = q.eq("nation", req.query.nation);
     if (req.query.q) q = q.ilike("name", "%" + String(req.query.q).replace(/[%_]/g, "").slice(0, 60) + "%");
     const { data, count, error } = await q.order("name").range((page - 1) * PAGE, page * PAGE - 1);
     if (error) return res.status(500).json({ error: error.message });
@@ -97,7 +106,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ golden: st.golden || null, latest: runs[runs.length - 1] || null, trend: runs.map((r) => ({ at: r.at, jobs_found_pct: r.extractor && r.extractor.jobs_found_pct, send_recall_pct: r.classifier && r.classifier.send_recall_pct, still_advertised_pct: r.live && r.live.still_advertised_pct })) });
   }
   if (view === "coverage") {
-    const { data, error } = await sb.from("send_area_metrics").select("*").eq("nation", "england").eq("area_kind", "local_authority").order("area_name");
+    const { data, error } = await sb.from("send_area_metrics").select("*").eq("area_kind", "local_authority").order("nation").order("area_name");
     if (error) return res.status(500).json({ error: error.message });
     const st = (await kvGet("shared", "send_discover_state")) || {};
     const vs = (await kvGet("shared", "send_vacancy_state")) || {};
