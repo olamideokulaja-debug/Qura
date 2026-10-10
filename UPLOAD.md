@@ -1,18 +1,12 @@
-# Update: the new clinician film on For clinicians
+# Update: remove the last "22 September" wording from the app
 
-Replaces the August clinician film, which still said "we open on the twenty second of September", with the 56s rebuild that ends on the founding offer.
+Upload `src/App.jsx`, replacing the existing file. Nothing else changes.
 
-## Upload (add these, nothing to delete)
-
-| File | Folder | What it is |
+| Line | Was | Now |
 |---|---|---|
-| `qura-clinician-film-56s.mp4` | `public` | The 56s film, 1080p, web-compressed (19 MB) |
-| `qura-clinician-film-56s-subtitles.vtt` | `public` | Captions, on by default |
-| `qura-clinician-film-56s-poster.jpg` | `public` | Poster: "You qualified to do the work." |
-| `clinician.jsx` | `src/pages` | Replaces the existing file. The player now uses the three new files, and the line above it reads "56 seconds on why clinicians join Qura." |
+| 409 | "Illustrative profiles, shown until launch on 22 September. Not real people or messages." | "Illustrative profiles, shown until real ones are here. Not real people or messages." |
+| 4856 | "Organisation accounts open on 22 September, or sooner by requesting early access on the home page." | "Organisation accounts are opening shortly. Request early access on the home page." |
 
-The old `qura-clinician-film*.mp4/.vtt/.jpg` files can stay in `public` for now. Nothing links to them after this update, so they can be deleted later.
+Both messages only appear under pre-launch conditions, so no visitor should see either one today. This removes the date in case either condition ever comes back.
 
-## After upload
-
-Vercel rebuilds on its own. Tell me and I'll check that the For clinicians page plays the new film with captions and the new poster.
+This copy of App.jsx was taken from GitHub just now and includes every earlier change. Line 3999 ("Live since 22 September 2026") is correct and stays.

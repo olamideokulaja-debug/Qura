@@ -406,7 +406,7 @@ const OWNER_EMAILS = (import.meta.env.VITE_OWNER_EMAILS || "").split(",").map((x
 const SampleNote = ({ what }) => (
   <div className="card" style={{ padding: "10px 14px", marginBottom: 14, background: "var(--cyan-soft)", border: "none" }}>
     <span className="row" style={{ gap: 8, fontSize: 12.5, color: "#06776F", fontWeight: 600 }}>
-      <Sparkles size={13} /> Illustrative {what}, shown until launch on 22 September. Not real people or messages.
+      <Sparkles size={13} /> Illustrative {what}, shown until real ones are here. Not real people or messages.
     </span>
   </div>
 );
@@ -4853,7 +4853,7 @@ function RoleChoiceScreen({ onPick, onHome }) {
         {!businessOpen ? (
           <div className="card" style={{ padding: "12px 16px", margin: "0 0 18px", background: "rgba(0,194,184,.12)", border: "1px solid rgba(0,194,184,.3)" }}>
             <div style={{ fontSize: 13, lineHeight: 1.6, color: "#EEF3FF" }}>
-              Clinician accounts are open now and free. Organisation accounts open on 22 September, or sooner by requesting early access on the home page.
+              Clinician accounts are open now and free. Organisation accounts are opening shortly. Request early access on the home page.
             </div>
           </div>
         ) : null}
