@@ -1,12 +1,21 @@
-# Update: remove the last "22 September" wording from the app
+# Update: the new 2-minute platform demo
 
-Upload `src/App.jsx`, replacing the existing file. Nothing else changes.
+This replaces the 6-minute August demo. The new one plays in both places the old one did:
+- **Book a demo → Watch the demo** on the site;
+- **Watch the demo again** inside the app.
 
-| Line | Was | Now |
+## Upload
+
+| File | Folder | What it is |
 |---|---|---|
-| 409 | "Illustrative profiles, shown until launch on 22 September. Not real people or messages." | "Illustrative profiles, shown until real ones are here. Not real people or messages." |
-| 4856 | "Organisation accounts open on 22 September, or sooner by requesting early access on the home page." | "Organisation accounts are opening shortly. Request early access on the home page." |
+| `qura-platform-demo-2026.mp4` | `public` | The demo, 1080p, web-compressed (29 MB) |
+| `qura-platform-demo-2026-subtitles.vtt` | `public` | Captions, on by default |
+| `App.jsx` | `src` | Replaces the existing file. The player uses the two new files, and captions are now on by default. The menu line changes from "Six minutes through the whole platform" to "Two minutes through the platform", and "Six minutes, on demand, no booking" becomes "Two minutes, on demand, no booking". |
 
-Both messages only appear under pre-launch conditions, so no visitor should see either one today. This removes the date in case either condition ever comes back.
+Commit with **Commit changes**. GitHub should list `src/App.jsx` with 4 lines changed.
 
-This copy of App.jsx was taken from GitHub just now and includes every earlier change. Line 3999 ("Live since 22 September 2026") is correct and stays.
+`App.jsx` was copied from GitHub just now and includes every earlier change. The old `public/qura-platform-demo.mp4` stays until you're happy, and nothing links to it after this update.
+
+## After upload
+
+Vercel rebuilds on its own. Then tell me and I'll check that Watch the demo plays the new film with captions.

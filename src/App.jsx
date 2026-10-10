@@ -3609,7 +3609,7 @@ const NAV = [
   { k: "platform", l: "Platform", items: [
     ["How it works", "how:walk", "Step through Qura by lens"],
     ["Inside the platform", "how:gallery", "Real screens, page by page"],
-    ["Watch the demo", "demo:video", "Six minutes through the whole platform"],
+    ["Watch the demo", "demo:video", "Two minutes through the platform"],
     ["Marketplace", "market", "The live marketplace, every market"],
     ["Solutions", "solutions", "What Qura solves, by organisation"],
   ] },
@@ -3923,7 +3923,7 @@ function Landing({ onEnter, onDemo, earlyFocus, onJoin, onOpen, signedIn }) {
                       style={{ width: "100%", textAlign: "left", padding: "10px 12px", borderRadius: 9, border: "none", cursor: "pointer", background: "transparent" }}
                     >
                       <span style={{ display: "block", fontWeight: 600, fontSize: 13.5, color: "var(--text)" }}>Watch the demo now</span>
-                      <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>Six minutes, on demand, no booking</span>
+                      <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", marginTop: 1 }}>Two minutes, on demand, no booking</span>
                     </button>
                     <button
                       onClick={() => { setDemoMenu(false); onEnter(); }}
@@ -4937,14 +4937,14 @@ function QuraDemoModal({ onClose }) {
     <div ref={box} style={{ position: "fixed", inset: 0, zIndex: 120, background: "#050D1C", display: "grid", placeItems: "center" }}>
       <video
         ref={vid}
-        src="/qura-platform-demo.mp4"
+        src="/qura-platform-demo-2026.mp4"
         controls
         autoPlay
         playsInline
         onEnded={finish}
         style={{ width: "100%", height: "100%", objectFit: "contain", background: "#050D1C" }}
       >
-        <track kind="captions" srcLang="en" label="English" src="/qura-platform-demo.vtt" />
+        <track kind="captions" srcLang="en" label="English" default src="/qura-platform-demo-2026-subtitles.vtt" />
       </video>
       <button
         onClick={finish}
