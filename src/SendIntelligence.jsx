@@ -283,6 +283,9 @@ function TerritoryDetail({ id, onBack, onToast, setModal }) {
   </div>);
 }
 
+// Ofsted and CQC area SEND inspection outcome (the local area partnership as a whole).
+const AREA = { "Widespread and/or systemic failings": ["Area SEND: systemic failings", "#FDECEC", "#9B1C1C"], "Inconsistent experiences and outcomes": ["Area SEND: inconsistent", "#FFF4E0", "#8A5300"], "Typically positive experiences and outcomes": ["Area SEND: positive", "#E6F4F2", "#06776F"] };
+const AreaTag = ({ a }) => (a && AREA[a.outcome] ? <span style={FLAG(AREA[a.outcome][1], AREA[a.outcome][2])} title={a.outcome + (a.published ? ", published " + a.published : "")}>{AREA[a.outcome][0]}</span> : null);
 const COUNCIL_SORT = { ehcp_growth_1y: "EHC plans, 1-year growth", ehcp_growth_5y: "EHC plans, 5-year growth", ehcp: "EHC plans, total", requests_growth_1y: "Assessment requests, 1-year growth", pct_20wk_low: "Plans issued within 20 weeks (lowest first)", hn_growth: "High needs funding growth", inclusion_concerns: "Ofsted inclusion concerns", renewals: "Contracts ending in 18 months", open: "Open SEND tenders", live_vacancies: "Live vacancies seen" };
 const Growth = ({ v }) => (v == null ? <span>—</span> : <span style={{ color: v > 0 ? "#B42318" : "#0E8C7E", fontWeight: 700 }}>{pct(v)}</span>);
 
@@ -292,20 +295,20 @@ function Councils({ onToast }) {
   if (open) return <CouncilDetail code={open} onBack={() => setOpen(null)} onToast={onToast} />;
   if (loading) return <Loading />; if (err) return <Err e={err} />;
   let list = r.councils.filter((c) => c.ehcp != null);
-  if (flt === "sv") list = list.filter((c) => c.safety_valve); if (flt === "dbv") list = list.filter((c) => c.dbv);
+  if (flt === "sv") list = list.filter((c) => c.safety_valve); if (flt === "dbv") list = list.filter((c) => c.dbv); if (flt === "fail") list = list.filter((c) => c.area_send && /systemic/.test(c.area_send.outcome));
   const key = (c) => (sort === "pct_20wk_low" ? -(c.pct_20wk ?? 999) : sort === "renewals" || sort === "open" ? c.tenders[sort] : (c[sort] ?? -1e9));
   list = [...list].sort((a, b) => key(b) - key(a));
   return (<div>
     <div style={NOTE}>Where SEND demand is growing and money is under pressure. Figures come from official sources (listed below the table); Qura's own figures are vacancies and tenders it has seen. A fast-growing council with low coverage may still be under-reported here.</div>
     <div className="row" style={{ gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
       <select className="in" value={sort} onChange={(e) => setSort(e.target.value)}>{Object.entries(COUNCIL_SORT).map(([k, l]) => <option key={k} value={k}>Sort: {l}</option>)}</select>
-      <select className="in" value={flt} onChange={(e) => setFlt(e.target.value)}><option value="">All councils</option><option value="sv">Have had a Safety Valve agreement</option><option value="dbv">Delivering Better Value councils</option></select>
+      <select className="in" value={flt} onChange={(e) => setFlt(e.target.value)}><option value="">All councils</option><option value="sv">Have had a Safety Valve agreement</option><option value="dbv">Delivering Better Value councils</option><option value="fail">Area SEND inspection: systemic failings</option></select>
       <span className="muted" style={{ fontSize: 12.5 }}>{list.length} councils</span>
       <button className="btn btn-light" onClick={() => download("/api/send-export?what=councils", onToast)}>Download CSV</button>
     </div>
     <div className="card" style={{ padding: 12, marginBottom: 14 }}>
       <Table head={["Council", "EHC plans", "1 year", "5 years", "Requests, 1 year", "Within 20 weeks", "High needs 2026-27", "Ofsted concerns", "Tenders", "Vacancies", ""]} empty="Council figures load from the first data run.">{list.map((c) => <tr key={c.code}>
-        <td style={TD}><b>{c.name}</b><br />{c.safety_valve && <span style={FLAG("#FDECEC", "#9B1C1C")}>Safety Valve {c.sv_year}</span>}{c.dbv && <span style={FLAG("#FFF4E0", "#8A5300")}>DBV</span>}{c.ehcp_note && <span style={TAG} title={c.ehcp_note}>Data break</span>}</td>
+        <td style={TD}><b>{c.name}</b><br />{c.safety_valve && <span style={FLAG("#FDECEC", "#9B1C1C")}>Safety Valve {c.sv_year}</span>}{c.dbv && <span style={FLAG("#FFF4E0", "#8A5300")}>DBV</span>}<AreaTag a={c.area_send} />{c.ehcp_note && <span style={TAG} title={c.ehcp_note}>Data break</span>}</td>
         <td style={TD}>{(c.ehcp || 0).toLocaleString()}</td><td style={TD}><Growth v={c.ehcp_growth_1y} /></td><td style={TD}><Growth v={c.ehcp_growth_5y} /></td><td style={TD}><Growth v={c.requests_growth_1y} /></td><td style={TD}>{c.pct_20wk == null ? "—" : c.pct_20wk + "%"}</td>
         <td style={TD}>{money(c.hn_now)}<br /><span className="muted" style={{ fontSize: 12 }}>{pct(c.hn_growth)}</span></td><td style={TD}>{c.inclusion_concerns || ""}</td>
         <td style={TD} className="muted">{c.tenders.open ? c.tenders.open + " open" : ""}{c.tenders.signals ? <><br />{c.tenders.signals} early</> : ""}{c.tenders.renewals ? <><br />{c.tenders.renewals} ending</> : ""}</td>
@@ -324,7 +327,7 @@ function CouncilDetail({ code, onBack, onToast }) {
   const c = r.council; const years = Object.keys(c.ehcp || {}).sort(); const max = Math.max(1, ...years.map((y) => (c.ehcp[y] || {}).total || 0));
   const section = (title, list, empty) => <div className="card" style={{ padding: 12, marginBottom: 14 }}><b>{title}</b><Table head={["Notice", "Buyer", "Value", "Dates", "Suppliers"]} empty={empty}><TenderRows items={list} /></Table></div>;
   return (<div>
-    <div className="row" style={{ gap: 8, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}><button className="btn btn-light" onClick={onBack}>All councils</button><b>{c.la_name}</b>{c.safety_valve && <a style={FLAG("#FDECEC", "#9B1C1C")} href={c.sv_url} target="_blank" rel="noopener noreferrer">Safety Valve agreement {c.sv_year}</a>}{c.dbv && <span style={FLAG("#FFF4E0", "#8A5300")}>Delivering Better Value, tranche {c.dbv_tranche}</span>}</div>
+    <div className="row" style={{ gap: 8, marginBottom: 12, alignItems: "center", flexWrap: "wrap" }}><button className="btn btn-light" onClick={onBack}>All councils</button><b>{c.la_name}</b>{c.safety_valve && <a style={FLAG("#FDECEC", "#9B1C1C")} href={c.sv_url} target="_blank" rel="noopener noreferrer">Safety Valve agreement {c.sv_year}</a>}{c.dbv && <span style={FLAG("#FFF4E0", "#8A5300")}>Delivering Better Value, tranche {c.dbv_tranche}</span>}{c.area_send_outcome && AREA[c.area_send_outcome] && <a style={FLAG(AREA[c.area_send_outcome][1], AREA[c.area_send_outcome][2])} href={c.area_send_url} target="_blank" rel="noopener noreferrer">{AREA[c.area_send_outcome][0]}{c.area_send_published ? " (" + date(c.area_send_published) + ")" : ""}</a>}</div>
     <Grid><Stat value={(c.ehcp_latest || 0).toLocaleString()} label="EHC plans, January 2026" /><Stat value={pct(c.ehcp_growth_1y)} label={"in 1 year (" + pct(c.ehcp_growth_5y) + " in 5)"} /><Stat value={(c.requests_latest || 0).toLocaleString()} label={"assessment requests in 2025 (" + pct(c.requests_growth_1y) + ")"} /><Stat value={c.pct_20wk == null ? "—" : c.pct_20wk + "%"} label="new plans issued within 20 weeks" /><Stat value={money(c.hn_now)} label={"high needs 2026-27 (" + pct(c.hn_growth) + " on 2025-26)"} /></Grid>
     {c.ehcp_note && <div style={NOTE}>{c.ehcp_note}</div>}
     <div className="card" style={{ padding: 12, marginBottom: 14 }}><b>EHC plans by year</b> <span className="muted" style={{ fontSize: 12.5 }}>Where plans name a setting, January 2026: special {(c.ehcp_special || 0).toLocaleString()}, mainstream {(c.ehcp_mainstream || 0).toLocaleString()}, alternative provision {(c.ehcp_ap || 0).toLocaleString()}, independent special {(c.ehcp_indep_special || 0).toLocaleString()}.</span>
