@@ -368,7 +368,8 @@ import { extraScreen } from "./extraScreens.jsx";
 import AuthPanel from "./AuthPanel.jsx";
 import ClinicianRegistration from "./ClinicianRegistration.jsx";
 import { CLIN_TAGLINES, CLIN_UNIVERSAL, CLIN_TABS, CLIN_COUNTRIES, ClinicianSection } from "./pages/clinician.jsx";
-import { AgencyFilm, SendFilm } from "./pages/agency.jsx";
+import { AgencyFilm } from "./pages/agency.jsx";
+import SendSection from "./pages/send.jsx";
 import { APP_NAME } from "./constants.js";
 import { initAnalytics, trackPage, setMarketingMode, track } from "./lib/analytics.js";
 import { QuraLogo, Wordmark, Avatar, useCountUp, Stat, Kpi, SectionHead, PageHead, Toggle, Stars, Reveal, PulseLine, DemoTag, IllustrativeBanner } from "./components/ui.jsx";
@@ -3621,75 +3622,7 @@ const SUPPLIER_TAGLINES = [
 
 
 
-// The SEND tab (10 October 2026): SEND Intelligence for specialist SEND staffing
-// and therapy suppliers. Same pattern as every other public view: one section,
-// shown when the view is "send", at /send. The film ends on the Founding SEND
-// Partner offer; registering interest opens the SEND screen in the app.
-const SEND_FEATURES = [
-  [Building2, "Schools", "About 5,000 schools", "Every special school, alternative provision and school with an SEN unit in England, from the official list, with daily checks of their own jobs pages."],
-  [Search, "Vacancies", "Live SEND vacancies", "Posted on schools' own websites, picked up by the daily checks and linked to the original advert."],
-  [FileText, "Tenders", "Tenders and renewals", "SEND tenders, pre-tender notices, frameworks and contracts coming up for renewal, so you are ready before they land."],
-  [Network, "Councils", "Councils under pressure", "EHC plan growth, assessment delays, high-needs funding, Safety Valve and Delivering Better Value, and Ofsted concerns."],
-  [Bell, "Territories", "A morning alert, a Monday briefing", "Choose your councils, settings and professions. Matching vacancies arrive each morning, with a briefing every Monday."],
-  [Sparkles, "Outreach", "Drafted in seconds", "An AI first draft for each vacancy, plus exports and your Qura pipeline. You check every line and send it yourself."],
-];
-function SendSection() {
-  return (
-    <div className="sec send">
-      <div style={{ background: "linear-gradient(160deg,#0A1A30,#13243F)", color: "#fff", padding: "56px 24px 48px" }}>
-        <div className="wrap">
-          <div style={{ textAlign: "center", maxWidth: 780, margin: "0 auto 30px" }}>
-            <span className="chip chip-cyan" style={{ background: "rgba(0,194,184,.15)", color: "var(--cyan)" }}>SEND Intelligence</span>
-            <h1 className="disp" style={{ fontSize: "clamp(28px,4.6vw,46px)", fontWeight: 700, margin: "16px 0 12px", lineHeight: 1.1 }}>
-              Every special school. Every vacancy. <span style={{ color: "var(--cyan)" }}>Every morning.</span>
-            </h1>
-            <p style={{ color: "#AEBED6", fontSize: 16.5, lineHeight: 1.6, margin: "0 0 22px" }}>
-              For specialist SEND staffing and therapy suppliers. Qura checks the jobs pages of special schools, alternative provision and SEN units across England every day, and puts the vacancies, tenders and council signals in one place.
-            </p>
-            <div className="row" style={{ gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-              <a href="/?open=send" className="btn lift" style={{ background: "var(--cyan)", color: "var(--navy)", fontWeight: 800, padding: "12px 24px", textDecoration: "none" }}>Register your interest</a>
-              <a href="/send-data" className="btn" style={{ background: "transparent", color: "#fff", border: "1px solid #3B5A88", fontWeight: 700, padding: "12px 24px", textDecoration: "none" }}>How we use public data</a>
-            </div>
-          </div>
-          <SendFilm cta={false} />
-        </div>
-      </div>
-      <style>{".send-feats{display:grid;gap:16px;grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:28px}@media(max-width:960px){.send-feats{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.send-feats{grid-template-columns:1fr}}"}</style>
-      <div className="wrap" style={{ padding: "52px 24px 56px", maxWidth: 1240 }}>
-        <div style={{ textAlign: "center", maxWidth: 660, margin: "0 auto 28px" }}>
-          <div className="eyebrow" style={{ color: "#06776F" }}>What you see each morning</div>
-          <h2 className="disp" style={{ fontSize: "clamp(24px,3.4vw,34px)", fontWeight: 700, margin: "10px 0 0" }}>One place for SEND demand</h2>
-        </div>
-        <div className="send-feats">
-          {SEND_FEATURES.map(([Ic, k, h, b]) => (
-            <div key={k} className="card lift" style={{ padding: 24 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 12, background: "var(--cyan-soft)", display: "grid", placeItems: "center", marginBottom: 12 }}><Ic size={20} color="#06776F" /></div>
-              <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "#06776F" }}>{k}</div>
-              <div style={{ fontWeight: 700, fontSize: 16.5, margin: "4px 0 6px" }}>{h}</div>
-              <div className="muted" style={{ fontSize: 14, lineHeight: 1.55 }}>{b}</div>
-            </div>
-          ))}
-        </div>
-        <div style={{ background: "linear-gradient(160deg,#0A1A30,#13243F)", color: "#fff", borderRadius: 18, padding: "28px 30px", display: "flex", gap: 24, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
-          <div style={{ maxWidth: 600 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase", color: "var(--cyan)" }}>Founding SEND Partner</div>
-            <div className="disp" style={{ fontSize: "clamp(22px,3vw,30px)", fontWeight: 700, margin: "8px 0" }}>5 places. 50% off for 12 months.</div>
-            <div style={{ color: "#C4D0E2", fontSize: 14.5, lineHeight: 1.55 }}>The first five SEND customers get half price for their first year, with no setup fee. Places open soon: register your interest and a founder will be in touch.</div>
-          </div>
-          <a href="/?open=send" className="btn lift" style={{ background: "var(--cyan)", color: "var(--navy)", fontWeight: 800, padding: "12px 24px", textDecoration: "none" }}>Register your interest</a>
-        </div>
-        <div className="card" style={{ padding: "22px 26px" }}>
-          <div className="row" style={{ gap: 8, marginBottom: 10 }}><ShieldCheck size={18} color="#06776F" /><b>Built on public data</b></div>
-          <ul className="muted" style={{ margin: 0, paddingLeft: 20, lineHeight: 1.7, fontSize: 14.5 }}>
-            <li>Schools come from Get Information about Schools (Department for Education), under the Open Government Licence.</li>
-            <li>Vacancies come only from school, trust and council pages Qura is allowed to check. Coverage is partial and shown openly.</li>
-            <li>Qura holds no data about pupils, families or EHC plans. <a href="/send-data">How Qura uses data</a>.</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  );
-}
+// The SEND tab lives in src/pages/send.jsx (moved 10 October 2026 so it can change without this file).
 
 function SupplierAppSection() {
   return (
