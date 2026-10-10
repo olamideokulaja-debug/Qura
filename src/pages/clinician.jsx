@@ -73,7 +73,7 @@ export function ClinicianSection({ onEnter }) {
   const [country, setCountry] = useState(CLIN_TABS[0]);
   const c = CLIN_COUNTRIES[country];
   return (
-    <div id="clinicians" className="sec clinicians" style={{ background: "var(--navy)", color: "#fff", padding: "84px 24px" }}>
+    <div id="clinicians" className="sec clinicians" style={{ background: "var(--navy)", color: "#fff", padding: "56px 24px 60px" }}>
       <div className="wrap">
         <div style={{ textAlign: "center", maxWidth: 760, margin: "0 auto 10px" }}>
           <span className="chip chip-cyan" style={{ background: "rgba(0,194,184,.15)", color: "var(--cyan)" }}>For clinicians</span>
@@ -99,18 +99,20 @@ export function ClinicianSection({ onEnter }) {
 
         <ClinicianFilm onEnter={onEnter} />
 
-        <div style={{ display: "grid", gap: 12, maxWidth: 820, margin: "0 auto 20px", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))" }}>
+        <div style={{ display: "grid", gap: 12, maxWidth: 1080, margin: "0 auto 20px", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,260px),1fr))" }}>
           {CLIN_TAGLINES.map((t, i) => (
             <div key={i} style={{ background: "rgba(255,255,255,.06)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 14, padding: "16px 18px", fontSize: 15, lineHeight: 1.5 }}>{t}</div>
           ))}
         </div>
-        <div style={{ maxWidth: 820, margin: "0 auto 26px", textAlign: "center", color: "#AEBED6", fontSize: 14.5, lineHeight: 1.65 }}>
+        <div style={{ maxWidth: 820, margin: "0 auto 22px", textAlign: "center", color: "#AEBED6", fontSize: 14.5, lineHeight: 1.65 }}>
           Clinical managers rarely give feedback in the time frames shown in adverts. It is not that they do not want to, they are overwhelmed and cannot keep up. Qura puts your verified profile in front of them, so the people hiring can find you rather than losing you in a pile of applications. You stay in control of what happens next.
         </div>
 
         {/* Discoverability without a clear answer on control is a reason not to
             join. Said plainly and near the sign-up, not buried in a policy. */}
-        <div style={{ maxWidth: 820, margin: "0 auto 26px", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: "20px 22px" }}>
+        {/* Side by side on wide screens (10 October 2026): stacked at 820 px they left wide empty margins. */}
+        <div style={{ display: "grid", gap: 14, maxWidth: 1080, margin: "0 auto 22px", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,400px),1fr))" }}>
+        <div style={{ background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: "20px 22px" }}>
           <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>You control who sees you</div>
           <div style={{ fontSize: 14, lineHeight: 1.65, color: "#C6D4E8" }}>
             Your profile is only visible to verified healthcare organisations on Qura, and
@@ -122,7 +124,7 @@ export function ClinicianSection({ onEnter }) {
 
         {/* The strongest clinician argument, and the one the site was not making:
             you do not have to be job hunting for Qura to be worth joining. */}
-        <div style={{ maxWidth: 820, margin: "0 auto 26px", background: "rgba(0,194,184,.08)", border: "1px solid rgba(0,194,184,.25)", borderRadius: 18, padding: "22px 24px" }}>
+        <div style={{ background: "rgba(0,194,184,.08)", border: "1px solid rgba(0,194,184,.25)", borderRadius: 18, padding: "20px 22px" }}>
           <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 8 }}>Happy where you are? Stay discoverable.</div>
           <div style={{ fontSize: 14.5, lineHeight: 1.65, color: "#C6D4E8" }}>
             You do not have to be looking to be worth finding. Keep a verified profile,
@@ -130,8 +132,9 @@ export function ClinicianSection({ onEnter }) {
             come to you. You choose what happens next, and nothing is shared without you.
           </div>
         </div>
+        </div>
 
-        <div style={{ maxWidth: 900, margin: "0 auto", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 22 }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto", background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.1)", borderRadius: 18, padding: 22 }}>
           <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4, textAlign: "center" }}>Where can your skills take you?</div>
           <div className="muted" style={{ fontSize: 13.5, textAlign: "center", marginBottom: 16, color: "#AEBED6" }}>
             Regulators, requirements and routes, country by country. Useful whether you are
