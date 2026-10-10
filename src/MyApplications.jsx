@@ -15,6 +15,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Check, Clock, Circle, Target, Info } from "lucide-react";
+import ExternalTracker from "./ExternalTracker.jsx";
 import { PageHead } from "./components/ui.jsx";
 import { supabase } from "./supabase.js";
 
@@ -35,6 +36,7 @@ const EMPLOYER = ["Viewed", "Under review", "Shortlisted", "Interview", "Offer",
 
 export default function MyApplications() {
   const [apps, setApps] = useState(null);
+  const [extCount, setExtCount] = useState(0);
 
   const load = useCallback(async () => {
     try {
@@ -67,7 +69,10 @@ export default function MyApplications() {
         </div>
       </div>
 
-      {!apps.length ? (
+      {/* Roles opened on NHS Jobs and other sites (10 October 2026). */}
+      <ExternalTracker onCount={setExtCount} />
+
+      {!apps.length && extCount ? null : !apps.length ? (
         <div className="card" style={{ padding: 20 }}>
           <div style={{ fontWeight: 700, fontSize: 15 }}>No applications yet</div>
           <div className="muted" style={{ fontSize: 14, marginTop: 6, lineHeight: 1.6 }}>

@@ -74,6 +74,12 @@ export default async function handler(req, res) {
   // already taken stay in Stripe, as above.
   try { await deleteBilling(id); } catch (e) {}
 
+  // Application outcome tracking rows (10 October 2026).
+  try {
+    const { error } = await admin.from("application_tracking").delete().eq("user_id", id);
+    if (error) problems.push("application_tracking: " + error.message);
+  } catch (e) {}
+
   // 2. Everything they own in the kv table.
   const { error: kvErr } = await admin.from("kv").delete().eq("owner", id);
   if (kvErr) problems.push("kv: " + kvErr.message);

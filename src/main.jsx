@@ -22,7 +22,9 @@ try {
 // The app remembers the open screen per role in window.storage, so the link
 // writes that value for the supplier and operator workspaces before the app
 // starts, then tidies the address bar. Only screens listed here can be opened.
-const OPENABLE = { send: ["overview", "vacancies", "territories", "councils", "tenders", "schools", "map", "coverage", "insights"] };
+// /?open=myapps opens a clinician's My applications (application reminder emails, 10 October 2026).
+const OPENABLE = { send: ["overview", "vacancies", "territories", "councils", "tenders", "schools", "map", "coverage", "insights"], myapps: [] };
+const OPEN_ROLES = { send: ["agency", "operator"], myapps: ["clinician"] };
 async function applyDeepLink() {
   try {
     const p = new URLSearchParams(window.location.search);
@@ -30,7 +32,7 @@ async function applyDeepLink() {
     if (!open || !OPENABLE[open]) return;
     const tab = p.get("tab");
     if (tab && OPENABLE[open].includes(tab)) { try { sessionStorage.setItem("qura_send_tab", tab); } catch (e) {} }
-    await Promise.all(["agency", "operator"].map((r) => window.storage.set("cura_active_" + r, JSON.stringify(open)).catch(() => null)));
+    await Promise.all(OPEN_ROLES[open].map((r) => window.storage.set("cura_active_" + r, JSON.stringify(open)).catch(() => null)));
     p.delete("open"); p.delete("tab");
     const q = p.toString();
     window.history.replaceState({}, "", window.location.pathname + (q ? "?" + q : "") + window.location.hash);
